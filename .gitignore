@@ -1,0 +1,19 @@
+# File types
+*.dat
+*.pkl
+*.txt
+*.pdf
+*.sw*
+*.png
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+
+# jupyter checkpoints
+.ipynb_checkpoints
