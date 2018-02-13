@@ -235,6 +235,9 @@ def param_est_diagram(run_list, **kwargs):
     nlogx = kwargs.pop('nlogx', npoints)
     ny_posterior = kwargs.pop('ny_posterior', npoints)
     figsize = kwargs.pop('figsize', (6.4, 2 * (1 + len(fthetas))))
+    colors = kwargs.pop('colors', ['red', 'blue', 'grey', 'green', 'orange'])
+    colormaps = kwargs.pop('colormaps', ['Reds_r', 'Blues_r', 'Greys_r',
+                                         'Greens_r', 'Oranges_r'])
     if kwargs:
         raise TypeError('Unexpected **kwargs: %r' % kwargs)
     assert len(fthetas) == len(labels)
@@ -245,10 +248,17 @@ def param_est_diagram(run_list, **kwargs):
                              gridspec_kw={'wspace': 0,
                                           'hspace': 0,
                                           'width_ratios': [15, 40]})
+    # make colorbar axes in top left corner
     axes[0, 0].set_visible(False)
-    colors = ['red', 'blue', 'grey', 'green', 'orange']
-    colormaps = ['Reds_r', 'Blues_r', 'Greys_r', 'Greens_r', 'Oranges_r']
-    # plot in reverse order so reds are done last and on top
+    divider = mpl_toolkits.axes_grid1.make_axes_locatable(axes[0, 0])
+    colorbar_ax_list = []
+    for i in range(len(run_list)):
+        colorbar_ax_list.append(divider.append_axes("left", size=0.05,
+                                pad=0.05))
+    # Reverse color bar axis order so when an extra run is added the other
+    # colorbars stay in the same place
+    colorbar_ax_list = list(reversed(colorbar_ax_list))
+    # plot runs in reverse order to put the first run on top
     for nrun, run in reversed(list(enumerate(run_list))):
         if cache_in is not None:
             if nrun != len(run_list) - 1:
@@ -295,15 +305,15 @@ def param_est_diagram(run_list, **kwargs):
         ax_weight.set_xticklabels([])
         # color bar plot
         # --------------
-        divider = mpl_toolkits.axes_grid1.make_axes_locatable(axes[0, 0])
-        colorbar_ax = divider.append_axes("left", size="10%")
-        # spacing = divider.append_axes("left", size="50%")
-        # spacing.set_visible(False)
-        colorbar_plot = plt.colorbar(cbar, cax=colorbar_ax, ticks=[1, 2, 3])
-        colorbar_ax.yaxis.set_ticks_position('left')
+        colorbar_plot = plt.colorbar(cbar, cax=colorbar_ax_list[nrun],
+                                     ticks=[1, 2, 3])
+        colorbar_ax_list[nrun].yaxis.set_ticks_position('left')
         colorbar_plot.solids.set_edgecolor('face')
-        colorbar_plot.ax.set_yticklabels(
-            [r'$1\sigma$', r'$2\sigma$', r'$3\sigma$'])
+        if nrun == 0:
+            colorbar_plot.ax.set_yticklabels(
+                [r'$1\sigma$', r'$2\sigma$', r'$3\sigma$'])
+        else:
+            colorbar_plot.ax.set_yticklabels([])
         # samples plot
         # ------------
         run['logx'] = ar.get_logx(run['nlive_array'], simulate=False)
