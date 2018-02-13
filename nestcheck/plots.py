@@ -203,10 +203,9 @@ def bs_param_dists(run_list, **kwargs):
     return fig
 
 
-def param_est_diagram(run_list, **kwargs):
+def param_logx_diagram(run_list, **kwargs):
     """
-    Creates parameter estimation diagrams using the
-    settings module for likelihoods and the specified estimator.
+    Creates parameter estimation diagrams using the specified estimators.
     """
     if not isinstance(run_list, list):
         run_list = [run_list]
@@ -265,7 +264,7 @@ def param_est_diagram(run_list, **kwargs):
                 cache_in = cache_in[:-2]
             cache_in += '_' + str(nrun)
         # Weight Plot
-        # -------------------------
+        # -----------
         ax_weight = axes[0, 1]
         ax_weight.set_ylabel('posterior\nmass')
         samples = np.zeros((n_simulate, run['nlive_array'].shape[0] * 2))
@@ -356,7 +355,7 @@ def param_est_diagram(run_list, **kwargs):
                           colormap=colormaps[nrun],
                           parallel=parallel)
         # Plot means
-        # ---------------
+        # ----------
         if plot_means:
             logw_expected = ar.get_logw(run, simulate=False)
             w_rel = np.exp(logw_expected - logw_expected.max())
@@ -372,7 +371,7 @@ def param_est_diagram(run_list, **kwargs):
     # Format axes (only do ones even if there are multiple runs
     for nf, ax in enumerate(posterior_axes):
         ax.set_ylim(ftheta_lims[nf])
-        ax.invert_xaxis()  # only invert once, not for ever run!
+        ax.invert_xaxis()  # only invert once, not for every run!
     axes[-1, 1].set_xlabel(r'$\log X$')
     # Add labels
     for i, label in enumerate(labels):
