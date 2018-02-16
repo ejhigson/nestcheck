@@ -4,7 +4,7 @@ Functions for processing nested sampling samples.
 """
 
 import numpy as np
-import PerfectNS.save_load_utils as slu
+import nestcheck.io_utils as iou
 
 
 def get_polychord_data(file_root, n_runs, **kwargs):
@@ -22,7 +22,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     if load:
         # print('get_run_data: ' + save_name)
         try:
-            data = slu.pickle_load(data_dir + save_name, print_time=False)
+            data = iou.pickle_load(data_dir + save_name, print_time=False)
         except OSError:  # FileNotFoundError is a subclass of OSError
             print('File not found - try generating new data')
             load = False
@@ -41,7 +41,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
                 data.append(process_chains(temp_dead))
                 try:
                     stats_file = file_root + '_' + str(i) + '_stats_pickle'
-                    temp_stats = slu.pickle_load(chains_dir + stats_file,
+                    temp_stats = iou.pickle_load(chains_dir + stats_file,
                                                  print_time=False)
                     data[-1]['stats'] = temp_stats
                 except OSError:  # FileNotFoundError is a subclass of OSError
@@ -57,7 +57,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
                 save = False  # only save if every file is processed ok
         if save:
             print('Processed new chains: saving to ' + save_name)
-            slu.pickle_save(data, data_dir + save_name, print_time=False,
+            iou.pickle_save(data, data_dir + save_name, print_time=False,
                             overwrite_existing=overwrite_existing)
     return data
 

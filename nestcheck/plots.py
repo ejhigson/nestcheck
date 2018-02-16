@@ -13,7 +13,7 @@ import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1
-import PerfectNS.analyse_run as ar
+import nestcheck.analyse_run as ar
 import fgivenx.plot
 import fgivenx
 # Make matplotlib use tex and a nice font where the tex matches the non-tex

@@ -5,10 +5,8 @@ Parallel wrapper functions using the concurrent.futures module.
 
 import concurrent.futures
 import tqdm
-import PerfectNS.save_load_utils as slu
 
 
-@slu.timing_decorator
 def parallel_mapper(func, list_to_map, *args, **kwargs):
     """
     Performs function on a list first arguments with paralleisation and a nice

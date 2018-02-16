@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import scipy
 import tqdm
-import PerfectNS.analyse_run as ar
+import nestcheck.analyse_run as ar
 import nestcheck.parallel_utils as pu
 import nestcheck.pandas_functions as pf
 
