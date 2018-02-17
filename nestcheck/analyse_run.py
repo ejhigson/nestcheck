@@ -260,6 +260,10 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
         estimator(self, logw, ns_run)
     n_simulate: int
     ninit_sep: bool, optional
+        For dynamic runs: resample initial threads and dynamically added
+        threads seperately. Useful when there are only a few threads which
+        start by sampling the whole prior, as errors occur if none of these are
+        included in the bootstrap resample.
     flip_skew: bool, optional
         Determine if distribution of bootstrap values should be flipped about
         its mean to better represent our probability distribution on the true
@@ -274,7 +278,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
         Sampling error on calculation result for each estimator in
         estimator_list.
     """
-    ninit_sep = kwargs.pop('ninit_sep', False)
+    ninit_sep = kwargs.pop('ninit_sep', True)
     flip_skew = kwargs.pop('flip_skew', True)
     n_simulate = kwargs.pop('n_simulate')  # No default, must specify
     if kwargs:
