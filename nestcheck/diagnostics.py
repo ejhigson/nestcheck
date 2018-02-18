@@ -51,9 +51,9 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         # Calculate results
         # -----------------
         # Values
-        values_list = pu.parallel_mapper(ar.run_estimators, run_list,
-                                         estimator_list, parallelise=True,
-                                         use_tqdm=False)
+        values_list = pu.parallel_apply(ar.run_estimators, run_list,
+                                        func_args=(estimator_list,),
+                                        parallelise=True)
         estimator_names = [est.name for est in estimator_list]
         df = pd.DataFrame(np.stack(values_list, axis=0))
         df.index = df.index.map(str)
@@ -185,10 +185,10 @@ def bs_values_df(run_list, estimator_list, n_simulate, use_tqdm=False):
         each list element is an array of bootstrap resampled values of that
         estimator applied to that run.
     """
-    bs_values_list = pu.parallel_mapper(ar.run_bootstrap_values, run_list,
-                                        estimator_list, n_simulate=n_simulate,
-                                        use_tqdm=use_tqdm,
-                                        tqdm_desc='bs_values_df')
+    bs_values_list = pu.parallel_apply(ar.run_bootstrap_values, run_list,
+                                       func_args=(estimator_list,),
+                                       func_kwargs={'n_simulate': n_simulate},
+                                       tqdm_desc='bs_values_df')
     df = pd.DataFrame()
     for i, est in enumerate(estimator_list):
         df[est.name] = [arr[i, :] for arr in bs_values_list]
@@ -205,18 +205,16 @@ def thread_values_df(run_list, estimator_list):
     """Returns df containing estimator values for individual threads."""
     # get thread results
     thread_arr_l = []
-    threads_list = pu.parallel_mapper(ar.get_run_threads, run_list,
-                                      use_tqdm=True,
-                                      tqdm_desc='separating threads')
-    for threads in tqdm.tqdm_notebook(threads_list,
-                                      desc='thread values',
+    threads_list = pu.parallel_apply(ar.get_run_threads, run_list,
+                                     tqdm_desc='separating threads')
+    for threads in tqdm.tqdm_notebook(threads_list, desc='thread values',
                                       leave=False):
         threads_as_runs = []
         for th in threads:
             min_max = np.reshape(np.asarray((np.nan, th[-1, 0])), (1, 2))
             threads_as_runs.append(ar.dict_given_samples_array(th, min_max))
-        thread_vals = pu.parallel_mapper(ar.run_estimators, threads_as_runs,
-                                         estimator_list, use_tqdm=False)
+        thread_vals = pu.parallel_apply(ar.run_estimators, threads_as_runs,
+                                        func_args=(estimator_list,))
         # convert list of estimator results on each thread to a numpy array
         # with a column for each thread and a row for each estimator
         thread_arr = np.stack(thread_vals, axis=1)
