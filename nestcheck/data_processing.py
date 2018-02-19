@@ -22,37 +22,24 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     if load:
         # print('get_run_data: ' + save_name)
         try:
-            data = iou.pickle_load(data_dir + save_name, print_time=False)
+            data = iou.pickle_load(data_dir + save_name)
         except OSError:  # FileNotFoundError is a subclass of OSError
             print('File not found - try generating new data')
             load = False
-        except EOFError:
-            print('EOFError loading file - try generating new data and '
-                  'overwriting current file')
-            load = False
-            overwrite_existing = True
     if not load:
         data = []
         # load and process chains
         for i in range(1, n_runs + 1):
             try:
-                temp_root = chains_dir + file_root + '_' + str(i)
-                temp_dead = np.loadtxt(temp_root + '_dead.txt')
-                data.append(process_chains(temp_dead))
-                try:
-                    stats_file = file_root + '_' + str(i) + '_stats_pickle'
-                    temp_stats = iou.pickle_load(chains_dir + stats_file,
-                                                 print_time=False)
-                    data[-1]['stats'] = temp_stats
-                except OSError:  # FileNotFoundError is a subclass of OSError
-                    pass
+                root = chains_dir + file_root + '_' + str(i)
+                data.append(process_polychord_run(root))
             except OSError:  # FileNotFoundError is a subclass of OSError
-                print('File not found:')
-                print(temp_root + '_dead.txt')
+                print('File not found for root:')
+                print(root + '_dead.txt')
                 save = False  # only save if every file is found
             except AssertionError as err:
                 print('Error processing file:')
-                print(temp_root + '_dead.txt')
+                print(root + '_dead.txt')
                 print(type(err), str(err.args))
                 save = False  # only save if every file is processed ok
         if save:
@@ -62,44 +49,54 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     return data
 
 
-def process_chains(dead_points):
+def process_polychord_run(root):
+    dead_points = np.loadtxt(root + '_dead.txt')
+    info = iou.pickle_load(root + '_info')
+    ns_run = process_polychord_dead_points(dead_points, info['settings'])
+    for key in ['output', 'settings']:
+        assert key not in ns_run
+        ns_run[key] = info.pop(key)
+    assert not info
+    # # for compatibility with PerfectNestedSampling functions
+    # ns_run_dict['settings'] = {'dynamic_goal': None,
+    #                            'nlive_const': nlive}
+    # ns_run_dict['r'] = np.zeros(samples.shape[0])
+    # ns_run_dict['logx'] = np.zeros(samples.shape[0])
+    return ns_run
+
+
+def process_polychord_dead_points(dead_points, settings=None):
     """
     tbc
     """
+    if settings is not None:
+        assert not settings['nlives']
     dead_points = dead_points[np.argsort(dead_points[:, 0])]
     # Treat dead points
-    samples = np.zeros(dead_points.shape)
-    samples[:, 0] = dead_points[:, 0]
-    samples[:, 1] = thread_labels_given_birth_order(dead_points[:, 1])
-    samples[:, 2:] = dead_points[:, 2:]
+    ns_run = {}
+    ns_run['logl'] = dead_points[:, 0]
+    ns_run['thread_labels'] = threads_given_birth_order(dead_points[:, 1])
+    ns_run['theta'] = dead_points[:, 2:]
     # perform some checks
-    nlive = samples.shape[0] - np.count_nonzero(dead_points[:, 1])
-    assert np.unique(samples[-nlive:, 1]).shape[0] == nlive, \
+    nlive = dead_points.shape[0] - np.count_nonzero(dead_points[:, 1])
+    assert np.unique(ns_run['thread_labels'][-nlive:]).shape[0] == nlive, \
         'The final nlive=' + str(nlive) + ' points of the run are not all ' \
         'from different threads!'
     # make run dictionary
-    ns_run_dict = {'logl': samples[:, 0],
-                   'thread_labels': samples[:, 1],
-                   'theta': samples[:, 2:]}
-    nlive_array = np.zeros(samples.shape[0]) + nlive
+    nlive_array = np.zeros(dead_points.shape[0]) + nlive
     for i in range(1, nlive):
         nlive_array[-i] = i
-    ns_run_dict['nlive_array'] = nlive_array
-    # for compatibility with PerfectNestedSampling functions
-    ns_run_dict['settings'] = {'dynamic_goal': None,
-                               'nlive_const': nlive}
-    ns_run_dict['r'] = np.zeros(samples.shape[0])
-    ns_run_dict['logx'] = np.zeros(samples.shape[0])
+    ns_run['nlive_array'] = nlive_array
     thread_min_max = np.zeros((nlive, 2))
     thread_min_max[:, 0] = np.nan
     for i in range(nlive):
-        ind = np.where(ns_run_dict['thread_labels'] == (i + 1))[0][-1]
-        thread_min_max[i, 1] = ns_run_dict['logl'][ind]
-    ns_run_dict['thread_min_max'] = thread_min_max
-    return ns_run_dict
+        ind = np.where(ns_run['thread_labels'] == (i + 1))[0][-1]
+        thread_min_max[i, 1] = ns_run['logl'][ind]
+    ns_run['thread_min_max'] = thread_min_max
+    return ns_run
 
 
-def thread_labels_given_birth_order(birth_order):
+def threads_given_birth_order(birth_order):
     """
     Divides a nested sampling run into threads, using info on the contours at
     which points were sampled.

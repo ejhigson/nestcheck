@@ -2,9 +2,7 @@
 *.dat
 *.pkl
 *.txt
-*.pdf
 *.sw*
-*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -13,7 +11,9 @@ __pycache__/
 
 # Distribution / packaging
 *.egg-info/
-*.egg
 
 # jupyter checkpoints
 .ipynb_checkpoints
+
+# Coverage test output
+.coverage
