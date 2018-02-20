@@ -42,26 +42,30 @@ def get_polychord_data(file_root, n_runs, **kwargs):
 
 def process_polychord_run(root):
     dead_points = np.loadtxt(root + '_dead.txt')
-    info = iou.pickle_load(root + '_info')
     ns_run = process_polychord_dead_points(dead_points)
-    for key in ['output', 'settings']:
-        assert key not in ns_run
-        ns_run[key] = info.pop(key)
-    assert not info
-    # # for compatibility with PerfectNestedSampling functions
-    # ns_run_dict['settings'] = {'dynamic_goal': None,
-    #                            'nlive_const': nlive}
-    # ns_run_dict['r'] = np.zeros(samples.shape[0])
-    # ns_run_dict['logx'] = np.zeros(samples.shape[0])
-    # Run some tests
-    # --------------
-    # For the standard ns case
-    if not ns_run['settings']['nlives']:
-        standard_nlive_array = np.zeros(ns_run['logl'].shape)
-        standard_nlive_array += ns_run['settings']['nlive']
-        for i in range(1, ns_run['settings']['nlive']):
-            standard_nlive_array[-i] = i
-        assert np.array_equal(ns_run['nlive_array'], standard_nlive_array)
+    try:
+        info = iou.pickle_load(root + '_info')
+        for key in ['output', 'settings']:
+            assert key not in ns_run
+            ns_run[key] = info.pop(key)
+        assert not info
+        # # for compatibility with PerfectNestedSampling functions
+        # ns_run_dict['settings'] = {'dynamic_goal': None,
+        #                            'nlive_const': nlive}
+        # ns_run_dict['r'] = np.zeros(samples.shape[0])
+        # ns_run_dict['logx'] = np.zeros(samples.shape[0])
+        # Run some tests
+        # --------------
+        # For the standard ns case
+        if not ns_run['settings']['nlives']:
+            standard_nlive_array = np.zeros(ns_run['logl'].shape)
+            standard_nlive_array += ns_run['settings']['nlive']
+            for i in range(1, ns_run['settings']['nlive']):
+                standard_nlive_array[-i] = i
+            assert np.array_equal(ns_run['nlive_array'],
+                                  standard_nlive_array)
+    except OSError:
+        pass
     return ns_run
 
 

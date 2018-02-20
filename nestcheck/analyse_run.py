@@ -174,7 +174,10 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
     else:
         inds = np.random.randint(0, n_threads, n_threads)
     threads_temp = [threads[i] for i in inds]
-    return combine_threads(threads_temp, settings=ns_run['settings'])
+    try:
+        return combine_threads(threads_temp, settings=ns_run['settings'])
+    except KeyError:
+        return combine_threads(threads_temp)
 
 
 def combine_threads(threads, settings=None):
