@@ -211,7 +211,7 @@ def thread_values_df(run_list, estimator_list):
                                       leave=False):
         threads_as_runs = []
         for th in threads:
-            min_max = np.reshape(np.asarray((np.nan, th[-1, 0])), (1, 2))
+            min_max = np.reshape(np.asarray((-np.inf, th[-1, 0])), (1, 2))
             threads_as_runs.append(ar.dict_given_samples_array(th, min_max))
         thread_vals = pu.parallel_apply(ar.run_estimators, threads_as_runs,
                                         func_args=(estimator_list,))

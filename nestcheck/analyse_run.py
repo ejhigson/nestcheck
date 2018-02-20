@@ -88,7 +88,7 @@ def dict_given_samples_array(samples, thread_min_max=None):
         N.B. this does not contain a record of the run's settings.
     """
     if thread_min_max is not None:
-        nlive_0 = sum(np.isnan(thread_min_max[:, 0]))
+        nlive_0 = (thread_min_max[:, 0] == -np.inf).sum()
         nlive_array = np.zeros(samples.shape[0]) + nlive_0
         nlive_array[1:] += np.cumsum(samples[:-1, 4])
         assert nlive_array.min() > 0, 'nlive contains 0s or negative values!' \
@@ -186,7 +186,7 @@ def combine_threads(threads_temp, thread_min_max_temp, settings=None):
     # update the changes in live points column for threads which start part way
     # through the run. These are only present in dynamic nested sampling.
     logl_starts = thread_min_max_temp[:, 0]
-    for logl_start in logl_starts[~np.isnan(logl_starts)]:
+    for logl_start in logl_starts[logl_starts != -np.inf]:
         ind = np.where(samples_temp[:, 0] == logl_start)[0]
         if ind.shape == (1,):
             # If the point at which this thread started is present exactly
