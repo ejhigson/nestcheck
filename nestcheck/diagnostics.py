@@ -63,8 +63,7 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         df.set_index('calculation type', drop=True, append=True, inplace=True)
         df = df.reorder_levels(['calculation type', 'run'])
         # Bootstrap
-        bs_vals_df = bs_values_df(run_list, estimator_list, n_simulate,
-                                  use_tqdm=True)
+        bs_vals_df = bs_values_df(run_list, estimator_list, n_simulate)
         # ####################################
         # For checking values are as expected
         bs_mean_df = bs_vals_df.applymap(np.mean)
@@ -174,7 +173,7 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
         return imp_std, imp_std_u
 
 
-def bs_values_df(run_list, estimator_list, n_simulate, use_tqdm=False):
+def bs_values_df(run_list, estimator_list, n_simulate):
     """
     Computes a data frame of bootstrap resampled values.
 
@@ -205,15 +204,11 @@ def thread_values_df(run_list, estimator_list):
     """Returns df containing estimator values for individual threads."""
     # get thread results
     thread_arr_l = []
-    threads_list = pu.parallel_apply(ar.get_run_threads, run_list,
-                                     tqdm_desc='separating threads')
-    for threads in tqdm.tqdm_notebook(threads_list, desc='thread values',
+    run_threads_list = pu.parallel_apply(ar.get_run_threads, run_list,
+                                         tqdm_desc='separating threads')
+    for threads in tqdm.tqdm_notebook(run_threads_list, desc='thread values',
                                       leave=False):
-        threads_as_runs = []
-        for th in threads:
-            min_max = np.reshape(np.asarray((-np.inf, th[-1, 0])), (1, 2))
-            threads_as_runs.append(ar.dict_given_samples_array(th, min_max))
-        thread_vals = pu.parallel_apply(ar.run_estimators, threads_as_runs,
+        thread_vals = pu.parallel_apply(ar.run_estimators, threads,
                                         func_args=(estimator_list,))
         # convert list of estimator results on each thread to a numpy array
         # with a column for each thread and a row for each estimator
@@ -225,9 +220,9 @@ def thread_values_df(run_list, estimator_list):
         df[est.name] = [arr[i, :] for arr in thread_arr_l]
     # Check there are the correct number of thread values in each cell
     for vals_shape in df.loc[0].apply(lambda x: x.shape).values:
-        assert vals_shape == (len(threads_list[0]),), \
-            ('Should be nlive=' + str(len(threads_list[0])) + ' values in ' +
-             'each cell. The cell contains array with shape ' +
+        assert vals_shape == (len(run_threads_list[0]),), \
+            ('Should be nlive=' + str(len(run_threads_list[0])) + ' values '
+             'in each cell. The cell contains array with shape ' +
              str(vals_shape))
     return df
 

@@ -11,7 +11,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     """
     Load and process polychord chains
     """
-    data_dir = kwargs.pop('data_dir', 'processed_data/')
+    data_dir = kwargs.pop('data_dir', 'cache/')
     chains_dir = kwargs.pop('chains_dir', 'chains/')
     load = kwargs.pop('load', True)
     save = kwargs.pop('save', True)
@@ -20,32 +20,23 @@ def get_polychord_data(file_root, n_runs, **kwargs):
         raise TypeError('Unexpected **kwargs: %r' % kwargs)
     save_name = file_root + '_' + str(n_runs) + 'runs'
     if load:
-        # print('get_run_data: ' + save_name)
         try:
-            data = iou.pickle_load(data_dir + save_name)
+            return iou.pickle_load(data_dir + save_name)
         except OSError:  # FileNotFoundError is a subclass of OSError
-            print('File not found - try generating new data')
-            load = False
-    if not load:
-        data = []
-        # load and process chains
-        for i in range(1, n_runs + 1):
-            try:
-                root = chains_dir + file_root + '_' + str(i)
-                data.append(process_polychord_run(root))
-            except OSError:  # FileNotFoundError is a subclass of OSError
-                print('File not found for root:')
-                print(root + '_dead.txt')
-                save = False  # only save if every file is found
-            except AssertionError as err:
-                print('Error processing file:')
-                print(root + '_dead.txt')
-                print(type(err), str(err.args))
-                save = False  # only save if every file is processed ok
-        if save:
-            print('Processed new chains: saving to ' + save_name)
-            iou.pickle_save(data, data_dir + save_name, print_time=False,
-                            overwrite_existing=overwrite_existing)
+            pass
+    data = []
+    # load and process chains
+    for i in range(1, n_runs + 1):
+        try:
+            root = chains_dir + file_root + '_' + str(i)
+            data.append(process_polychord_run(root))
+        except (OSError, AssertionError) as err:
+            print(type(err).__name__ + ' processing file ' + root)
+            save = False  # only save if every file is processed ok
+    if save:
+        print('Processed new chains: saving to ' + save_name)
+        iou.pickle_save(data, data_dir + save_name, print_time=False,
+                        overwrite_existing=overwrite_existing)
     return data
 
 

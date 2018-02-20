@@ -32,7 +32,7 @@ def run_estimators(ns_run, estimator_list, simulate=False):
     return output
 
 
-def samples_array_given_run(ns_run):
+def array_given_run(ns_run):
     """
     Converts information on samples in a nested sampling run dictionary into a
     numpy array representation. This allows fast addition of more samples and
@@ -42,29 +42,26 @@ def samples_array_given_run(ns_run):
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-        Contains keys: 'logl', 'r', 'logx', 'thread_label', 'nlive_array',
-        'theta'
+        Contains keys: 'logl', 'thread_label', 'nlive_array', 'theta'
 
     Returns
     -------
     samples: numpy array
         Numpy array containing columns
-        [logl, r, logx, thread label, change in nlive at sample, (thetas)]
+        [logl, thread label, change in nlive at sample, (thetas)]
         with each row representing a single sample.
     """
-    samples = np.zeros((ns_run['logl'].shape[0], 5 + ns_run['theta'].shape[1]))
+    samples = np.zeros((ns_run['logl'].shape[0], 3 + ns_run['theta'].shape[1]))
     samples[:, 0] = ns_run['logl']
-    samples[:, 1] = ns_run['r']
-    samples[:, 2] = ns_run['logx']
-    samples[:, 3] = ns_run['thread_labels']
+    samples[:, 1] = ns_run['thread_labels']
     # Calculate 'change in nlive' after each step
-    samples[:-1, 4] = np.diff(ns_run['nlive_array'])
-    samples[-1, 4] = -1  # nlive drops to zero after final point
-    samples[:, 5:] = ns_run['theta']
+    samples[:-1, 2] = np.diff(ns_run['nlive_array'])
+    samples[-1, 2] = -1  # nlive drops to zero after final point
+    samples[:, 3:] = ns_run['theta']
     return samples
 
 
-def dict_given_samples_array(samples, thread_min_max=None):
+def dict_given_run_array(samples, thread_min_max):
     """
     Converts an array of information about samples back into a dictionary.
 
@@ -72,7 +69,7 @@ def dict_given_samples_array(samples, thread_min_max=None):
     ----------
     samples: numpy array
         Numpy array containing columns
-        [logl, r, logx, thread label, change in nlive at sample, (thetas)]
+        [logl, thread label, change in nlive at sample, (thetas)]
         with each row representing a single sample.
     thread_min_max': numpy array, optional
         2d array with a row for each thread containing the likelihoods at which
@@ -83,27 +80,22 @@ def dict_given_samples_array(samples, thread_min_max=None):
     -------
     ns_run: dict
         Nested sampling run dictionary corresponding to the samples array.
-        Contains keys: 'logl', 'r', 'logx', 'thread_label', 'nlive_array',
+        Contains keys: 'logl', 'thread_label', 'nlive_array',
         'theta'
         N.B. this does not contain a record of the run's settings.
     """
-    if thread_min_max is not None:
-        nlive_0 = (thread_min_max[:, 0] == -np.inf).sum()
-        nlive_array = np.zeros(samples.shape[0]) + nlive_0
-        nlive_array[1:] += np.cumsum(samples[:-1, 4])
-        assert nlive_array.min() > 0, 'nlive contains 0s or negative values!' \
-            '\nnlive_array = ' + str(nlive_array)
-        assert nlive_array[-1] == 1, 'final point in nlive_array != 1!' \
-            '\nnlive_array = ' + str(nlive_array)
-    else:
-        nlive_array = None
+    nlive_0 = (thread_min_max[:, 0] == -np.inf).sum()
+    nlive_array = np.zeros(samples.shape[0]) + nlive_0
+    nlive_array[1:] += np.cumsum(samples[:-1, 2])
+    assert nlive_array.min() > 0, 'nlive contains 0s or negative values!' \
+        '\nnlive_array = ' + str(nlive_array)
+    assert nlive_array[-1] == 1, 'final point in nlive_array != 1!' \
+        '\nnlive_array = ' + str(nlive_array)
     ns_run = {'logl': samples[:, 0],
-              'r': samples[:, 1],
-              'logx': samples[:, 2],
-              'thread_labels': samples[:, 3],
+              'thread_labels': samples[:, 1],
               'nlive_array': nlive_array,
               'thread_min_max': thread_min_max,
-              'theta': samples[:, 5:]}
+              'theta': samples[:, 3:]}
     return ns_run
 
 
@@ -125,14 +117,18 @@ def get_run_threads(ns_run):
         [logl, r, logx, thread label, change in nlive at sample, (thetas)]
         with each row representing a single sample.
     """
-    samples = samples_array_given_run(ns_run)
-    n_threads = ns_run['thread_min_max'].shape[0]
+    samples = array_given_run(ns_run)
+    assert np.array_equal(
+        np.asarray(range(ns_run['thread_min_max'].shape[0])) + 1,
+        np.unique(ns_run['thread_labels']))
     threads = []
-    for i in range(1, n_threads + 1):
-        threads.append(samples[np.where(samples[:, 3] == i)])
+    for i in range(ns_run['thread_min_max'].shape[0]):
+        thread_array = samples[np.where(samples[:, 1] == i + 1)]
         # delete changes in nlive due to other threads in the run
-        threads[-1][:, 4] = 0
-        threads[-1][-1, 4] = -1
+        thread_array[:, 2] = 0
+        thread_array[-1, 2] = -1
+        min_max = np.reshape(ns_run['thread_min_max'][i, :], (1, 2))
+        threads.append(dict_given_run_array(thread_array, min_max))
     return threads
 
 
@@ -174,38 +170,43 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=True):
     else:
         inds = np.random.randint(0, n_threads, n_threads)
     threads_temp = [threads[i] for i in inds]
-    thread_min_max_temp = ns_run['thread_min_max'][inds]
-    return combine_threads(threads_temp, thread_min_max_temp,
-                           settings=ns_run['settings'])
+    return combine_threads(threads_temp, settings=ns_run['settings'])
 
 
-def combine_threads(threads_temp, thread_min_max_temp, settings=None):
+def combine_threads(threads, settings=None):
+    """
+    Combine list of threads into a single ns run.
+    This is different to combining runs as some threads will not start from
+    sampling the entire prior and the contour on which they were born may not
+    contain a dead point in the final run.
+    """
+    thread_min_max = np.vstack([td['thread_min_max'] for td in threads])
     # construct samples array from the threads, including an updated nlive
-    samples_temp = np.vstack(threads_temp)
+    samples_temp = np.vstack([array_given_run(thread) for thread in threads])
     samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
     # update the changes in live points column for threads which start part way
     # through the run. These are only present in dynamic nested sampling.
-    logl_starts = thread_min_max_temp[:, 0]
+    logl_starts = thread_min_max[:, 0]
     for logl_start in logl_starts[logl_starts != -np.inf]:
         ind = np.where(samples_temp[:, 0] == logl_start)[0]
         if ind.shape == (1,):
             # If the point at which this thread started is present exactly
             # once in this bootstrap replication:
-            samples_temp[ind[0], 4] += 1
+            samples_temp[ind[0], 2] += 1
         elif ind.shape == (0,):
             # If the point with the likelihood at which the thread started
             # is not present in this particular bootstrap replication,
             # approximate it with the point with the nearest likelihood.
             ind_closest = np.argmin(np.abs(samples_temp[:, 0] - logl_start))
-            samples_temp[ind_closest, 4] += 1
+            samples_temp[ind_closest, 2] += 1
         else:
             # If the point at which this thread started is present multiple
             # times in this bootstrap replication, select one at random to
             # increment nlive on. This avoids any systematic bias from e.g.
             # always choosing the first point.
-            samples_temp[np.random.choice(ind), 4] += 1
+            samples_temp[np.random.choice(ind), 2] += 1
     # make run
-    ns_run_temp = dict_given_samples_array(samples_temp, thread_min_max_temp)
+    ns_run_temp = dict_given_run_array(samples_temp, thread_min_max)
     ns_run_temp['settings'] = settings
     return ns_run_temp
 

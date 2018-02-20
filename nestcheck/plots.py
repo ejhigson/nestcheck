@@ -253,7 +253,7 @@ def param_logx_diagram(run_list, **kwargs):
     colorbar_ax_list = []
     for i in range(len(run_list)):
         colorbar_ax_list.append(divider.append_axes("left", size=0.05,
-                                pad=0.05))
+                                                    pad=0.05))
     # Reverse color bar axis order so when an extra run is added the other
     # colorbars stay in the same place
     colorbar_ax_list = list(reversed(colorbar_ax_list))
@@ -316,8 +316,7 @@ def param_logx_diagram(run_list, **kwargs):
         # samples plot
         # ------------
         run['logx'] = ar.get_logx(run['nlive_array'], simulate=False)
-        threads = [ar.dict_given_samples_array(thread) for thread in
-                   ar.get_run_threads(run)]
+        threads = ar.get_run_threads(run)
         for nf, ftheta in enumerate(fthetas):
             ax_samples = axes[1 + nf, 1]
             for i in threads_to_plot:
