@@ -52,7 +52,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
 def process_polychord_run(root):
     dead_points = np.loadtxt(root + '_dead.txt')
     info = iou.pickle_load(root + '_info')
-    ns_run = process_polychord_dead_points(dead_points, info['settings'])
+    ns_run = process_polychord_dead_points(dead_points)
     for key in ['output', 'settings']:
         assert key not in ns_run
         ns_run[key] = info.pop(key)
@@ -62,37 +62,61 @@ def process_polychord_run(root):
     #                            'nlive_const': nlive}
     # ns_run_dict['r'] = np.zeros(samples.shape[0])
     # ns_run_dict['logx'] = np.zeros(samples.shape[0])
+    # Run some tests
+    # --------------
+    # For the standard ns case
+    if not ns_run['settings']['nlives']:
+        standard_nlive_array = np.zeros(ns_run['logl'].shape)
+        standard_nlive_array += ns_run['settings']['nlive']
+        for i in range(1, ns_run['settings']['nlive']):
+            standard_nlive_array[-i] = i
+        assert np.array_equal(ns_run['nlive_array'], standard_nlive_array)
     return ns_run
 
 
-def process_polychord_dead_points(dead_points, settings=None):
+def process_polychord_dead_points(dead_points):
     """
     tbc
     """
-    if settings is not None:
-        assert not settings['nlives']
     dead_points = dead_points[np.argsort(dead_points[:, 0])]
     # Treat dead points
     ns_run = {}
     ns_run['logl'] = dead_points[:, 0]
-    ns_run['thread_labels'] = threads_given_birth_order(dead_points[:, 1])
+    ns_run['birth_step'] = dead_points[:, 1].astype(int)
+    assert np.array_equal(ns_run['birth_step'], dead_points[:, 1]), \
+        'birth_step values should all be integers!'
     ns_run['theta'] = dead_points[:, 2:]
+    ns_run['thread_labels'] = threads_given_birth_order(ns_run['birth_step'])
     # perform some checks
-    nlive = dead_points.shape[0] - np.count_nonzero(dead_points[:, 1])
-    assert np.unique(ns_run['thread_labels'][-nlive:]).shape[0] == nlive, \
-        'The final nlive=' + str(nlive) + ' points of the run are not all ' \
-        'from different threads!'
-    # make run dictionary
-    nlive_array = np.zeros(dead_points.shape[0]) + nlive
-    for i in range(1, nlive):
-        nlive_array[-i] = i
-    ns_run['nlive_array'] = nlive_array
-    thread_min_max = np.zeros((nlive, 2))
-    thread_min_max[:, 0] = np.nan
-    for i in range(nlive):
-        ind = np.where(ns_run['thread_labels'] == (i + 1))[0][-1]
-        thread_min_max[i, 1] = ns_run['logl'][ind]
+    # nlive = dead_points.shape[0] - np.count_nonzero(dead_points[:, 1])
+    # assert np.unique(ns_run['thread_labels'][-nlive:]).shape[0] == nlive, \
+    #     'The final nlive=' + str(nlive) + ' points of the run are not all ' \
+    #     'from different threads!'
+    # get thread min max
+    unique_threads = np.unique(ns_run['thread_labels'])
+    # Work out nlive_array and thread_min_max logls from thread labels and
+    # birth contours
+    thread_min_max = np.zeros((unique_threads.shape[0], 2))
+    # NB delta_nlive indexes are offset from points' indexes by 1 as we need an
+    # element to repesent the initial sampling of live points before any dead
+    # points are created.
+    # I.E. birth on step 1 corresponds to replacing dead point zero
+    delta_nlive = np.zeros(dead_points.shape[0] + 1)
+    for i, label in enumerate(unique_threads):
+        inds = np.where(ns_run['thread_labels'] == label)[0]
+        birth = ns_run['birth_step'][inds[0]]
+        death = inds[-1] + 1
+        delta_nlive[birth] += 1
+        delta_nlive[death] -= 1
+        if birth == 0:
+            # thread minimum is -inf it starts by sampling from whole prior
+            thread_min_max[i, 0] = -np.inf
+        else:
+            thread_min_max[i, 0] = ns_run['logl'][birth - 1]
+        # Max is final logl in thread
+        thread_min_max[i, 1] = ns_run['logl'][death - 1]
     ns_run['thread_min_max'] = thread_min_max
+    ns_run['nlive_array'] = np.cumsum(delta_nlive)[:-1]
     return ns_run
 
 
@@ -101,20 +125,34 @@ def threads_given_birth_order(birth_order):
     Divides a nested sampling run into threads, using info on the contours at
     which points were sampled.
     """
+    unique, counts = np.unique(birth_order, return_counts=True)
+    multi_birth_steps = unique[np.where(counts > 1)]
+    # # check that a point is born on every step
+    # assert np.array_equal(unique, np.asarray(range(birth_order.max()+1)))
     thread_labels = np.zeros(birth_order.shape)
-    for i, start_ind in enumerate(np.where(birth_order == 0)[0]):
-        # label the first point in this thread
-        thread_labels[start_ind] = i + 1
-        # find the point which replaced it
-        next_ind = np.where(birth_order == (start_ind + 1))[0]
-        while next_ind.shape == (1,):
-            # label new point
-            thread_labels[next_ind[0]] = i + 1
-            # find the point which replaced it
-            next_ind = np.where(birth_order == (next_ind[0] + 1))[0]
-        assert next_ind.shape == (0,), \
-            'ERROR: multiple points with same birth step'
-    if thread_labels.min() <= 0:
+    thread_num = 0
+    for nstep, step in enumerate(multi_birth_steps):
+        for i, start_ind in enumerate(np.where(birth_order == step)[0]):
+            # unless nstep=0 the first point is assigned to the continuation of
+            # the original thread
+            if i != 0 or nstep == 0:
+                thread_num += 1
+                # check point has not already been assigned
+                assert thread_labels[start_ind] == 0
+                thread_labels[start_ind] = thread_num
+                # find the point which replaced it
+                next_ind = np.where(birth_order == (start_ind + 1))[0]
+                while next_ind.shape != (0,):
+                    # check point has not already been assigned
+                    assert thread_labels[next_ind[0]] == 0
+                    thread_labels[next_ind[0]] = thread_num
+                    # find the point which replaced it
+                    next_ind = np.where(birth_order == (next_ind[0] + 1))[0]
+    assert thread_labels.min() > 0
+    n_threads = (np.sum(counts[np.where(counts > 1)]) -
+                 (multi_birth_steps.shape[0] - 1))
+    assert np.unique(thread_labels).shape[0] == n_threads
+    if thread_labels.min() == 0:
         ind = np.where(thread_labels == 0)[0]
         print('WARNING: ' + str(ind.shape[0]) + ' points without thread' +
               ' label:', ind)
@@ -133,4 +171,6 @@ def threads_given_birth_order(birth_order):
                 'These points were born at steps ' + \
                 str(birth_order[np.where(thread_labels == 0)[0]]) + '.\n' \
                 'N_threads = ' + str(np.unique(thread_labels).shape[0] - 1)
-    return thread_labels
+    assert np.array_equal(thread_labels, thread_labels.astype(int)), \
+        'Thread labels should all be ints!'
+    return thread_labels.astype(int)
