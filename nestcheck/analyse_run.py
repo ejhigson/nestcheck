@@ -136,7 +136,7 @@ def get_run_threads(ns_run):
 # ----------------------------------------
 
 
-def bootstrap_resample_run(ns_run, threads=None, ninit_sep=True):
+def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
     """
     Bootstrap resamples threads of nested sampling run, returning a new
     (resampled) nested sampling run.
@@ -162,11 +162,15 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=True):
     if threads is None:
         threads = get_run_threads(ns_run)
     n_threads = len(threads)
-    if ns_run['settings']['dynamic_goal'] is not None and ninit_sep:
-        ninit = ns_run['settings']['ninit']
-        inds = np.random.randint(0, ninit, ninit)
-        inds = np.append(inds, np.random.randint(ninit, n_threads,
-                                                 n_threads - ninit))
+    if ninit_sep:
+        try:
+            ninit = ns_run['settings']['ninit']
+            inds = np.random.randint(0, ninit, ninit)
+            inds = np.append(inds, np.random.randint(ninit, n_threads,
+                                                     n_threads - ninit))
+        except KeyError:
+            print('WARNING: bootrap_resample_run: ninit_sep=True but ' +
+                  'ns_run["settings"]["ninit"] does not exist.')
     else:
         inds = np.random.randint(0, n_threads, n_threads)
     threads_temp = [threads[i] for i in inds]
@@ -279,7 +283,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
         Sampling error on calculation result for each estimator in
         estimator_list.
     """
-    ninit_sep = kwargs.pop('ninit_sep', True)
+    ninit_sep = kwargs.pop('ninit_sep', False)
     flip_skew = kwargs.pop('flip_skew', True)
     n_simulate = kwargs.pop('n_simulate')  # No default, must specify
     if kwargs:

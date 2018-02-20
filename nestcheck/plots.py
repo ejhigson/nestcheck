@@ -135,9 +135,11 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
 
 def bs_param_dists(run_list, **kwargs):
     """
-    Creates parameter estimation diagrams using the
-    settings module for likelihoods and the specified estimator.
+    Creates posterior distributions and their bootstrap error functions for
+    input runs and estimators.
     """
+    if not isinstance(run_list, list):
+        run_list = [run_list]
     n_simulate = kwargs.pop('n_simulate', 100)
     cache_in = kwargs.pop('cache', None)
     parallel = kwargs.pop('parallel', True)
@@ -286,8 +288,8 @@ def param_logx_diagram(run_list, **kwargs):
         # for i in range(n_simulate):
         #     samples[i, ::2] = logx_list[i]
         #     samples[i, 1::2] = np.exp(logw_list[i] - logw_max)
-        # if logx_min is None:
-        #     logx_min = samples[:, 0].min()
+        if logx_min is None:
+            logx_min = samples[:, 0].min()
         logx_sup = np.linspace(logx_min, 0, nlogx)
         if cache_in is not None:
             cache = cache_in + '_weights'
@@ -315,28 +317,32 @@ def param_logx_diagram(run_list, **kwargs):
             colorbar_plot.ax.set_yticklabels([])
         # samples plot
         # ------------
-        run['logx'] = ar.get_logx(run['nlive_array'], simulate=False)
-        threads = ar.get_run_threads(run)
+        logx = ar.get_logx(run['nlive_array'], simulate=False)
         for nf, ftheta in enumerate(fthetas):
             ax_samples = axes[1 + nf, 1]
             for i in threads_to_plot:
-                ax_samples.plot(threads[i]['logx'],
-                                ftheta(threads[i]['theta']),
+                thread_inds = np.where(run['thread_labels'] == i + 1)[0]
+                ax_samples.plot(logx[thread_inds],
+                                ftheta(run['theta'][thread_inds]),
                                 color='black', lw=1)
             if scatter_plot:
-                ax_samples.scatter(run['logx'], ftheta(run['theta']), s=0.2,
+                ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
                                    color=colors[nrun])
             else:
                 if cache_in is not None:
                     cache = cache_in + '_param_' + str(nf)
                 else:
                     cache = cache_in
-                max_samp = max([thread['logx'].shape[0] for thread in threads])
-                samples = np.full((len(threads), 2 * max_samp), np.nan)
-                for i, thread in enumerate(threads):
-                    nsamp = thread['logx'].shape[0]
-                    samples[i, :2 * nsamp:2] = thread['logx'][::-1]
-                    samples[i, 1:2 * nsamp:2] = ftheta(thread['theta'])[::-1]
+                th_unique, th_counts = np.unique(run['thread_labels'],
+                                                 return_counts=True)
+                samples = np.full((len(th_unique), 2 * th_counts.max()),
+                                  np.nan)
+                for i, th_lab in enumerate(th_unique):
+                    thread_inds = np.where(run['thread_labels'] == th_lab)[0]
+                    nsamp = thread_inds.shape[0]
+                    samples[i, :2 * nsamp:2] = logx[thread_inds][::-1]
+                    samples[i, 1:2 * nsamp:2] = \
+                        ftheta(run['theta'][thread_inds])[::-1]
                 y, pmf = fgivenx.compute_pmf(interp_alternate, logx_sup,
                                              samples, y=ftheta_sups[nf],
                                              cache=cache)

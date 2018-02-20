@@ -173,7 +173,7 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
         return imp_std, imp_std_u
 
 
-def bs_values_df(run_list, estimator_list, n_simulate):
+def bs_values_df(run_list, estimator_list, n_simulate, parallelise=True):
     """
     Computes a data frame of bootstrap resampled values.
 
@@ -187,7 +187,8 @@ def bs_values_df(run_list, estimator_list, n_simulate):
     bs_values_list = pu.parallel_apply(ar.run_bootstrap_values, run_list,
                                        func_args=(estimator_list,),
                                        func_kwargs={'n_simulate': n_simulate},
-                                       tqdm_desc='bs_values_df')
+                                       tqdm_desc='bs_values_df',
+                                       parallelise=parallelise)
     df = pd.DataFrame()
     for i, est in enumerate(estimator_list):
         df[est.name] = [arr[i, :] for arr in bs_values_list]
@@ -206,8 +207,8 @@ def thread_values_df(run_list, estimator_list):
     thread_arr_l = []
     run_threads_list = pu.parallel_apply(ar.get_run_threads, run_list,
                                          tqdm_desc='separating threads')
-    for threads in tqdm.tqdm_notebook(run_threads_list, desc='thread values',
-                                      leave=False):
+    for threads in tqdm.tqdm(run_threads_list, desc='thread values',
+                             leave=False):
         thread_vals = pu.parallel_apply(ar.run_estimators, threads,
                                         func_args=(estimator_list,))
         # convert list of estimator results on each thread to a numpy array
@@ -244,8 +245,8 @@ def pairwise_distances_on_cols(df_in, tqdm_desc=None):
     df: pandas data frame with kl values for each pair.
     """
     df = pd.DataFrame()
-    for col in tqdm.tqdm_notebook(df_in.columns, desc=tqdm_desc,
-                                  leave=False):
+    for col in tqdm.tqdm(df_in.columns, desc=tqdm_desc,
+                         leave=False):
         df[col] = pairwise_distances(df_in[col].values)
     return df
 
