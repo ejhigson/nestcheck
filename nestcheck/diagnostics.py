@@ -6,7 +6,6 @@ Diagnostic tests for nested sampling runs.
 import numpy as np
 import pandas as pd
 import scipy
-import tqdm
 import nestcheck.analyse_run as ar
 import nestcheck.parallel_utils as pu
 import nestcheck.pandas_functions as pf
@@ -20,6 +19,9 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
     thread_dist = kwargs.pop('thread_test', True)
     bs_dist = kwargs.pop('bs_test', True)
     cache_root = kwargs.pop('cache_root', None)
+    parallelise = kwargs.pop('parallelise', True)
+    tqdm_disable = kwargs.pop('tqdm_disable', False)
+    tqdm_leave = kwargs.pop('tqdm_leave', False)
     # Do caching
     # ----------
     if cache_root is not None:
@@ -53,7 +55,10 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         # Values
         values_list = pu.parallel_apply(ar.run_estimators, run_list,
                                         func_args=(estimator_list,),
-                                        parallelise=True)
+                                        tqdm_desc='values',
+                                        parallelise=parallelise,
+                                        tqdm_leave=tqdm_leave,
+                                        tqdm_disable=tqdm_disable)
         estimator_names = [est.name for est in estimator_list]
         df = pd.DataFrame(np.stack(values_list, axis=0))
         df.index = df.index.map(str)
@@ -63,7 +68,10 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         df.set_index('calculation type', drop=True, append=True, inplace=True)
         df = df.reorder_levels(['calculation type', 'run'])
         # Bootstrap
-        bs_vals_df = bs_values_df(run_list, estimator_list, n_simulate)
+        bs_vals_df = bs_values_df(run_list, estimator_list, n_simulate,
+                                  parallelise=parallelise,
+                                  tqdm_leave=tqdm_leave,
+                                  tqdm_disable=tqdm_disable)
         # ####################################
         # For checking values are as expected
         bs_mean_df = bs_vals_df.applymap(np.mean)
@@ -83,7 +91,10 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         df = pd.concat([df, bs_std_df])
         # Pairwise distances on thread distributions
         if thread_dist:
-            t_vals_df = thread_values_df(run_list, estimator_list)
+            t_vals_df = thread_values_df(run_list, estimator_list,
+                                         parallelise=parallelise,
+                                         tqdm_leave=tqdm_leave,
+                                         tqdm_disable=tqdm_disable)
             # ####################################
             # For checking values are as expected
             t_mean_df = t_vals_df.applymap(np.mean)
@@ -94,8 +105,7 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
             t_mean_df = t_mean_df.reorder_levels(['calculation type', 'run'])
             df = pd.concat([df, t_mean_df])
             # ####################################
-            t_d_df = pairwise_distances_on_cols(t_vals_df,
-                                                tqdm_desc='thread dists')
+            t_d_df = pairwise_distances_on_cols(t_vals_df)
             new_ind = ['thread ' + t_d_df.index
                        .get_level_values('calculation type'),
                        t_d_df.index.get_level_values('run')]
@@ -103,8 +113,7 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
             df = pd.concat([df, t_d_df])
         # Pairwise distances on BS distributions
         if bs_dist:
-            b_d_df = pairwise_distances_on_cols(bs_vals_df,
-                                                tqdm_desc='bs dists')
+            b_d_df = pairwise_distances_on_cols(bs_vals_df)
             new_ind = ['bootstrap ' + b_d_df.
                        index.get_level_values('calculation type'),
                        b_d_df.index.get_level_values('run')]
@@ -173,7 +182,8 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
         return imp_std, imp_std_u
 
 
-def bs_values_df(run_list, estimator_list, n_simulate, parallelise=True):
+def bs_values_df(run_list, estimator_list, n_simulate, tqdm_desc='bs values',
+                 **kwargs):
     """
     Computes a data frame of bootstrap resampled values.
 
@@ -187,8 +197,7 @@ def bs_values_df(run_list, estimator_list, n_simulate, parallelise=True):
     bs_values_list = pu.parallel_apply(ar.run_bootstrap_values, run_list,
                                        func_args=(estimator_list,),
                                        func_kwargs={'n_simulate': n_simulate},
-                                       tqdm_desc='bs_values_df',
-                                       parallelise=parallelise)
+                                       tqdm_desc=tqdm_desc, **kwargs)
     df = pd.DataFrame()
     for i, est in enumerate(estimator_list):
         df[est.name] = [arr[i, :] for arr in bs_values_list]
@@ -201,34 +210,35 @@ def bs_values_df(run_list, estimator_list, n_simulate, parallelise=True):
     return df
 
 
-def thread_values_df(run_list, estimator_list):
+def run_thread_values(run, estimator_list):
+    """Helper function for parallelising thread_values_df."""
+    threads = ar.get_run_threads(run)
+    vals_list = [ar.run_estimators(th, estimator_list) for th in threads]
+    vals_array = np.stack(vals_list, axis=1)
+    return vals_array
+
+
+def thread_values_df(run_list, estimator_list, tqdm_desc='thread values',
+                     **kwargs):
     """Returns df containing estimator values for individual threads."""
     # get thread results
-    thread_arr_l = []
-    run_threads_list = pu.parallel_apply(ar.get_run_threads, run_list,
-                                         tqdm_desc='separating threads')
-    for threads in tqdm.tqdm(run_threads_list, desc='thread values',
-                             leave=False):
-        thread_vals = pu.parallel_apply(ar.run_estimators, threads,
-                                        func_args=(estimator_list,))
-        # convert list of estimator results on each thread to a numpy array
-        # with a column for each thread and a row for each estimator
-        thread_arr = np.stack(thread_vals, axis=1)
-        thread_arr_l.append(thread_arr)
+    thread_vals_arrays = pu.parallel_apply(run_thread_values, run_list,
+                                           func_args=(estimator_list,),
+                                           tqdm_desc=tqdm_desc, **kwargs)
     df = pd.DataFrame()
     # print(len(thread_arr_l), [a.shape for a in thread_arr_l])
     for i, est in enumerate(estimator_list):
-        df[est.name] = [arr[i, :] for arr in thread_arr_l]
+        df[est.name] = [arr[i, :] for arr in thread_vals_arrays]
     # Check there are the correct number of thread values in each cell
     for vals_shape in df.loc[0].apply(lambda x: x.shape).values:
-        assert vals_shape == (len(run_threads_list[0]),), \
-            ('Should be nlive=' + str(len(run_threads_list[0])) + ' values '
-             'in each cell. The cell contains array with shape ' +
+        assert vals_shape == (run_list[0]['thread_min_max'].shape[0],), \
+            ('Should be nlive=' + str(run_list[0]['thread_min_max'].shape[0]) +
+             ' values in each cell. The cell contains array with shape ' +
              str(vals_shape))
     return df
 
 
-def pairwise_distances_on_cols(df_in, tqdm_desc=None):
+def pairwise_distances_on_cols(df_in):
     """
     Computes pairwise Kullback–Leibler divergences from a pandas data frame
     of bootstrap value arrays.
@@ -245,8 +255,7 @@ def pairwise_distances_on_cols(df_in, tqdm_desc=None):
     df: pandas data frame with kl values for each pair.
     """
     df = pd.DataFrame()
-    for col in tqdm.tqdm(df_in.columns, desc=tqdm_desc,
-                         leave=False):
+    for col in df_in.columns:
         df[col] = pairwise_distances(df_in[col].values)
     return df
 

@@ -84,18 +84,20 @@ def dict_given_run_array(samples, thread_min_max):
         'theta'
         N.B. this does not contain a record of the run's settings.
     """
-    nlive_0 = (thread_min_max[:, 0] == -np.inf).sum()
-    nlive_array = np.zeros(samples.shape[0]) + nlive_0
-    nlive_array[1:] += np.cumsum(samples[:-1, 2])
-    assert nlive_array.min() > 0, 'nlive contains 0s or negative values!' \
-        '\nnlive_array = ' + str(nlive_array)
-    assert nlive_array[-1] == 1, 'final point in nlive_array != 1!' \
-        '\nnlive_array = ' + str(nlive_array)
     ns_run = {'logl': samples[:, 0],
               'thread_labels': samples[:, 1],
-              'nlive_array': nlive_array,
               'thread_min_max': thread_min_max,
               'theta': samples[:, 3:]}
+    nlive_0 = (thread_min_max[:, 0] < ns_run['logl'].min()).sum()
+    nlive_array = np.zeros(samples.shape[0]) + nlive_0
+    nlive_array[1:] += np.cumsum(samples[:-1, 2])
+    assert nlive_array.min() > 0, \
+        ('nlive contains 0s or negative values!' +
+         '\nnlive_array = ' + str(nlive_array) +
+         '\nthread_min_max=' + str(thread_min_max))
+    assert nlive_array[-1] == 1, 'final point in nlive_array != 1!' \
+        '\nnlive_array = ' + str(nlive_array)
+    ns_run['nlive_array'] = nlive_array
     return ns_run
 
 
@@ -174,13 +176,15 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
     else:
         inds = np.random.randint(0, n_threads, n_threads)
     threads_temp = [threads[i] for i in inds]
+    resampled_run = combine_threads(threads_temp)
     try:
-        return combine_threads(threads_temp, settings=ns_run['settings'])
+        resampled_run['settings'] = ns_run['settings']
     except KeyError:
-        return combine_threads(threads_temp)
+        pass
+    return resampled_run
 
 
-def combine_threads(threads, settings=None):
+def combine_threads(threads):
     """
     Combine list of threads into a single ns run.
     This is different to combining runs as some threads will not start from
@@ -214,7 +218,6 @@ def combine_threads(threads, settings=None):
             samples_temp[np.random.choice(ind), 2] += 1
     # make run
     ns_run_temp = dict_given_run_array(samples_temp, thread_min_max)
-    ns_run_temp['settings'] = settings
     return ns_run_temp
 
 

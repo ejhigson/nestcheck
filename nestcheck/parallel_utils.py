@@ -46,6 +46,8 @@ def parallel_apply(func, arg_iterable, **kwargs):
     func_pre_args = kwargs.pop('func_pre_args', ())
     func_kwargs = kwargs.pop('func_kwargs', {})
     tqdm_desc = kwargs.pop('tqdm_desc', None)
+    tqdm_leave = kwargs.pop('tqdm_leave', False)
+    tqdm_disable = kwargs.pop('tqdm_disable', False)
     results_list = []
     if kwargs:
         raise TypeError('Unexpected **kwargs: %r' % kwargs)
@@ -60,7 +62,8 @@ def parallel_apply(func, arg_iterable, **kwargs):
     if not parallelise:
         print('Warning: parallel_apply not parallelised!')
         return [func(*func_pre_args, x, *func_args, **func_kwargs) for x in
-                progress(arg_iterable, desc=tqdm_desc, leave=False)]
+                progress(arg_iterable, desc=tqdm_desc, leave=tqdm_leave,
+                         disable=tqdm_disable)]
     else:
         pool = concurrent.futures.ProcessPoolExecutor(max_workers=max_workers)
         futures = []
@@ -68,7 +71,8 @@ def parallel_apply(func, arg_iterable, **kwargs):
             futures.append(pool.submit(func, *func_pre_args, element,
                                        *func_args, **func_kwargs))
         for fut in progress(concurrent.futures.as_completed(futures),
-                            desc=tqdm_desc, leave=False, total=len(futures)):
+                            desc=tqdm_desc, leave=tqdm_leave,
+                            disable=tqdm_disable, total=len(futures)):
             results_list.append(fut.result())
         del futures
         del pool
