@@ -7,40 +7,10 @@ import numpy as np
 import nestcheck.io_utils as iou
 
 
-def get_polychord_data(file_root, n_runs, **kwargs):
-    """
-    Load and process polychord chains
-    """
-    data_dir = kwargs.pop('data_dir', 'cache/')
-    chains_dir = kwargs.pop('chains_dir', 'chains/')
-    load = kwargs.pop('load', True)
-    save = kwargs.pop('save', True)
-    overwrite_existing = kwargs.pop('overwrite_existing', False)
-    if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
-    save_name = file_root + '_' + str(n_runs) + 'runs'
-    if load:
-        try:
-            return iou.pickle_load(data_dir + save_name)
-        except OSError:  # FileNotFoundError is a subclass of OSError
-            pass
-    data = []
-    # load and process chains
-    for i in range(1, n_runs + 1):
-        try:
-            root = chains_dir + file_root + '_' + str(i)
-            data.append(process_polychord_run(root))
-        except (OSError, AssertionError) as err:
-            print(type(err).__name__ + ' processing file ' + root)
-            save = False  # only save if every file is processed ok
-    if save:
-        print('Processed new chains: saving to ' + save_name)
-        iou.pickle_save(data, data_dir + save_name, print_time=False,
-                        overwrite_existing=overwrite_existing)
-    return data
-
-
 def process_polychord_run(root):
+    """
+    Loads data from PolyChord run into the standard nestcheck format.
+    """
     dead_points = np.loadtxt(root + '_dead.txt')
     ns_run = process_polychord_dead_points(dead_points)
     try:
@@ -49,15 +19,13 @@ def process_polychord_run(root):
             assert key not in ns_run
             ns_run[key] = info.pop(key)
         assert not info
-        # # for compatibility with PerfectNestedSampling functions
-        # ns_run_dict['settings'] = {'dynamic_goal': None,
-        #                            'nlive_const': nlive}
-        # ns_run_dict['r'] = np.zeros(samples.shape[0])
-        # ns_run_dict['logx'] = np.zeros(samples.shape[0])
         # Run some tests
         # --------------
         # For the standard ns case
         if not ns_run['settings']['nlives']:
+            nthread = np.unique(ns_run['thread_labels']).shape[0]
+            assert nthread == ns_run['settings']['nlive'], \
+                str(nthread) + '!=' + str(ns_run['settings']['nlive'])
             standard_nlive_array = np.zeros(ns_run['logl'].shape)
             standard_nlive_array += ns_run['settings']['nlive']
             for i in range(1, ns_run['settings']['nlive']):
@@ -80,6 +48,14 @@ def process_polychord_dead_points(dead_points):
     ns_run['birth_step'] = dead_points[:, 1].astype(int)
     assert np.array_equal(ns_run['birth_step'], dead_points[:, 1]), \
         'birth_step values should all be integers!'
+    # birth contours with value 0 are sometimes printed to the dead points file
+    # by PolyChord as -2^31 due to Fortran io errors
+    if np.any(ns_run['birth_step'] == -2147483648):
+        assert not np.any(ns_run['birth_step'] == 0)
+        print('WARNING: dead points birth contours use -2147483648 instead '
+              + 'of zero')
+        ns_run['birth_step'][np.where(
+            ns_run['birth_step'] == -2147483648)[0]] = 0
     ns_run['theta'] = dead_points[:, 2:]
     ns_run['thread_labels'] = threads_given_birth_order(ns_run['birth_step'])
     # perform some checks
