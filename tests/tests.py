@@ -18,7 +18,7 @@ import perfectns.estimators as e
 # import perfectns.results_tables as rt
 # import perfectns.maths_functions
 # import perfectns.priors as priors
-# import perfectns.plots
+import PyPolyChord.dynamic_utils
 import nestcheck.plots
 import nestcheck.data_processing
 import nestcheck.diagnostics as d
@@ -41,11 +41,11 @@ class TestPerfectNS(unittest.TestCase):
              'dir to check caching then delete it afterwards, so the path ' +
              'should be left empty.')
         # Get some data
-        self.standard_runs = nestcheck.data_processing.get_polychord_data(
+        self.standard_runs = PyPolyChord.dynamic_utils.get_polychord_data(
             'v02_gaussian_standard_2d_10nlive_20nrepeats', 10,
             chains_dir='tests/data/', data_dir=self.cache_dir, save=True,
             load=True)
-        self.dynamic_runs = nestcheck.data_processing.get_polychord_data(
+        self.dynamic_runs = PyPolyChord.dynamic_utils.get_polychord_data(
             'v02_gaussian_standard_2d_10nlive_20nrepeats', 10,
             chains_dir='tests/data/', data_dir=self.cache_dir, save=True,
             load=True)
@@ -110,14 +110,14 @@ class TestPerfectNS(unittest.TestCase):
 
     def test_data_processing(self):
         # Try looking for chains which dont exist
-        data = nestcheck.data_processing.get_polychord_data(
+        data = PyPolyChord.dynamic_utils.get_polychord_data(
             'an_empty_path', 1,
             chains_dir='tests/data/', data_dir=self.cache_dir, save=True,
             load=True)
         self.assertEqual(len(data), 0)
         # Test unexpected kwargs checks
         self.assertRaises(
-            TypeError, nestcheck.data_processing.get_polychord_data,
+            TypeError, PyPolyChord.dynamic_utils.get_polychord_data,
             'test_gaussian_standard_2d_10nlive_20nrepeats', 1,
             chains_dir='tests/data/', unexpected=1)
 
