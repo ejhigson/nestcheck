@@ -45,6 +45,9 @@ def process_polychord_dead_points(dead_points):
     # Treat dead points
     ns_run = {}
     ns_run['logl'] = dead_points[:, 0]
+    repeat_logls = ns_run['logl'].shape[0] - np.unique(ns_run['logl']).shape[0]
+    assert repeat_logls == 0, \
+        '# unique logl values is ' + str(repeat_logls) + ' less than # points'
     ns_run['birth_step'] = dead_points[:, 1].astype(int)
     assert np.array_equal(ns_run['birth_step'], dead_points[:, 1]), \
         'birth_step values should all be integers!'
@@ -98,14 +101,12 @@ def threads_given_birth_order(birth_order):
     """
     unique, counts = np.unique(birth_order, return_counts=True)
     multi_birth_steps = unique[np.where(counts > 1)]
-    # # check that a point is born on every step
-    # assert np.array_equal(unique, np.asarray(range(birth_order.max()+1)))
     thread_labels = np.zeros(birth_order.shape)
     thread_num = 0
     for nstep, step in enumerate(multi_birth_steps):
         for i, start_ind in enumerate(np.where(birth_order == step)[0]):
-            # unless nstep=0 the first point is assigned to the continuation of
-            # the original thread
+            # unless nstep=0 the first point born on the contour (i=0) is
+            # already assigned to a thread
             if i != 0 or nstep == 0:
                 thread_num += 1
                 # check point has not already been assigned
@@ -119,29 +120,15 @@ def threads_given_birth_order(birth_order):
                     thread_labels[next_ind[0]] = thread_num
                     # find the point which replaced it
                     next_ind = np.where(birth_order == (next_ind[0] + 1))[0]
-    assert thread_labels.min() > 0
-    n_threads = (np.sum(counts[np.where(counts > 1)]) -
-                 (multi_birth_steps.shape[0] - 1))
-    assert np.unique(thread_labels).shape[0] == n_threads
-    if thread_labels.min() == 0:
-        ind = np.where(thread_labels == 0)[0]
-        print('WARNING: ' + str(ind.shape[0]) + ' points without thread' +
-              ' label:', ind)
-        # If there are not many points missing labels then given them random
-        # labels. Otherwise throw assertion error.
-        if ind.shape[0] <= 10:
-            nlive = np.unique(thread_labels).shape[0] - 1
-            for ind_i in ind:
-                thread_labels[ind_i] = np.random.randint(1, nlive + 1)
-        else:
-            assert thread_labels.min() > 0, \
-                'ERROR: some points did not get a thread label!\n' \
-                'Indexes without labels are: ' + \
-                str(np.where(thread_labels == 0)) + \
-                ' out of ' + str(birth_order.shape) + ' points.\n' \
-                'These points were born at steps ' + \
-                str(birth_order[np.where(thread_labels == 0)[0]]) + '.\n' \
-                'N_threads = ' + str(np.unique(thread_labels).shape[0] - 1)
+    assert np.all(thread_labels != 0), \
+        ('Point not given a thread labels! Indexes='
+         + str(np.where(thread_labels == 0)[0]))
     assert np.array_equal(thread_labels, thread_labels.astype(int)), \
         'Thread labels should all be ints!'
-    return thread_labels.astype(int)
+    thread_labels = thread_labels.astype(int)
+    # Check unique thread labels are a sequence from 1 to nthreads as expected
+    n_threads = (np.sum(counts[np.where(counts > 1)]) -
+                 (multi_birth_steps.shape[0] - 1))
+    assert np.array_equal(np.unique(thread_labels),
+                          np.asarray(range(1, n_threads + 1)))
+    return thread_labels

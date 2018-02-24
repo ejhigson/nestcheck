@@ -85,9 +85,12 @@ def dict_given_run_array(samples, thread_min_max):
         N.B. this does not contain a record of the run's settings.
     """
     ns_run = {'logl': samples[:, 0],
-              'thread_labels': samples[:, 1],
+              'thread_labels': samples[:, 1].astype(int),
               'thread_min_max': thread_min_max,
               'theta': samples[:, 3:]}
+    assert np.array_equal(samples[:, 1], ns_run['thread_labels']), \
+        ('Casting thread labels from samples array to int has changed ' +
+         'their values!')
     nlive_0 = (thread_min_max[:, 0] < ns_run['logl'].min()).sum()
     nlive_array = np.zeros(samples.shape[0]) + nlive_0
     nlive_array[1:] += np.cumsum(samples[:-1, 2])
@@ -120,11 +123,21 @@ def get_run_threads(ns_run):
         with each row representing a single sample.
     """
     samples = array_given_run(ns_run)
-    assert np.array_equal(
-        np.asarray(range(ns_run['thread_labels'].min(),
-                         ns_run['thread_labels'].max() + 1)),
-        np.unique(ns_run['thread_labels'])), \
-        str(np.unique(ns_run['thread_labels']))
+    # assert np.array_equal(
+    #     np.asarray(range(ns_run['thread_labels'].min(),
+    #                      ns_run['thread_labels'].max() + 1)),
+    #     np.unique(ns_run['thread_labels'])), \
+    #     str(np.unique(ns_run['thread_labels']))
+    assert ns_run['thread_labels'].dtype == int
+    uniq_th = np.unique(ns_run['thread_labels'])
+    assert uniq_th.dtype == int
+    if ns_run['thread_min_max'].shape[0] != uniq_th.shape[0]:
+        print("WARNING: some threads have no points")
+    if not np.array_equal(np.asarray(range(uniq_th.min(),
+                                           uniq_th.max() + 1)),
+                          uniq_th):
+        print('Unique threads not as expected:',
+              str(np.unique(ns_run['thread_labels'])))
     threads = []
     for i, th_lab in enumerate(np.unique(ns_run['thread_labels'])):
         thread_array = samples[np.where(samples[:, 1] == th_lab)]
@@ -196,9 +209,6 @@ def combine_threads(threads):
     thread_min_max = np.vstack([td['thread_min_max'] for td in threads])
     # construct samples array from the threads, including an updated nlive
     samples_temp = np.vstack([array_given_run(thread) for thread in threads])
-    # Check there are the same number of thread labels as there are threads
-    # (i.e. that no labels are repeated)
-    assert np.unique(samples_temp[:, 1]).shape[0] == len(threads)
     samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
     # update the changes in live points column for threads which start part way
     # through the run. These are only present in dynamic nested sampling.
