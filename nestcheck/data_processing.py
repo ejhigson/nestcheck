@@ -61,11 +61,6 @@ def process_polychord_dead_points(dead_points):
             ns_run['birth_step'] == -2147483648)[0]] = 0
     ns_run['theta'] = dead_points[:, 2:]
     ns_run['thread_labels'] = threads_given_birth_order(ns_run['birth_step'])
-    # perform some checks
-    # nlive = dead_points.shape[0] - np.count_nonzero(dead_points[:, 1])
-    # assert np.unique(ns_run['thread_labels'][-nlive:]).shape[0] == nlive, \
-    #     'The final nlive=' + str(nlive) + ' points of the run are not all ' \
-    #     'from different threads!'
     # get thread min max
     unique_threads = np.unique(ns_run['thread_labels'])
     # Work out nlive_array and thread_min_max logls from thread labels and
@@ -91,6 +86,19 @@ def process_polychord_dead_points(dead_points):
         thread_min_max[i, 1] = ns_run['logl'][death - 1]
     ns_run['thread_min_max'] = thread_min_max
     ns_run['nlive_array'] = np.cumsum(delta_nlive)[:-1]
+    # Check the points in each thread are as expected given thread_min_max
+    for i, th_lab in enumerate(np.unique(ns_run['thread_labels'])):
+        inds = np.where(ns_run['thread_labels'] == th_lab)[0]
+        # First point must occur after thread starts
+        assert ns_run['thread_min_max'][i, 0] < ns_run['logl'][inds[0]], \
+            ('First point in thread has logl less than thread min logl! ' +
+             str(i) + ', ' + str(th_lab) + ', ' + str(ns_run['logl'][inds[0]]),
+             str(ns_run['thread_min_max'][i, :]))
+        # Last point in thread is where thread ends
+        assert ns_run['thread_min_max'][i, 1] == ns_run['logl'][inds[-1]], \
+            ('Last point in thread logl != thread end logl! ' +
+             str(i) + ', ' + str(th_lab) + ', ' + str(ns_run['logl'][inds[0]]),
+             str(ns_run['thread_min_max'][i, :]))
     return ns_run
 
 
