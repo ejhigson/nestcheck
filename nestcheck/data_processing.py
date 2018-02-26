@@ -7,6 +7,52 @@ import numpy as np
 import nestcheck.io_utils as iou
 
 
+def test_ns_run(run):
+    """Checks a nested sampling run has some of the expected properties."""
+    run_keys = list(run.keys())
+    # Mandatory keys
+    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
+                'thread_min_max']:
+        assert key in run_keys
+        run_keys.remove(key)
+    # Optional keys
+    for key in ['settings', 'output', 'birth_step']:
+        try:
+            run_keys.remove(key)
+        except ValueError:
+            pass
+    # Check for unexpected keys
+    assert not run_keys, 'Unexpected keys in ns_run: ' + str(run_keys)
+
+    # Test the combined run is as expected
+    assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
+    logl_u, counts = np.unique(run['logl'], return_counts=True)
+    repeat_logls = run['logl'].shape[0] - logl_u.shape[0]
+    assert repeat_logls == 0, \
+        ('# unique logl values is ' + str(repeat_logls) + ' less than # ' +
+         'points. Duplicate values: ' + str(logl_u[np.where(counts > 1)[0]]) +
+         ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
+         ', First point at inds ' +
+         str(np.where(run['logl'] == logl_u[np.where(counts > 1)[0][0]])[0]) +
+         ' out of ' + str(run['logl'].shape[0]))
+    assert run['thread_labels'].dtype == int
+    assert np.all(run['thread_labels'] != 0)
+    assert np.all(run['thread_min_max'] != 0)
+    uniq_th = np.unique(run['thread_labels'])
+    assert np.array_equal(uniq_th,
+                          np.asarray(range(1, uniq_th.shape[0] + 1)))
+    for i, th_lab in enumerate(np.unique(run['thread_labels'])):
+        inds = np.where(run['thread_labels'] == th_lab)[0]
+        assert run['thread_min_max'][i, 0] < run['logl'][inds[0]], \
+            ('First point in thread has logl less than thread min logl! ' +
+             str(i) + ', ' + str(th_lab) + ', ' + str(run['logl'][inds[0]]),
+             str(run['thread_min_max'][i, :]))
+        assert run['thread_min_max'][i, 1] == run['logl'][inds[-1]], \
+            ('Last point in thread logl != thread end logl! ' +
+             str(i) + ', ' + str(th_lab) + ', ' + str(run['logl'][inds[0]]),
+             str(run['thread_min_max'][i, :]))
+
+
 def process_polychord_run(root):
     """
     Loads data from PolyChord run into the standard nestcheck format.
@@ -19,11 +65,11 @@ def process_polychord_run(root):
             assert key not in ns_run
             ns_run[key] = info.pop(key)
         assert not info
-        # Run some tests
-        # --------------
+        # Run some tests based on the settings
+        # ------------------------------------
         # For the standard ns case
         if not ns_run['settings']['nlives']:
-            nthread = np.unique(ns_run['thread_labels']).shape[0]
+            nthread = ns_run['thread_min_max'].shape[0]
             assert nthread == ns_run['settings']['nlive'], \
                 str(nthread) + '!=' + str(ns_run['settings']['nlive'])
             standard_nlive_array = np.zeros(ns_run['logl'].shape)
@@ -34,6 +80,7 @@ def process_polychord_run(root):
                                   standard_nlive_array)
     except OSError:
         pass
+    test_ns_run(ns_run)
     return ns_run
 
 
@@ -86,19 +133,6 @@ def process_polychord_dead_points(dead_points):
         thread_min_max[i, 1] = ns_run['logl'][death - 1]
     ns_run['thread_min_max'] = thread_min_max
     ns_run['nlive_array'] = np.cumsum(delta_nlive)[:-1]
-    # Check the points in each thread are as expected given thread_min_max
-    for i, th_lab in enumerate(np.unique(ns_run['thread_labels'])):
-        inds = np.where(ns_run['thread_labels'] == th_lab)[0]
-        # First point must occur after thread starts
-        assert ns_run['thread_min_max'][i, 0] < ns_run['logl'][inds[0]], \
-            ('First point in thread has logl less than thread min logl! ' +
-             str(i) + ', ' + str(th_lab) + ', ' + str(ns_run['logl'][inds[0]]),
-             str(ns_run['thread_min_max'][i, :]))
-        # Last point in thread is where thread ends
-        assert ns_run['thread_min_max'][i, 1] == ns_run['logl'][inds[-1]], \
-            ('Last point in thread logl != thread end logl! ' +
-             str(i) + ', ' + str(th_lab) + ', ' + str(ns_run['logl'][inds[0]]),
-             str(ns_run['thread_min_max'][i, :]))
     return ns_run
 
 
