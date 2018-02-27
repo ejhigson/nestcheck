@@ -94,7 +94,12 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                         color=line.get_color())
             # for normalising analytic weight lines
             integrals[nr] = -np.trapz(run['nlive_array'], x=logx)
-        integrals_dict[method_name] = integrals
+        if not np.all(np.isfinite(integrals)):
+            print(method_name,
+                  'removing non-finite integrals from normalisation: ',
+                  np.count_nonzero(~np.isfinite(integrals)), '/',
+                  integrals.shape)
+        integrals_dict[method_name] = integrals[np.isfinite(integrals)]
     # if not specified, set logx min to the lowest logx reached by a run
     if logx_min is None:
         logx_min_list = []
@@ -104,8 +109,12 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
         logx_min = np.asarray(logx_min_list).min()
     if logl_given_logx is not None:
         # Plot analytic posterior mass and cumulative posterior mass
-        logx = np.linspace(logx_min, 0, npoints)
-        w_an = ar.rel_posterior_mass(logx, logl_given_logx(logx))
+        logx_plot = np.linspace(logx_min, 0, npoints)
+        logl = logl_given_logx(logx_plot)
+        # Remove any NaNs
+        logx_plot = logx_plot[np.where(~np.isnan(logl))[0]]
+        logl = logl[np.where(~np.isnan(logl))[0]]
+        w_an = ar.rel_posterior_mass(logx_plot, logl)
         # Try normalising the analytic distribution of posterior mass to have
         # the same area under the curve as the runs with dynamic_goal=1 (the
         # ones which we want to compare to it). If they are not available just
@@ -121,11 +130,12 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                       'normalise area under the analytic relative posterior ' +
                       'mass curve using the mean of all methods.')
                 w_an *= np.mean(np.concatenate(list(integrals_dict.values())))
-        ax.plot(logx, w_an, linewidth=2, label='relative posterior mass',
+        ax.plot(logx_plot, w_an,
+                linewidth=2, label='relative posterior mass',
                 linestyle=':', color='k')
         # plot cumulative posterior mass
         w_an_c = np.cumsum(w_an)
-        w_an_c /= np.trapz(w_an_c, x=logx)
+        w_an_c /= np.trapz(w_an_c, x=logx_plot)
         # Try normalising the cumulative distribution of posterior mass to have
         # the same area under the curve as the runs with dynamic_goal=0 (the
         # ones which we want to compare to it). If they are not available just
@@ -142,7 +152,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                       'remaining curve using the mean of all methods.')
                 w_an_c *= np.mean(np.concatenate(
                     list(integrals_dict.values())))
-        ax.plot(logx, w_an_c, linewidth=2, linestyle='--', dashes=(2, 3),
+        ax.plot(logx_plot, w_an_c, linewidth=2, linestyle='--', dashes=(2, 3),
                 label='posterior mass remaining', color='darkblue')
     ax.set_ylabel('number of live points')
     ax.set_xlabel(r'$\log X $')

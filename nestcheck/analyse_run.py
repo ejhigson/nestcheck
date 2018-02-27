@@ -33,7 +33,7 @@ def rel_posterior_mass(logx, logl):
     """
     logw = logx + logl
     w_rel = np.exp(logw - logw.max())
-    w_rel /= np.trapz(w_rel, logx)
+    w_rel /= np.abs(np.trapz(w_rel, x=logx))
     return w_rel
 
 
