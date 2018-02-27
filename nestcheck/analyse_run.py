@@ -157,22 +157,19 @@ def get_run_threads(ns_run):
     #                      ns_run['thread_labels'].max() + 1)),
     #     np.unique(ns_run['thread_labels'])), \
     #     str(np.unique(ns_run['thread_labels']))
-    uniq_th = np.unique(ns_run['thread_labels'])
-    assert ns_run['thread_min_max'].shape[0] == uniq_th.shape[0], \
-        ('some threads have no points! ' + str(uniq_th.shape[0]) +
+    unique_threads = np.unique(ns_run['thread_labels'])
+    assert ns_run['thread_min_max'].shape[0] == unique_threads.shape[0], \
+        ('some threads have no points! ' + str(unique_threads.shape[0]) +
          '!=' + str(ns_run['thread_min_max'].shape[0]))
-    if not np.array_equal(np.asarray(range(uniq_th.min(),
-                                           uniq_th.max() + 1)),
-                          uniq_th):
-        print('Unique threads not as expected:',
-              str(np.unique(ns_run['thread_labels'])))
     threads = []
-    for i, th_lab in enumerate(np.unique(ns_run['thread_labels'])):
+    for i, th_lab in enumerate(unique_threads):
         thread_array = samples[np.where(samples[:, 1] == th_lab)]
         # delete changes in nlive due to other threads in the run
         thread_array[:, 2] = 0
         thread_array[-1, 2] = -1
         min_max = np.reshape(ns_run['thread_min_max'][i, :], (1, 2))
+        assert min_max[0, 1] == thread_array[-1, 0], \
+            'thread max logl should equal logl of its final point!'
         threads.append(dict_given_run_array(thread_array, min_max))
     return threads
 
@@ -244,15 +241,15 @@ def combine_ns_runs(run_list_in):
     samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
     # Make combined run
     run = dict_given_run_array(samples_temp, thread_min_max)
-    # Now we need to reorder the thread labels and thread_min_max values so
-    # they go in order
-    thread_labels_new = np.zeros(run['thread_labels'].shape).astype(int)
-    thread_min_max_new = np.zeros(run['thread_min_max'].shape)
-    for i, th_lab in enumerate(np.unique(run['thread_labels'])):
-        thread_labels_new[np.where(run['thread_labels'] == th_lab)[0]] = i + 1
-        thread_min_max_new[i, :] = run['thread_min_max'][th_lab - 1, :]
-    run['thread_labels'] = thread_labels_new
-    run['thread_min_max'] = thread_min_max_new
+    # # Now we need to reorder the thread labels and thread_min_max values so
+    # # they go in order
+    # thread_labels_new = np.zeros(run['thread_labels'].shape).astype(int)
+    # thread_min_max_new = np.zeros(run['thread_min_max'].shape)
+    # for i, th_lab in enumerate(np.unique(run['thread_labels'])):
+    #     thread_labels_new[np.where(run['thread_labels'] == th_lab)[0]] = i
+    #     thread_min_max_new[i, :] = run['thread_min_max'][th_lab, :]
+    # run['thread_labels'] = thread_labels_new
+    # run['thread_min_max'] = thread_min_max_new
     dp.check_ns_run(run)
     return run
 
@@ -263,8 +260,13 @@ def combine_threads(threads, assert_birth_point=False):
     This is different to combining runs as repeated threads are allowed, and as
     some threads can start from loglikelihood contours on which no dead
     point in the run is present.
+
+    Note that if all the thread labels are not unique and in ascending order,
+    the output will fail check_ns_run. However provided the thread labels are
+    not used it will work ok for calculations based on nlive, logl and theta.
     """
     thread_min_max = np.vstack([td['thread_min_max'] for td in threads])
+    assert len(threads) == thread_min_max.shape[0]
     # construct samples array from the threads, including an updated nlive
     samples_temp = np.vstack([array_given_run(thread) for thread in threads])
     samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
@@ -293,8 +295,15 @@ def combine_threads(threads, assert_birth_point=False):
             # always choosing the first point.
             samples_temp[np.random.choice(ind), 2] += 1
     # make run
-    ns_run_temp = dict_given_run_array(samples_temp, thread_min_max)
-    return ns_run_temp
+    ns_run = dict_given_run_array(samples_temp, thread_min_max)
+    try:
+        dp.check_ns_run_threads(ns_run)
+    except AssertionError:
+        # If the threads are not valid (e.g. for bootstrap resamples) then
+        # set them to None so they can't be accidentally used
+        ns_run['thread_labels'] = None
+        ns_run['thread_min_max'] = None
+    return ns_run
 
 
 def run_std_bootstrap(ns_run, estimator_list, **kwargs):

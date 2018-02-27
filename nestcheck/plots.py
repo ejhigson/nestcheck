@@ -456,7 +456,7 @@ def param_logx_diagram(run_list, **kwargs):
         for nf, ftheta in enumerate(fthetas):
             ax_samples = axes[1 + nf, 1]
             for i in threads_to_plot:
-                thread_inds = np.where(run['thread_labels'] == i + 1)[0]
+                thread_inds = np.where(run['thread_labels'] == i)[0]
                 ax_samples.plot(logx[thread_inds],
                                 ftheta(run['theta'][thread_inds]),
                                 color='black', lw=1)
