@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+"""nestcheck setup."""
 import os
 import setuptools
 
