@@ -199,8 +199,11 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     true_values = kwargs.pop('true_values', None)
     include_true_values = kwargs.pop('include_true_values', False)
     include_rmse = kwargs.pop('include_rmse', False)
+    adjust_nsamp = kwargs.pop('adjust_nsamp', None)
     if kwargs:
         raise TypeError('Unexpected **kwargs: %r' % kwargs)
+    if adjust_nsamp is not None:
+        assert adjust_nsamp.shape == (len(method_names),)
     assert len(method_names) == len(method_values)
     df_dict = {}
     for i, method_name in enumerate(method_names):
@@ -223,9 +226,16 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
                     df_dict[method_names[0]].loc[(stat, 'uncertainty')],
                     df.loc[(stat, 'value')],
                     df.loc[(stat, 'uncertainty')])
-                df.loc[(stat + ' efficiency gain', 'value'), :] = ratio ** 2
-                df.loc[(stat + ' efficiency gain', 'uncertainty'), :] = \
-                    2 * ratio * ratio_unc
+                key = stat + ' efficiency gain'
+                df.loc[(key, 'value'), :] = ratio ** 2
+                df.loc[(key, 'uncertainty'), :] = 2 * ratio * ratio_unc
+                if adjust_nsamp is not None:
+                    # Efficiency gain meansures performance per number of
+                    # samples (proportional to computational work). If the
+                    # number of samples is not the same we can adjust this.
+                    adjust = (adjust_nsamp[0] / adjust_nsamp[1:])
+                    df.loc[(key, 'value'), :] *= adjust
+                    df.loc[(key, 'uncertainty'), :] *= adjust
         df_dict[method_name] = df
     results = pd.concat(df_dict)
     results.index.rename('dynamic settings', level=0, inplace=True)
