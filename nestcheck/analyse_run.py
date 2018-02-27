@@ -4,8 +4,10 @@ Functions used to analyse nested sampling runs, perform calculations and
 estimate sampling errors.
 """
 
+import copy
 import numpy as np
 import scipy.special
+import nestcheck.data_processing as dp
 
 
 def run_estimators(ns_run, estimator_list, simulate=False):
@@ -128,11 +130,10 @@ def get_run_threads(ns_run):
     #                      ns_run['thread_labels'].max() + 1)),
     #     np.unique(ns_run['thread_labels'])), \
     #     str(np.unique(ns_run['thread_labels']))
-    assert ns_run['thread_labels'].dtype == int
     uniq_th = np.unique(ns_run['thread_labels'])
-    assert uniq_th.dtype == int
-    if ns_run['thread_min_max'].shape[0] != uniq_th.shape[0]:
-        print("WARNING: some threads have no points")
+    assert ns_run['thread_min_max'].shape[0] == uniq_th.shape[0], \
+        ('some threads have no points! ' + str(uniq_th.shape[0]) +
+         '!=' + str(ns_run['thread_min_max'].shape[0]))
     if not np.array_equal(np.asarray(range(uniq_th.min(),
                                            uniq_th.max() + 1)),
                           uniq_th):
@@ -199,12 +200,42 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
     return resampled_run
 
 
-def combine_threads(threads):
+def combine_ns_runs(run_list_in):
+    """
+    Combine a list of complete ns runs (each without any repeated threads)
+    into a single ns run.
+    """
+    run_list = copy.deepcopy(run_list_in)
+    nthread_tot = 0
+    for i, _ in enumerate(run_list):
+        dp.check_ns_run(run_list[i])
+        run_list[i]['thread_labels'] += nthread_tot
+        nthread_tot += run_list[i]['thread_min_max'].shape[0]
+    thread_min_max = np.vstack([run['thread_min_max'] for run in run_list])
+    # construct samples array from the threads, including an updated nlive
+    samples_temp = np.vstack([array_given_run(run) for run in run_list])
+    samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
+    # Make combined run
+    run = dict_given_run_array(samples_temp, thread_min_max)
+    # Now we need to reorder the thread labels and thread_min_max values so
+    # they go in order
+    thread_labels_new = np.zeros(run['thread_labels'].shape).astype(int)
+    thread_min_max_new = np.zeros(run['thread_min_max'].shape)
+    for i, th_lab in enumerate(np.unique(run['thread_labels'])):
+        thread_labels_new[np.where(run['thread_labels'] == th_lab)[0]] = i + 1
+        thread_min_max_new[i, :] = run['thread_min_max'][th_lab - 1, :]
+    run['thread_labels'] = thread_labels_new
+    run['thread_min_max'] = thread_min_max_new
+    dp.check_ns_run(run)
+    return run
+
+
+def combine_threads(threads, assert_birth_point=False):
     """
     Combine list of threads into a single ns run.
-    This is different to combining runs as some threads will not start from
-    sampling the entire prior and the contour on which they were born may not
-    contain a dead point in the final run.
+    This is different to combining runs as repeated threads are allowed, and as
+    some threads can start from loglikelihood contours on which no dead
+    point in the run is present.
     """
     thread_min_max = np.vstack([td['thread_min_max'] for td in threads])
     # construct samples array from the threads, including an updated nlive
@@ -215,6 +246,9 @@ def combine_threads(threads):
     logl_starts = thread_min_max[:, 0]
     for logl_start in logl_starts[logl_starts != -np.inf]:
         ind = np.where(samples_temp[:, 0] == logl_start)[0]
+        if assert_birth_point:
+            assert ind.shape == (1,), \
+                'No unique birth point! ' + str(ind.shape)
         if ind.shape == (1,):
             # If the point at which this thread started is present exactly
             # once in this bootstrap replication:

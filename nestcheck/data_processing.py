@@ -7,7 +7,7 @@ import numpy as np
 import nestcheck.io_utils as iou
 
 
-def test_ns_run(run):
+def check_ns_run(run):
     """Checks a nested sampling run has some of the expected properties."""
     run_keys = list(run.keys())
     # Mandatory keys
@@ -23,8 +23,7 @@ def test_ns_run(run):
             pass
     # Check for unexpected keys
     assert not run_keys, 'Unexpected keys in ns_run: ' + str(run_keys)
-
-    # Test the combined run is as expected
+    # Test logls are unique and in the correct order
     assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
     logl_u, counts = np.unique(run['logl'], return_counts=True)
     repeat_logls = run['logl'].shape[0] - logl_u.shape[0]
@@ -35,12 +34,17 @@ def test_ns_run(run):
          ', First point at inds ' +
          str(np.where(run['logl'] == logl_u[np.where(counts > 1)[0][0]])[0]) +
          ' out of ' + str(run['logl'].shape[0]))
+    # Check thread labels
     assert run['thread_labels'].dtype == int
     assert np.all(run['thread_labels'] != 0)
-    assert np.all(run['thread_min_max'] != 0)
     uniq_th = np.unique(run['thread_labels'])
-    assert np.array_equal(uniq_th,
-                          np.asarray(range(1, uniq_th.shape[0] + 1)))
+    assert np.array_equal(
+        np.asarray(range(1, run['thread_min_max'].shape[0] + 1)), uniq_th), \
+        str(uniq_th)
+    # Check thread_min_max
+    assert np.any(run['thread_min_max'][:, 0] == -np.inf), \
+        ('Run should have at least one thread which starts by sampling the ' +
+         'whole prior')
     for i, th_lab in enumerate(np.unique(run['thread_labels'])):
         inds = np.where(run['thread_labels'] == th_lab)[0]
         assert run['thread_min_max'][i, 0] < run['logl'][inds[0]], \
@@ -80,7 +84,7 @@ def process_polychord_run(root):
                                   standard_nlive_array)
     except OSError:
         pass
-    test_ns_run(ns_run)
+    check_ns_run(ns_run)
     return ns_run
 
 
