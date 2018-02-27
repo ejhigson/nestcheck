@@ -21,6 +21,141 @@ matplotlib.rc('text', usetex=True)
 matplotlib.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 
 
+def plot_run_nlive(method_names, run_dict, **kwargs):
+    """
+    Plot the allocations of live points as a function of logX for the input
+    sets of nested sampling runs.
+    Plots also include analytically calculated distributions of relative
+    posterior mass and relative posterior mass remaining.
+
+    Parameters
+    ----------
+
+    method_names: list of strs
+    run_dict: dict of lists of nested sampling runs.
+        Keys of run_dict must be method_names
+    logx_given_logl: function
+        For mapping points' logl values to logx values.
+        If not specified the logx coordinates for each run are estimated using
+        its numbers of live points.
+    logl_given_logx: function
+        For calculating the relative posterior mass and posterior mass
+        remaining at each logx coordinate.
+    logx_min: float, optional
+        Lower limit of logx axis. If not specified this is set to the lowest
+        logx reached by any of the runs.
+    ymax: bool, optional
+        Maximum value for plot's nlive axis (yaxis).
+    npoints: int, optional
+        How many points to have in the logx array used to calculate and plot
+        analytical weights.
+    figsize: tuple, optional
+        Size of figure in inches.
+
+    Returns
+    -------
+    fig: matplotlib figure
+    """
+    logx_min = kwargs.pop('logx_min', None)
+    ymax = kwargs.pop('ymax', None)
+    figsize = kwargs.pop('figsize', (6.4, 2))
+    logx_given_logl = kwargs.pop('logx_given_logl', None)
+    logl_given_logx = kwargs.pop('logl_given_logx', None)
+    npoints = kwargs.pop('npoints', 100)
+    post_mass_norm = kwargs.pop('post_mass_norm', 'dynamic $G=0$')
+    cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', 'dynamic $G=1$')
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+    assert set(method_names) == set(run_dict.keys())
+    # Plotting
+    # --------
+    fig = plt.figure(figsize=figsize)
+    ax = plt.gca()
+    # the default color cycle contains some dark colors which don't show up
+    # well - select just the light ones
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    ax.set_prop_cycle('color', [colors[i] for i in [2, 8, 4, 9, 1, 6]])
+    integrals_dict = {}
+    for method_name in method_names:
+        integrals = np.zeros(len(run_dict[method_name]))
+        for nr, run in enumerate(run_dict[method_name]):
+            if logx_given_logl is not None:
+                logx = logx_given_logl(run['logl'])
+            else:
+                logx = ar.get_logx(run['nlive_array'], simulate=False)
+            logx[0] = 0  # to make lines extend all the way to the end
+            if nr == 0:
+                # Label the first line and store it so we can access its color
+                line, = ax.plot(logx, run['nlive_array'], linewidth=1,
+                                label=method_name)
+            else:
+                # Set other lines to same color and don't add labels
+                ax.plot(logx, run['nlive_array'], linewidth=1,
+                        color=line.get_color())
+            # for normalising analytic weight lines
+            integrals[nr] = -np.trapz(run['nlive_array'], x=logx)
+        integrals_dict[method_name] = integrals
+    # if not specified, set logx min to the lowest logx reached by a run
+    if logx_min is None:
+        logx_min_list = []
+        for method_name in method_names:
+            for run in run_dict[method_name]:
+                logx_min_list.append(run['logx'][-1])
+        logx_min = np.asarray(logx_min_list).min()
+    if logl_given_logx is not None:
+        # Plot analytic posterior mass and cumulative posterior mass
+        logx = np.linspace(logx_min, 0, npoints)
+        w_an = ar.rel_posterior_mass(logx, logl_given_logx(logx))
+        # Try normalising the analytic distribution of posterior mass to have
+        # the same area under the curve as the runs with dynamic_goal=1 (the
+        # ones which we want to compare to it). If they are not available just
+        # normalise it to the average area under all the runs (which should be
+        # about the same if they have the same number of samples).
+        if post_mass_norm is None:
+            w_an *= np.mean(np.concatenate(list(integrals_dict.values())))
+        else:
+            try:
+                w_an *= np.mean(integrals_dict[post_mass_norm])
+            except KeyError:
+                print('method name "' + post_mass_norm + '" not found, so ' +
+                      'normalise area under the analytic relative posterior ' +
+                      'mass curve using the mean of all methods.')
+                w_an *= np.mean(np.concatenate(list(integrals_dict.values())))
+        ax.plot(logx, w_an, linewidth=2, label='relative posterior mass',
+                linestyle=':', color='k')
+        # plot cumulative posterior mass
+        w_an_c = np.cumsum(w_an)
+        w_an_c /= np.trapz(w_an_c, x=logx)
+        # Try normalising the cumulative distribution of posterior mass to have
+        # the same area under the curve as the runs with dynamic_goal=0 (the
+        # ones which we want to compare to it). If they are not available just
+        # normalise it to the average area under all the runs (which should be
+        # about the same if they have the same number of samples).
+        if cum_post_mass_norm is None:
+            w_an_c *= np.mean(np.concatenate(list(integrals_dict.values())))
+        else:
+            try:
+                w_an_c *= np.mean(integrals_dict[cum_post_mass_norm])
+            except KeyError:
+                print('method name "' + cum_post_mass_norm + '" not found, ' +
+                      'so normalise area under the analytic posterior mass ' +
+                      'remaining curve using the mean of all methods.')
+                w_an_c *= np.mean(np.concatenate(
+                    list(integrals_dict.values())))
+        ax.plot(logx, w_an_c, linewidth=2, linestyle='--', dashes=(2, 3),
+                label='posterior mass remaining', color='darkblue')
+    ax.set_ylabel('number of live points')
+    ax.set_xlabel(r'$\log X $')
+    # set limits
+    if ymax is not None:
+        ax.set_ylim([0, ymax])
+    else:
+        ax.set_ylim(bottom=0)
+    ax.set_xlim([logx_min, 0])
+    ax.legend()
+    return fig
+
+
 def bootstrap_kde_plot(bs_df, labels=None, xlims=None, **kwargs):
     """
     Plots distributions of bootstrap values for each estimator. There is one
