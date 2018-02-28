@@ -233,7 +233,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
                     # Efficiency gain meansures performance per number of
                     # samples (proportional to computational work). If the
                     # number of samples is not the same we can adjust this.
-                    adjust = (adjust_nsamp[0] / adjust_nsamp[1:])
+                    adjust = (adjust_nsamp[0] / adjust_nsamp[i])
                     df.loc[(key, 'value'), :] *= adjust
                     df.loc[(key, 'uncertainty'), :] *= adjust
         df_dict[method_name] = df

@@ -62,8 +62,8 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     logx_given_logl = kwargs.pop('logx_given_logl', None)
     logl_given_logx = kwargs.pop('logl_given_logx', None)
     npoints = kwargs.pop('npoints', 100)
-    post_mass_norm = kwargs.pop('post_mass_norm', 'dynamic $G=0$')
-    cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', 'dynamic $G=1$')
+    post_mass_norm = kwargs.pop('post_mass_norm', 'dynamic $G=1$')
+    cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', 'dynamic $G=0$')
     if kwargs:
         raise TypeError('Unexpected **kwargs: %r' % kwargs)
     assert set(method_names) == set(run_dict.keys())
