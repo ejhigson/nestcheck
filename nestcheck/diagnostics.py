@@ -59,7 +59,7 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
                                         parallelise=parallelise,
                                         tqdm_leave=tqdm_leave,
                                         tqdm_disable=tqdm_disable)
-        estimator_names = [est.name for est in estimator_list]
+        estimator_names = [est.latex_name for est in estimator_list]
         df = pd.DataFrame(np.stack(values_list, axis=0))
         df.index = df.index.map(str)
         df.columns = estimator_names
@@ -80,6 +80,9 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         bs_mean_df.set_index('calculation type', drop=True, append=True,
                              inplace=True)
         bs_mean_df = bs_mean_df.reorder_levels(['calculation type', 'run'])
+        print(df.shape, bs_mean_df.shape)
+        # print(df)
+        # print(bs_mean_df)
         df = pd.concat([df, bs_mean_df])
         # ####################################
         bs_std_df = bs_vals_df.applymap(lambda x: np.std(x, ddof=1))
@@ -200,7 +203,7 @@ def bs_values_df(run_list, estimator_list, n_simulate, tqdm_desc='bs values',
                                        tqdm_desc=tqdm_desc, **kwargs)
     df = pd.DataFrame()
     for i, est in enumerate(estimator_list):
-        df[est.name] = [arr[i, :] for arr in bs_values_list]
+        df[est.latex_name] = [arr[i, :] for arr in bs_values_list]
     # Check there are the correct number of bootstrap replications in each cell
     for vals_shape in df.loc[0].apply(lambda x: x.shape).values:
         assert vals_shape == (n_simulate,), \
@@ -228,7 +231,7 @@ def thread_values_df(run_list, estimator_list, tqdm_desc='thread values',
     df = pd.DataFrame()
     # print(len(thread_arr_l), [a.shape for a in thread_arr_l])
     for i, est in enumerate(estimator_list):
-        df[est.name] = [arr[i, :] for arr in thread_vals_arrays]
+        df[est.latex_name] = [arr[i, :] for arr in thread_vals_arrays]
     # Check there are the correct number of thread values in each cell
     for vals_shape in df.loc[0].apply(lambda x: x.shape).values:
         assert vals_shape == (run_list[0]['thread_min_max'].shape[0],), \
