@@ -11,11 +11,16 @@ estimation" (Higson 2017) for nest sampling runs.
 import numpy as np
 import scipy.stats
 import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1
 import nestcheck.analyse_run as ar
-import fgivenx.plot
-import fgivenx
+try:
+    import fgivenx.plot
+    import fgivenx
+except ImportError:
+    print('nestcheck.plots: fgivenx module not installed. Install fgivenx to '
+          'use the full range of nestcheck plotting functions.')
 # Make matplotlib use tex and a nice font where the tex matches the non-tex
 matplotlib.rc('text', usetex=True)
 matplotlib.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
@@ -177,8 +182,6 @@ def bootstrap_kde_plot(bs_df, labels=None, xlims=None, **kwargs):
         raise TypeError('Unexpected **kwargs: %r' % kwargs)
     fig, axes = plt.subplots(nrows=1, ncols=len(bs_df.columns),
                              figsize=figsize)
-    # get labels, using [1:-1] to strip start and end $ from est.latex_name as
-    # getdist adds $s so otherwise there is an error
     if labels is not None:
         bs_df.columns = labels
     for nax, col in enumerate(bs_df):
