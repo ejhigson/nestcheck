@@ -7,7 +7,61 @@ import numpy as np
 import nestcheck.io_utils as iou
 
 
-def check_ns_run(run):
+def get_polychord_data(file_root, n_runs, **kwargs):
+    """
+    Load and process polychord chains
+    """
+    data_dir = kwargs.pop('data_dir', 'cache/')
+    chains_dir = kwargs.pop('chains_dir', 'chains/')
+    load = kwargs.pop('load', False)
+    save = kwargs.pop('save', False)
+    logl_warn_only = kwargs.pop('logl_warn_only', False)
+    overwrite_existing = kwargs.pop('overwrite_existing', False)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+    save_name = file_root + '_' + str(n_runs) + 'runs'
+    if load:
+        try:
+            return iou.pickle_load(data_dir + save_name)
+        except OSError:  # FileNotFoundError is a subclass of OSError
+            pass
+    data = []
+    errors = {}
+    # load and process chains
+    for i in range(1, n_runs + 1):
+        try:
+            root = chains_dir + file_root + '_' + str(i)
+            data.append(process_polychord_run(root,
+                                              logl_warn_only=logl_warn_only))
+        except (OSError, AssertionError, KeyError) as err:
+            try:
+                errors[type(err).__name__].append(i)
+            except KeyError:
+                errors[type(err).__name__] = [i]
+    for error_name, val_list in errors.items():
+        if val_list:
+            save = False  # only save if every file is processed ok
+            message = (error_name + ' processing ' + str(len(val_list)) + ' / '
+                       + str(n_runs) + ' files')
+            if len(val_list) != n_runs:
+                message += '. Runs with errors were: ' + str(val_list)
+            print(message)
+    if save:
+        print('Processed new chains: saving to ' + save_name)
+        iou.pickle_save(data, data_dir + save_name, print_time=False,
+                        overwrite_existing=overwrite_existing)
+    return data
+
+
+def check_ns_run(run, logl_warn_only=False):
+    """Checks a nested sampling run has some of the expected properties."""
+    assert isinstance(run, dict)
+    check_ns_run_keys(run)
+    check_ns_run_logls(run, warn_only=logl_warn_only)
+    check_ns_run_threads(run)
+
+
+def check_ns_run_keys(run):
     """Checks a nested sampling run has some of the expected properties."""
     run_keys = list(run.keys())
     # Mandatory keys
@@ -23,18 +77,26 @@ def check_ns_run(run):
             pass
     # Check for unexpected keys
     assert not run_keys, 'Unexpected keys in ns_run: ' + str(run_keys)
+
+
+def check_ns_run_logls(run, warn_only=False):
     # Test logls are unique and in the correct order
     assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
     logl_u, counts = np.unique(run['logl'], return_counts=True)
     repeat_logls = run['logl'].shape[0] - logl_u.shape[0]
-    assert repeat_logls == 0, \
-        ('# unique logl values is ' + str(repeat_logls) + ' less than # ' +
-         'points. Duplicate values: ' + str(logl_u[np.where(counts > 1)[0]]) +
-         ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
-         ', First point at inds ' +
-         str(np.where(run['logl'] == logl_u[np.where(counts > 1)[0][0]])[0]) +
-         ' out of ' + str(run['logl'].shape[0]))
-    check_ns_run_threads(run)
+    if repeat_logls != 0:
+        msg = ('# unique logl values is ' + str(repeat_logls) +
+               ' less than # points. Duplicate values: ' +
+               str(logl_u[np.where(counts > 1)[0]])
+               + ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
+               ', First point at inds ' +
+               str(np.where(run['logl'] == logl_u[np.where(counts > 1)[0][0]])
+                   [0]) + ' out of ' + str(run['logl'].shape[0]))
+    if not warn_only:
+        assert repeat_logls == 0, msg
+    else:
+        if repeat_logls != 0:
+            print('WARNING: ' + msg)
 
 
 def check_ns_run_threads(run):
@@ -60,7 +122,7 @@ def check_ns_run_threads(run):
              str(run['thread_min_max'][th_lab, :]))
 
 
-def process_polychord_run(root):
+def process_polychord_run(root, logl_warn_only=False):
     """
     Loads data from PolyChord run into the standard nestcheck format.
     """
@@ -87,21 +149,22 @@ def process_polychord_run(root):
                                   standard_nlive_array)
     except OSError:
         pass
-    check_ns_run(ns_run)
+    check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
 
 
 def process_polychord_dead_points(dead_points):
     """
-    tbc
+    Process a nested sampling dead points file.
     """
     dead_points = dead_points[np.argsort(dead_points[:, 0])]
     # Treat dead points
     ns_run = {}
     ns_run['logl'] = dead_points[:, 0]
-    repeat_logls = ns_run['logl'].shape[0] - np.unique(ns_run['logl']).shape[0]
-    assert repeat_logls == 0, \
-        '# unique logl values is ' + str(repeat_logls) + ' less than # points'
+    # repeat_logls = (ns_run['logl'].shape[0] -
+    #                 np.unique(ns_run['logl']).shape[0])
+    # assert repeat_logls == 0, \
+    #     '# unique logl values is ' + str(repeat_logls) + ' less than #point'
     ns_run['theta'] = dead_points[:, 2:]
     # # birth contours with value 0 are sometimes printed to the dead points
     # # by PolyChord as -2^31 due to Fortran io errors

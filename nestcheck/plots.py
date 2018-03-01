@@ -234,6 +234,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     parallel = kwargs.pop('parallel', True)
     smooth = kwargs.pop('smooth', False)
     cache_in = kwargs.pop('cache', None)
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
     nx = kwargs.pop('nx', 100)
     ny = kwargs.pop('ny', nx)
     flip_x = kwargs.pop('flip_x', False)
@@ -271,9 +272,11 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         if flip_x:
             cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
                                      axes[nf], colors=colormap,
+                                     rasterize_contours=rasterize_contours,
                                      smooth=smooth)
         else:
             cbar = fgivenx.plot.plot(theta, y, pmf, axes[nf],
+                                     rasterize_contours=rasterize_contours,
                                      colors=colormap, smooth=smooth)
     return cbar
 
@@ -289,6 +292,7 @@ def bs_param_dists(run_list, **kwargs):
     cache_in = kwargs.pop('cache', None)
     parallel = kwargs.pop('parallel', True)
     smooth = kwargs.pop('smooth', False)
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
     nx = kwargs.pop('nx', 100)
     ny = kwargs.pop('ny', nx)
     # Use random seed to make samples consistent and allow caching.
@@ -323,6 +327,7 @@ def bs_param_dists(run_list, **kwargs):
                              parallel=parallel, smooth=smooth,
                              ftheta_lims=ftheta_lims, cache=cache,
                              n_simulate=n_simulate, nx=nx, ny=ny,
+                             rasterize_contours=rasterize_contours,
                              colormap=colormaps[nrun])
         # add colorbar
         colorbar_plot = plt.colorbar(cbar, cax=axes[len(fthetas) + nrun],
@@ -366,10 +371,12 @@ def param_logx_diagram(run_list, **kwargs):
     smooth_logx = kwargs.pop('smooth_logx', True)
     scatter_plot = kwargs.pop('scatter_plot', True)
     n_simulate = kwargs.pop('n_simulate', 100)
-    if len(run_list) == 1:
-        threads_to_plot = kwargs.pop('threads_to_plot', [0, 1, 2])
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
+    if len(run_list) <= 2:
+        threads_to_plot = kwargs.pop('threads_to_plot', [1])
     else:
         threads_to_plot = kwargs.pop('threads_to_plot', [])
+    thread_linestyles = ['-', '-.']
     plot_means = kwargs.pop('plot_means', True)
     fthetas = kwargs.pop('fthetas', [lambda theta: theta[:, 0],
                                      lambda theta: theta[:, 1]])
@@ -444,6 +451,7 @@ def param_logx_diagram(run_list, **kwargs):
                                      cache=cache, ny=npoints,
                                      parallel=parallel)
         cbar = fgivenx.plot.plot(logx_sup, y, pmf, ax_weight,
+                                 rasterize_contours=rasterize_contours,
                                  colors=plt.get_cmap(colormaps[nrun]))
         ax_weight.set_xlim([logx_min, 0])
         ax_weight.set_ylim(bottom=0)
@@ -469,6 +477,7 @@ def param_logx_diagram(run_list, **kwargs):
                 thread_inds = np.where(run['thread_labels'] == i)[0]
                 ax_samples.plot(logx[thread_inds],
                                 ftheta(run['theta'][thread_inds]),
+                                linestyle=thread_linestyles[nrun],
                                 color='black', lw=1)
             if scatter_plot:
                 ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
@@ -492,6 +501,7 @@ def param_logx_diagram(run_list, **kwargs):
                                              samples, y=ftheta_sups[nf],
                                              cache=cache)
                 _ = fgivenx.plot.plot(logx_sup, y, pmf, ax_samples,
+                                      rasterize_contours=rasterize_contours,
                                       smooth=smooth_logx)
             ax_samples.set_xlim([logx_min, 0])
             ax_samples.set_ylim(ftheta_lims[nf])
@@ -501,6 +511,7 @@ def param_logx_diagram(run_list, **kwargs):
         _ = plot_bs_dists(run, fthetas, posterior_axes,
                           ftheta_lims=ftheta_lims,
                           flip_x=True, n_simulate=n_simulate,
+                          rasterize_contours=rasterize_contours,
                           cache=cache_in, nx=npoints, ny=ny_posterior,
                           colormap=colormaps[nrun],
                           parallel=parallel)
