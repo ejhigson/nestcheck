@@ -56,12 +56,12 @@ def get_polychord_data(file_root, n_runs, **kwargs):
 def check_ns_run(run, logl_warn_only=False):
     """Checks a nested sampling run has some of the expected properties."""
     assert isinstance(run, dict)
-    check_ns_run_keys(run)
+    check_ns_run_members(run)
     check_ns_run_logls(run, warn_only=logl_warn_only)
     check_ns_run_threads(run)
 
 
-def check_ns_run_keys(run):
+def check_ns_run_members(run):
     """Checks a nested sampling run has some of the expected properties."""
     run_keys = list(run.keys())
     # Mandatory keys
@@ -70,13 +70,23 @@ def check_ns_run_keys(run):
         assert key in run_keys
         run_keys.remove(key)
     # Optional keys
-    for key in ['settings', 'output', 'birth_step']:
+    for key in ['settings', 'output']:
         try:
             run_keys.remove(key)
         except ValueError:
             pass
     # Check for unexpected keys
     assert not run_keys, 'Unexpected keys in ns_run: ' + str(run_keys)
+    # Check type of mandatory members
+    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
+                'thread_min_max']:
+        assert isinstance(run[key], np.ndarray), key + ' is type ' + type(key)
+    # check shapes of keys
+    assert run['logl'].ndim == 1
+    assert run['logl'].shape == run['nlive_array'].shape
+    assert run['logl'].shape == run['thread_labels'].shape
+    assert run['theta'].ndim == 2
+    assert run['logl'].shape[0] == run['theta'].shape[0]
 
 
 def check_ns_run_logls(run, warn_only=False):
