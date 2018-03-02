@@ -19,32 +19,26 @@ Each function should also have a latex_name (str) property.
 import functools
 import numpy as np
 import scipy
-import copy
 import nestcheck.analyse_run as ar
 
 
-def name_est(func_in, **kwargs):
-    """
-    Returns a function based on the input function with an added 'latex_name'
-    and with any input kwargs frozen.
-    """
-    if kwargs:
-        estimator = copy.deepcopy(func_in)
-    else:
-        estimator = functools.partial(copy.deepcopy(func_in), **kwargs)
-    estimator.latex_name = get_latex_name(func_in, **kwargs)
-    return copy.deepcopy(estimator)
-
-
-def get_latex_name(func, **kwargs):
+def get_latex_name(func_in, **kwargs):
     """
     Produce a latex formatted name for each function for use in labelling
     results.
     """
+    if isinstance(func_in, functools.partial):
+        func = func_in.func
+        assert not set(func_in.keywords) & set(kwargs), (
+            'kwargs={0} and func_in.keywords={1} contain repeated keys'
+            .format(kwargs, func_in.keywords))
+        kwargs.update(func_in.keywords)
+    else:
+        func = func_in
     param_ind = kwargs.pop('param_ind', 0)
     probability = kwargs.pop('probability', 0.5)
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     ind_str = str(param_ind + 1)
     if func.__name__ == 'count_samples':
         latex_name = r'# samples'

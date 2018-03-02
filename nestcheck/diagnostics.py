@@ -80,9 +80,6 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         bs_mean_df.set_index('calculation type', drop=True, append=True,
                              inplace=True)
         bs_mean_df = bs_mean_df.reorder_levels(['calculation type', 'run'])
-        print(df.shape, bs_mean_df.shape)
-        # print(df)
-        # print(bs_mean_df)
         df = pd.concat([df, bs_mean_df])
         # ####################################
         bs_std_df = bs_vals_df.applymap(lambda x: np.std(x, ddof=1))
