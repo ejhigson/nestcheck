@@ -5,13 +5,14 @@ Diagnostic tests for nested sampling runs.
 
 import numpy as np
 import pandas as pd
-import scipy
+import scipy.stats
 import nestcheck.analyse_run as ar
 import nestcheck.parallel_utils as pu
 import nestcheck.pandas_functions as pf
 
 
-def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
+def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
+                       **kwargs):
     """
     Gets a data frame with calculation values and error estimates for each run
     in the input run list.
@@ -43,6 +44,9 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
             print('WARNING: analyse_run_errors cannot load: no cache given')
     if kwargs:
         raise TypeError('Unexpected **kwargs: %r' % kwargs)
+    assert len(estimator_list) == len(estimator_names), (
+        'len(estimator_list) = {0} != len(estimator_names = {1}'
+        .format(len(estimator_list), len(estimator_names)))
     if load:
         try:
             df = pd.read_pickle(cache_name)
@@ -59,7 +63,6 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
                                         parallelise=parallelise,
                                         tqdm_leave=tqdm_leave,
                                         tqdm_disable=tqdm_disable)
-        estimator_names = [est.latex_name for est in estimator_list]
         df = pd.DataFrame(np.stack(values_list, axis=0))
         df.index = df.index.map(str)
         df.columns = estimator_names
@@ -68,7 +71,8 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         df.set_index('calculation type', drop=True, append=True, inplace=True)
         df = df.reorder_levels(['calculation type', 'run'])
         # Bootstrap
-        bs_vals_df = bs_values_df(run_list, estimator_list, n_simulate,
+        bs_vals_df = bs_values_df(run_list, estimator_list, estimator_names,
+                                  n_simulate,
                                   parallelise=parallelise,
                                   tqdm_leave=tqdm_leave,
                                   tqdm_disable=tqdm_disable)
@@ -92,6 +96,7 @@ def analyse_run_errors(run_list, estimator_list, n_simulate, **kwargs):
         # Pairwise distances on thread distributions
         if thread_dist:
             t_vals_df = thread_values_df(run_list, estimator_list,
+                                         estimator_names,
                                          parallelise=parallelise,
                                          tqdm_leave=tqdm_leave,
                                          tqdm_disable=tqdm_disable)
@@ -182,7 +187,7 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
         return imp_std, imp_std_u
 
 
-def bs_values_df(run_list, estimator_list, n_simulate, tqdm_desc='bs values',
+def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
                  **kwargs):
     """
     Computes a data frame of bootstrap resampled values.
@@ -194,13 +199,17 @@ def bs_values_df(run_list, estimator_list, n_simulate, tqdm_desc='bs values',
         each list element is an array of bootstrap resampled values of that
         estimator applied to that run.
     """
+    tqdm_desc = kwargs.pop('tqdm_desc', 'bs values')
+    assert len(estimator_list) == len(estimator_names), (
+        'len(estimator_list) = {0} != len(estimator_names = {1}'
+        .format(len(estimator_list), len(estimator_names)))
     bs_values_list = pu.parallel_apply(ar.run_bootstrap_values, run_list,
                                        func_args=(estimator_list,),
                                        func_kwargs={'n_simulate': n_simulate},
                                        tqdm_desc=tqdm_desc, **kwargs)
     df = pd.DataFrame()
-    for i, est in enumerate(estimator_list):
-        df[est.latex_name] = [arr[i, :] for arr in bs_values_list]
+    for i, name in enumerate(estimator_names):
+        df[name] = [arr[i, :] for arr in bs_values_list]
     # Check there are the correct number of bootstrap replications in each cell
     for vals_shape in df.loc[0].apply(lambda x: x.shape).values:
         assert vals_shape == (n_simulate,), \
@@ -218,17 +227,20 @@ def run_thread_values(run, estimator_list):
     return vals_array
 
 
-def thread_values_df(run_list, estimator_list, tqdm_desc='thread values',
-                     **kwargs):
+def thread_values_df(run_list, estimator_list, estimator_names,
+                     tqdm_desc='thread values', **kwargs):
     """Returns df containing estimator values for individual threads."""
+    assert len(estimator_list) == len(estimator_names), (
+        'len(estimator_list) = {0} != len(estimator_names = {1}'
+        .format(len(estimator_list), len(estimator_names)))
     # get thread results
     thread_vals_arrays = pu.parallel_apply(run_thread_values, run_list,
                                            func_args=(estimator_list,),
                                            tqdm_desc=tqdm_desc, **kwargs)
     df = pd.DataFrame()
     # print(len(thread_arr_l), [a.shape for a in thread_arr_l])
-    for i, est in enumerate(estimator_list):
-        df[est.latex_name] = [arr[i, :] for arr in thread_vals_arrays]
+    for i, name in enumerate(estimator_names):
+        df[name] = [arr[i, :] for arr in thread_vals_arrays]
     # Check there are the correct number of thread values in each cell
     for vals_shape in df.loc[0].apply(lambda x: x.shape).values:
         assert vals_shape == (run_list[0]['thread_min_max'].shape[0],), \
