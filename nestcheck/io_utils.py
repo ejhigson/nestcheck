@@ -6,8 +6,7 @@ Contains helper functions for saving, loading and input/output.
 
 import time
 import pickle
-import errno
-from functools import wraps
+import functools
 import os.path
 
 
@@ -15,7 +14,7 @@ def timing_decorator(func):
     """
     Prints the time a function takes to execute.
     """
-    @wraps(func)
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         """
         Wrapper for printing execution time.
@@ -43,15 +42,11 @@ def pickle_save(data, name, **kwargs):
     # Check if the target directory exists and if not make it
     dirname = os.path.dirname(filename)
     if not os.path.exists(dirname) and dirname != '':
-        try:
-            os.makedirs(dirname)
-        except OSError as error:
-            if error.errno != errno.EEXIST:
-                raise
+        os.makedirs(dirname)
     if os.path.isfile(filename) and not overwrite_existing:
+        print(filename + ' already exists! Saving with time appended')
         filename = name + '_' + time.asctime().replace(' ', '_')
         filename += extension
-        print('File already exists! Saving with time appended')
     if print_filename:
         print(filename)
     try:
