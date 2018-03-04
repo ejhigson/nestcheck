@@ -10,6 +10,6 @@ install:
  - pip install coveralls
 # - pip install -r requirements.txt
 script:
- - nosetests --with-coverage --cover-package=nestcheck --cover-erase
+ - nosetests --with-coverage --cover-erase --cover-package=nestcheck
 after_success:
  - coveralls
