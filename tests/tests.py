@@ -88,8 +88,6 @@ class TestEstimators(unittest.TestCase):
         self.logw = ar.get_logw(self.ns_run)
         self.w_rel = np.exp(self.logw - self.logw.max())
         self.w_rel /= np.sum(self.w_rel)
-        self.r = np.sqrt(self.ns_run['theta'][:, 0] ** 2 +
-                         self.ns_run['theta'][:, 1] ** 2)
 
     def test_count_samples(self):
         self.assertEqual(e.count_samples(self.ns_run), self.nsamples)
@@ -115,8 +113,36 @@ class TestEstimators(unittest.TestCase):
             places=12)
 
     def test_r_mean(self):
+        r = np.sqrt(self.ns_run['theta'][:, 0] ** 2 +
+                    self.ns_run['theta'][:, 1] ** 2)
         self.assertAlmostEqual(e.r_mean(self.ns_run),
-                               np.sum(self.w_rel * self.r), places=12)
+                               np.sum(self.w_rel * r), places=12)
+
+    def test_param_cred(self):
+        # Check results agree with np.median when samples are equally weighted
+        self.assertAlmostEqual(
+            e.param_cred(self.ns_run, logw=np.zeros(self.nsamples)),
+            np.median(self.ns_run['theta'][:, 0]), places=12)
+        # Check another probability while using weighted samples
+        prob = 0.84
+        self.assertAlmostEqual(
+            e.param_cred(self.ns_run, probability=prob),
+            e.weighted_quantile(prob, self.ns_run['theta'][:, 0], self.w_rel),
+            places=12)
+
+    def test_r_cred(self):
+        r = np.sqrt(self.ns_run['theta'][:, 0] ** 2 +
+                    self.ns_run['theta'][:, 1] ** 2)
+        # Check results agree with np.median when samples are equally weighted
+        self.assertAlmostEqual(
+            e.r_cred(self.ns_run, logw=np.zeros(self.nsamples)), np.median(r),
+            places=12)
+        # Check another probability while using weighted samples
+        prob = 0.84
+        self.assertAlmostEqual(
+            e.r_cred(self.ns_run, probability=prob),
+            e.weighted_quantile(prob, r, self.w_rel),
+            places=12)
 
 
 class TestEstimatorLatexNames(unittest.TestCase):

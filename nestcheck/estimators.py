@@ -108,26 +108,11 @@ def param_cred(ns_run, logw=None, simulate=False, probability=0.5,
     One-tailed credible interval on the value of a single parameter (component
     of theta).
     """
-    assert 1 > probability > 0, (
-        'credible interval prob= ' + str(probability) + ' not in (0, 1)')
     if logw is None:
         logw = ar.get_logw(ns_run, simulate=simulate)
-    # get sorted array of parameter values with their posterior weight
-    wp = np.zeros((logw.shape[0], 2))
-    wp[:, 0] = np.exp(logw - logw.max())
-    wp[:, 1] = ns_run['theta'][:, param_ind]
-    wp = wp[np.argsort(wp[:, 1], axis=0)]
-    # calculate cumulative distribution function (cdf)
-    # Adjust by subtracting 0.5 * weight of first point to correct skew
-    # - otherwise we need cdf=1 to return the last value but will return
-    # the smallest value if cdf<the fractional weight of the first point.
-    # This should not much matter as typically points' relative weights
-    # will be very small compared to probability or
-    # 1-probability.
-    cdf = np.cumsum(wp[:, 0]) - (wp[0, 0] / 2)
-    cdf /= np.sum(wp[:, 0])
-    # linearly interpolate value
-    return np.interp(probability, cdf, wp[:, 1])
+    w_relative = np.exp(logw - logw.max())  # protect against overflow
+    return weighted_quantile(probability, ns_run['theta'][:, param_ind],
+                             w_relative)
 
 
 def param_squared_mean(ns_run, logw=None, simulate=False, param_ind=0):
@@ -153,24 +138,36 @@ def r_mean(ns_run, logw=None, simulate=False):
 
 def r_cred(ns_run, logw=None, simulate=False, probability=0.5):
     """One-tailed credible interval on the value of |theta|."""
-    assert 1 > probability > 0, (
-        'credible interval prob= ' + str(probability) + ' not in (0, 1)')
     if logw is None:
         logw = ar.get_logw(ns_run, simulate=simulate)
-    # get sorted array of r values with their posterior weight
-    wr = np.zeros((logw.shape[0], 2))
-    wr[:, 0] = np.exp(logw - logw.max())
-    wr[:, 1] = np.sqrt(np.sum(ns_run['theta'] ** 2, axis=1))
-    wr = wr[np.argsort(wr[:, 1], axis=0)]
-    # calculate cumulative distribution function (cdf)
-    # Adjust by subtracting 0.5 * weight of first point to correct skew
-    # - otherwise we need cdf=1 to return the last value but will return
-    # the smallest value if cdf<the fractional weight of the first point.
-    # This should not much matter as typically points' relative weights
-    # will be very small compared to probability or
-    # 1-probability.
-    cdf = np.cumsum(wr[:, 0]) - (wr[0, 0] / 2)
-    cdf /= np.sum(wr[:, 0])
-    # calculate cdf
-    # linearly interpolate value
-    return np.interp(probability, cdf, wr[:, 1])
+    w_relative = np.exp(logw - logw.max())  # protect against overflow
+    r = np.sqrt(np.sum(ns_run['theta'] ** 2, axis=1))
+    return weighted_quantile(probability, r, w_relative)
+
+
+# Helper functions
+# ----------------
+
+
+def weighted_quantile(probability, values, weights):
+    """
+    Get quantile estimate for input probability given weighted samples.
+
+    Parameters
+    ----------
+    probability: float
+        Quantile to estimate - must be in open interval (0, 1).
+    values: 1d numpy array
+        Sample values
+    weights: 1d numpy array
+        Corresponding sample weights (same shape as values)
+    """
+    assert 1 > probability > 0, (
+        'credible interval prob= ' + str(probability) + ' not in (0, 1)')
+    assert values.shape == weights.shape
+    assert values.ndim == 1
+    assert weights.ndim == 1
+    sorted_inds = np.argsort(values)
+    quantiles = np.cumsum(weights[sorted_inds]) - (0.5 * weights[sorted_inds])
+    quantiles /= np.sum(weights)
+    return np.interp(probability, quantiles, values[sorted_inds])
