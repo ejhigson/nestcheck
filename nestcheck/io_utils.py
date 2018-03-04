@@ -37,7 +37,7 @@ def pickle_save(data, name, **kwargs):
     overwrite_existing = kwargs.pop('overwrite_existing', False)
     print_filename = kwargs.pop('print_filename', True)
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     filename = name + extension
     # Check if the target directory exists and if not make it
     dirname = os.path.dirname(filename)

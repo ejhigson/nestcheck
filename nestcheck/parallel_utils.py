@@ -50,7 +50,7 @@ def parallel_apply(func, arg_iterable, **kwargs):
     tqdm_disable = kwargs.pop('tqdm_disable', False)
     results_list = []
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     # If running in a jupyter notebook then use tqdm_notebook. Otherwise use
     # regular tqdm progress bar
     try:

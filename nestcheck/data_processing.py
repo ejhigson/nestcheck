@@ -18,7 +18,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     logl_warn_only = kwargs.pop('logl_warn_only', False)
     overwrite_existing = kwargs.pop('overwrite_existing', False)
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     save_name = file_root + '_' + str(n_runs) + 'runs'
     if load:
         try:

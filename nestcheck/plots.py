@@ -70,7 +70,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     post_mass_norm = kwargs.pop('post_mass_norm', 'dynamic $G=1$')
     cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', 'dynamic $G=0$')
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert set(method_names) == set(run_dict.keys())
     # Plotting
     # --------
@@ -179,7 +179,7 @@ def bootstrap_kde_plot(bs_df, labels=None, xlims=None, **kwargs):
     assert xlims is None or isinstance(xlims, dict)
     figsize = kwargs.pop('figsize', (6.4, 1.5))
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     fig, axes = plt.subplots(nrows=1, ncols=len(bs_df.columns),
                              figsize=figsize)
     if labels is not None:
@@ -244,7 +244,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(fthetas) == len(axes), \
         'There should be the same number of axes and functions to plot'
     assert len(fthetas) == len(ftheta_lims), \
@@ -310,7 +310,7 @@ def bs_param_dists(run_list, **kwargs):
                                    range(len(fthetas))])
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(labels) == len(fthetas), \
         'There should be the same number of axes and labels'
     width_ratios = [40] * len(fthetas) + [1] * len(run_list)
@@ -395,7 +395,7 @@ def param_logx_diagram(run_list, **kwargs):
     colormaps = kwargs.pop('colormaps', ['Reds_r', 'Blues_r', 'Greys_r',
                                          'Greens_r', 'Oranges_r'])
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(fthetas) == len(labels)
     assert len(fthetas) == len(ftheta_lims)
     # make figure

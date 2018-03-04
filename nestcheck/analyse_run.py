@@ -378,7 +378,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
     flip_skew = kwargs.pop('flip_skew', True)
     n_simulate = kwargs.pop('n_simulate')  # No default, must specify
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     threads = get_run_threads(ns_run)
     bs_values = np.zeros((len(estimator_list), n_simulate))
     for i in range(n_simulate):

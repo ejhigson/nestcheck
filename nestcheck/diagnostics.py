@@ -43,7 +43,7 @@ def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
         if load:
             print('WARNING: analyse_run_errors cannot load: no cache given')
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(estimator_list) == len(estimator_names), (
         'len(estimator_list) = {0} != len(estimator_names = {1}'
         .format(len(estimator_list), len(estimator_names)))

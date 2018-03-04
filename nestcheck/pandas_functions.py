@@ -116,7 +116,7 @@ def summary_df(df_in, **kwargs):
     include_true_values = kwargs.pop('include_true_values', False)
     include_rmse = kwargs.pop('include_rmse', False)
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     if true_values is not None:
         assert true_values.shape[0] == df_in.shape[1], \
             ('There should be one true value for every column! ' +
@@ -201,7 +201,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     include_rmse = kwargs.pop('include_rmse', False)
     adjust_nsamp = kwargs.pop('adjust_nsamp', None)
     if kwargs:
-        raise TypeError('Unexpected **kwargs: %r' % kwargs)
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     if adjust_nsamp is not None:
         assert adjust_nsamp.shape == (len(method_names),)
     assert len(method_names) == len(method_values)
