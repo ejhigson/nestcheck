@@ -90,35 +90,42 @@ class TestEstimators(unittest.TestCase):
         self.w_rel /= np.sum(self.w_rel)
 
     def test_count_samples(self):
+        """Check count_samples estimator."""
         self.assertEqual(e.count_samples(self.ns_run), self.nsamples)
 
     def test_logx(self):
+        """Check logx estimator."""
         self.assertAlmostEqual(e.logz(self.ns_run),
                                scipy.special.logsumexp(self.logw), places=12)
 
     def test_evidence(self):
+        """Check evidence estimator."""
         self.assertAlmostEqual(e.evidence(self.ns_run),
                                np.exp(scipy.special.logsumexp(self.logw)),
                                places=12)
 
     def test_param_mean(self):
+        """Check param_mean estimator."""
         self.assertAlmostEqual(e.param_mean(self.ns_run),
                                np.sum(self.w_rel * self.ns_run['theta'][:, 0]),
                                places=12)
 
     def test_param_squared_mean(self):
+        """ Check param_squared_mean estimator."""
         self.assertAlmostEqual(
             e.param_squared_mean(self.ns_run),
             np.sum(self.w_rel * (self.ns_run['theta'][:, 0] ** 2)),
             places=12)
 
     def test_r_mean(self):
+        """Check r_mean estimator."""
         r = np.sqrt(self.ns_run['theta'][:, 0] ** 2 +
                     self.ns_run['theta'][:, 1] ** 2)
         self.assertAlmostEqual(e.r_mean(self.ns_run),
                                np.sum(self.w_rel * r), places=12)
 
     def test_param_cred(self):
+        """Check param_cred estimator."""
         # Check results agree with np.median when samples are equally weighted
         self.assertAlmostEqual(
             e.param_cred(self.ns_run, logw=np.zeros(self.nsamples)),
@@ -131,6 +138,7 @@ class TestEstimators(unittest.TestCase):
             places=12)
 
     def test_r_cred(self):
+        """Check r_cred estimator."""
         r = np.sqrt(self.ns_run['theta'][:, 0] ** 2 +
                     self.ns_run['theta'][:, 1] ** 2)
         # Check results agree with np.median when samples are equally weighted
@@ -299,8 +307,16 @@ class TestPlots(unittest.TestCase):
         """
         # Get some data
         self.standard_runs = nestcheck.data_processing.get_polychord_data(
-            'v02_gaussian_standard_2d_10nlive_20nrepeats', 10,
+            'v02_gaussian_standard_2d_10nlive_20nrepeats', 2,
             chains_dir='tests/data/', save=False, load=False)
+
+    def test_plot_run_nlive(self):
+        fig = nestcheck.plots.plot_run_nlive(
+            ['standard'], {'standard': self.standard_runs})
+        self.assertIsInstance(fig, matplotlib.figure.Figure)
+        self.assertRaises(
+            TypeError, nestcheck.plots.plot_run_nlive,
+            ['standard'], {'standard': self.standard_runs}, unexpected=0)
 
     def test_param_logx_diagram(self):
         fig = nestcheck.plots.param_logx_diagram(

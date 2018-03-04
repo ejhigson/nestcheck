@@ -81,6 +81,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     ax.set_prop_cycle('color', [colors[i] for i in [2, 8, 4, 9, 1, 6]])
     integrals_dict = {}
+    logx_min_list = []
     for method_name in method_names:
         integrals = np.zeros(len(run_dict[method_name]))
         for nr, run in enumerate(run_dict[method_name]):
@@ -88,6 +89,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                 logx = logx_given_logl(run['logl'])
             else:
                 logx = ar.get_logx(run['nlive_array'], simulate=False)
+            logx_min_list.append(logx[-1])
             logx[0] = 0  # to make lines extend all the way to the end
             if nr == 0:
                 # Label the first line and store it so we can access its color
@@ -107,10 +109,6 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
         integrals_dict[method_name] = integrals[np.isfinite(integrals)]
     # if not specified, set logx min to the lowest logx reached by a run
     if logx_min is None:
-        logx_min_list = []
-        for method_name in method_names:
-            for run in run_dict[method_name]:
-                logx_min_list.append(run['logx'][-1])
         logx_min = np.asarray(logx_min_list).min()
     if logl_given_logx is not None:
         # Plot analytic posterior mass and cumulative posterior mass
