@@ -61,13 +61,13 @@ def summary_df_from_list(results_list, names, **kwargs):
     return summary_df(df, **kwargs)
 
 
-def summary_df_from_multi(multi_in, inds_to_keep=None):
+def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
     """
     summary_df with option to preserve some indexes of a multiindex.
     """
     if inds_to_keep is None:
         inds_to_keep = list(multi_in.index.names)[:-1]
-    df = multi_in.groupby(inds_to_keep).apply(summary_df)
+    df = multi_in.groupby(inds_to_keep).apply(summary_df, **kwargs)
     if 'calculation type' in inds_to_keep:
         # If there is already an index called 'calculation type' in multi,
         # prepend the 'calculation type' values ('mean' and 'std') produced by
@@ -96,8 +96,12 @@ def summary_df(df_in, **kwargs):
     Parameters
     ----------
     df_in: data frame
-    axis: int, optional
-        axis on which to calculate summary statistics
+    true_values: array
+        analytical values if known for comparison with mean. Used to
+        calculate root mean squared errors (RMSE).
+    include_true_values: bool, optional
+    include_rmse: bool, optional
+
 
     Returns
     -------
@@ -118,10 +122,10 @@ def summary_df(df_in, **kwargs):
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     if true_values is not None:
-        assert true_values.shape[0] == df_in.shape[1], \
-            ('There should be one true value for every column! ' +
-             'true_values.shape=' + str(true_values.shape) + ', ' +
-             'df_in.shape=' + str(df_in.shape))
+        assert true_values.shape[0] == df_in.shape[1], (
+            'There should be one true value for every column! '
+            'true_values.shape=' + str(true_values.shape) + ', '
+            'df_in.shape=' + str(df_in.shape))
     # make the data frame
     df = pd.DataFrame([df_in.mean(axis=0), df_in.std(axis=0, ddof=1)],
                       index=['mean', 'std'])

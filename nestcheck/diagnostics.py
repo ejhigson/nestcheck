@@ -11,14 +11,18 @@ import nestcheck.parallel_utils as pu
 import nestcheck.pandas_functions as pf
 
 
-def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
-                       **kwargs):
+def run_list_error_values(run_list, estimator_list, estimator_names,
+                          n_simulate, **kwargs):
     """
     Gets a data frame with calculation values and error estimates for each run
     in the input run list.
+
+    NB when parallelised the results will not be produced in order (so results
+    from some run number will not nessesarily correspond to that number run in
+    run_list).
     """
-    thread_dist = kwargs.pop('thread_test', True)
-    bs_dist = kwargs.pop('bs_test', True)
+    thread_pvalue = kwargs.pop('thread_pvalue', False)
+    bs_stat_dist = kwargs.pop('bs_stat_dist', False)
     cache_root = kwargs.pop('cache_root', None)
     parallelise = kwargs.pop('parallelise', True)
     tqdm_disable = kwargs.pop('tqdm_disable', False)
@@ -30,9 +34,9 @@ def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
         load = kwargs.pop('load', True)
         cache_name = ('cache/' + cache_root + '_' + str(len(run_list)) +
                       'runs_' + str(n_simulate) + 'sim')
-        if thread_dist:
+        if thread_pvalue:
             cache_name += '_td'
-        if bs_dist:
+        if bs_stat_dist:
             cache_name += '_bd'
         cache_name += '.pkl'
     else:
@@ -56,7 +60,6 @@ def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
     if not load:
         # Calculate results
         # -----------------
-        # Values
         values_list = pu.parallel_apply(ar.run_estimators, run_list,
                                         func_args=(estimator_list,),
                                         tqdm_desc='values',
@@ -76,16 +79,16 @@ def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
                                   parallelise=parallelise,
                                   tqdm_leave=tqdm_leave,
                                   tqdm_disable=tqdm_disable)
-        # ####################################
-        # For checking values are as expected
-        bs_mean_df = bs_vals_df.applymap(np.mean)
-        bs_mean_df.index.name = 'run'
-        bs_mean_df['calculation type'] = 'bootstrap mean'
-        bs_mean_df.set_index('calculation type', drop=True, append=True,
-                             inplace=True)
-        bs_mean_df = bs_mean_df.reorder_levels(['calculation type', 'run'])
-        df = pd.concat([df, bs_mean_df])
-        # ####################################
+        # # ####################################
+        # # For checking values are as expected
+        # bs_mean_df = bs_vals_df.applymap(np.mean)
+        # bs_mean_df.index.name = 'run'
+        # bs_mean_df['calculation type'] = 'bootstrap mean'
+        # bs_mean_df.set_index('calculation type', drop=True, append=True,
+        #                      inplace=True)
+        # bs_mean_df = bs_mean_df.reorder_levels(['calculation type', 'run'])
+        # df = pd.concat([df, bs_mean_df])
+        # # ####################################
         bs_std_df = bs_vals_df.applymap(lambda x: np.std(x, ddof=1))
         bs_std_df.index.name = 'run'
         bs_std_df['calculation type'] = 'bootstrap std'
@@ -94,31 +97,31 @@ def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
         bs_std_df = bs_std_df.reorder_levels(['calculation type', 'run'])
         df = pd.concat([df, bs_std_df])
         # Pairwise distances on thread distributions
-        if thread_dist:
+        if thread_pvalue:
             t_vals_df = thread_values_df(run_list, estimator_list,
                                          estimator_names,
                                          parallelise=parallelise,
                                          tqdm_leave=tqdm_leave,
                                          tqdm_disable=tqdm_disable)
-            # ####################################
-            # For checking values are as expected
-            t_mean_df = t_vals_df.applymap(np.mean)
-            t_mean_df.index.name = 'run'
-            t_mean_df['calculation type'] = 'thread mean'
-            t_mean_df.set_index('calculation type', drop=True, append=True,
-                                inplace=True)
-            t_mean_df = t_mean_df.reorder_levels(['calculation type', 'run'])
-            df = pd.concat([df, t_mean_df])
-            # ####################################
-            t_d_df = pairwise_distances_on_cols(t_vals_df)
+            t_d_df = pairwise_distances_on_cols(t_vals_df,
+                                                earth_mover_dist=False,
+                                                energy_dist=False)
+            # Keep only the p value not the distance measures
+            t_d_df = t_d_df.xs('ks pvalue', level='calculation type',
+                               drop_level=False)
             new_ind = ['thread ' + t_d_df.index
                        .get_level_values('calculation type'),
                        t_d_df.index.get_level_values('run')]
             t_d_df.set_index(new_ind, inplace=True)
             df = pd.concat([df, t_d_df])
         # Pairwise distances on BS distributions
-        if bs_dist:
+        if bs_stat_dist:
             b_d_df = pairwise_distances_on_cols(bs_vals_df)
+            # Get rid of the p value as this is not useful in the bootstrap
+            # case (see Higson 2018 for more details).
+            mask = (b_d_df.index.get_level_values('calculation type') !=
+                    'ks pvalue')
+            b_d_df = b_d_df.loc[mask, :]
             new_ind = ['bootstrap ' + b_d_df.
                        index.get_level_values('calculation type'),
                        b_d_df.index.get_level_values('run')]
@@ -129,11 +132,29 @@ def analyse_run_errors(run_list, estimator_list, estimator_names, n_simulate,
     return df
 
 
-def run_error_summary(df):
+def run_list_error_summary(run_list, estimator_list, estimator_names,
+                           n_simulate, **kwargs):
     """
     Gets mean error estimates and uncertainties for the run list.
     """
-    df = pf.summary_df_from_multi(df)
+    true_values = kwargs.pop('true_values', None)
+    include_true_values = kwargs.pop('include_true_values', False)
+    include_rmse = kwargs.pop('include_rmse', False)
+    error_values = run_list_error_values(run_list, estimator_list,
+                                         estimator_names, n_simulate, **kwargs)
+    df = pf.summary_df_from_multi(
+        error_values.xs('values', level='calculation type', drop_level=False),
+        include_rmse=include_rmse, true_values=true_values,
+        include_true_values=include_true_values)
+    # include the mean values for other metrics
+    mask = error_values.index.get_level_values('calculation type') != 'values'
+    df_temp = pf.summary_df_from_multi(error_values.loc[mask, :])
+    # to avoid making the table too big, only include the mean values of
+    # boostrap error estimates and statistical distance measures (not their
+    # variations)
+    mask = (~df_temp.index.get_level_values('calculation type')
+            .str.endswith(' std'))
+    df = pd.concat([df, df_temp.loc[mask, :]])
     # get implementation stds
     imp_std, imp_std_unc, imp_frac, imp_frac_unc = implementation_std(
         df.loc[('values std', 'value')],
@@ -250,17 +271,16 @@ def thread_values_df(run_list, estimator_list, estimator_names,
     return df
 
 
-def pairwise_distances_on_cols(df_in):
+def pairwise_distances_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
     """
-    Computes pairwise Kullback–Leibler divergences from a pandas data frame
-    of bootstrap value arrays.
+    Computes pairwise statistical distance measures.
 
     parameters
     ----------
-    bs_values_df: pandas data frame
-        columns represent estimators and rows represent runs.
-        each list element is an array of bootstrap resampled values of that
-        estimator applied to that run.
+    df_in: pandas data frame
+        Columns represent estimators and rows represent runs.
+        Each data frane element is an array of values which are used as samples
+        in the distance measures.
 
     returns
     -------
@@ -268,26 +288,13 @@ def pairwise_distances_on_cols(df_in):
     """
     df = pd.DataFrame()
     for col in df_in.columns:
-        df[col] = pairwise_distances(df_in[col].values)
+        df[col] = pairwise_distances(df_in[col].values,
+                                     earth_mover_dist=earth_mover_dist,
+                                     energy_dist=energy_dist)
     return df
 
 
-def statistical_distances(samples1, samples2):
-    """
-    Gets 4 measures of the statistical distance between samplese
-    ser = pd.DataFrame(out, index=index, columns=['ks pvalue', 'ks distance',
-                       'earth mover distance', 'energy distance']).unstack()
-    """
-    out = np.zeros(4)
-    temp = scipy.stats.ks_2samp(samples1, samples2)
-    out[0] = temp.pvalue
-    out[1] = temp.statistic
-    out[2] = scipy.stats.wasserstein_distance(samples1, samples2)
-    out[3] = scipy.stats.energy_distance(samples1, samples2)
-    return out
-
-
-def pairwise_distances(dist_list):
+def pairwise_distances(dist_list, earth_mover_dist=True, energy_dist=True):
     """
     Applies statistical_distances to each unique pair of distributions in
     dist_list.
@@ -298,10 +305,30 @@ def pairwise_distances(dist_list):
         for j, samp_j in enumerate(dist_list):
             if j < i:
                 index.append(str((i, j)))
-                out.append(statistical_distances(samp_i, samp_j))
-    ser = pd.DataFrame(out, index=index,
-                       columns=['ks pvalue', 'ks distance',
-                                'earth mover distance',
-                                'energy distance']).unstack()
+                out.append(statistical_distances(
+                    samp_i, samp_j, earth_mover_dist=earth_mover_dist,
+                    energy_dist=energy_dist))
+    columns = ['ks pvalue', 'ks distance']
+    if earth_mover_dist:
+        columns.append('earth mover distance')
+    if energy_dist:
+        columns.append('energy distance')
+    ser = pd.DataFrame(out, index=index, columns=columns).unstack()
     ser.index.names = ['calculation type', 'run']
     return ser
+
+
+def statistical_distances(samples1, samples2, earth_mover_dist=True,
+                          energy_dist=True):
+    """
+    Gets 4 measures of the statistical distance between samples.
+    """
+    out = []
+    temp = scipy.stats.ks_2samp(samples1, samples2)
+    out.append(temp.pvalue)
+    out.append(temp.statistic)
+    if earth_mover_dist:
+        out.append(scipy.stats.wasserstein_distance(samples1, samples2))
+    if energy_dist:
+        out.append(scipy.stats.energy_distance(samples1, samples2))
+    return np.asarray(out)
