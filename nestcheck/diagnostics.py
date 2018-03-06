@@ -142,6 +142,13 @@ def run_list_error_summary(run_list, estimator_list, estimator_names,
     include_rmse = kwargs.pop('include_rmse', False)
     error_values = run_list_error_values(run_list, estimator_list,
                                          estimator_names, n_simulate, **kwargs)
+    return error_values_summary(error_values, true_values=true_values,
+                                include_true_values=include_true_values,
+                                include_rmse=include_rmse)
+
+
+def error_values_summary(error_values, true_values=None,
+                         include_true_values=None, include_rmse=False):
     df = pf.summary_df_from_multi(
         error_values.xs('values', level='calculation type', drop_level=False),
         include_rmse=include_rmse, true_values=true_values,

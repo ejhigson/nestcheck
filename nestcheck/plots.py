@@ -11,7 +11,6 @@ estimation" (Higson 2017) for nest sampling runs.
 import numpy as np
 import scipy.stats
 import matplotlib
-# matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1
 import nestcheck.analyse_run as ar

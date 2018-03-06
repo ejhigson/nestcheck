@@ -85,7 +85,9 @@ def parallel_apply(func, arg_iterable, **kwargs):
         # Progress bar for completion of tasks
         for _ in progress(concurrent.futures.as_completed(futures),
                           desc=tqdm_desc, leave=tqdm_leave,
-                          disable=tqdm_disable, total=len(futures)):
+                          disable=tqdm_disable, total=len(arg_iterable)):
             pass
         # Use concurrent.futures.wait to return results in order
-        return [fut.result() for fut in concurrent.futures.wait(futures)]
+        completed_futures = concurrent.futures.wait(futures)[0]
+        assert len(completed_futures) == len(arg_iterable)
+        return [fut.result() for fut in completed_futures]
