@@ -34,7 +34,7 @@ def timing_decorator(func):
 def pickle_save(data, name, **kwargs):
     """Saves object with pickle,  appending name with the time file exists."""
     extension = kwargs.pop('extension', '.pkl')
-    overwrite_existing = kwargs.pop('overwrite_existing', False)
+    overwrite_existing = kwargs.pop('overwrite_existing', True)
     print_filename = kwargs.pop('print_filename', True)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))

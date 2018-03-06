@@ -39,7 +39,7 @@ def get_latex_name(func_in, **kwargs):
     probability = kwargs.pop('probability', 0.5)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
-    ind_str = r'\hat{' + str(param_ind + 1) + '}'
+    ind_str = r'{\hat{' + str(param_ind + 1) + '}}'
     if func.__name__ == 'count_samples':
         latex_name = r'# samples'
     elif func.__name__ == 'logz':
