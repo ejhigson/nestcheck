@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Functions for processing nested sampling samples.
+Functions for processing nested sampling runs.
 """
 
 import numpy as np
@@ -44,7 +44,8 @@ def get_polychord_data(file_root, n_runs, **kwargs):
             message = (error_name + ' processing ' + str(len(val_list)) + ' / '
                        + str(n_runs) + ' files')
             if len(val_list) != n_runs:
-                message += '. Runs with errors were: ' + str(val_list)
+                message += ('. Runs with errors have roots ending with: ' +
+                            str(val_list))
             print(message)
     if save:
         print('Processed new chains: saving to ' + save_name)
