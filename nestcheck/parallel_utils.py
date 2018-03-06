@@ -7,9 +7,22 @@ import concurrent.futures
 import tqdm
 
 
+def parallel_map(func, *iterables, chunksize=1, max_workers=None,
+                 parallelise=True):
+    """
+    map function parallelised with concurrent.futures.ProcessPoolExecutor.
+    """
+    if parallelise:
+        pool = concurrent.futures.ProcessPoolExecutor(max_workers=max_workers)
+        return pool.map(func, *iterables, chunksize=chunksize)
+    else:
+        return map(func, *iterables)
+
+
 def parallel_apply(func, arg_iterable, **kwargs):
     """
     Apply function to iterable with paralleisation and a tqdm progress bar.
+    Returns results in order.
 
     Equivalent to
 
@@ -48,7 +61,6 @@ def parallel_apply(func, arg_iterable, **kwargs):
     tqdm_desc = kwargs.pop('tqdm_desc', None)
     tqdm_leave = kwargs.pop('tqdm_leave', False)
     tqdm_disable = kwargs.pop('tqdm_disable', False)
-    results_list = []
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     # If running in a jupyter notebook then use tqdm_notebook. Otherwise use
@@ -70,10 +82,10 @@ def parallel_apply(func, arg_iterable, **kwargs):
         for element in arg_iterable:
             futures.append(pool.submit(func, *func_pre_args, element,
                                        *func_args, **func_kwargs))
-        for fut in progress(concurrent.futures.as_completed(futures),
-                            desc=tqdm_desc, leave=tqdm_leave,
-                            disable=tqdm_disable, total=len(futures)):
-            results_list.append(fut.result())
-        del futures
-        del pool
-    return results_list
+        # Progress bar for completion of tasks
+        for _ in progress(concurrent.futures.as_completed(futures),
+                          desc=tqdm_desc, leave=tqdm_leave,
+                          disable=tqdm_disable, total=len(futures)):
+            pass
+        # Use concurrent.futures.wait to return results in order
+        return [fut.result() for fut in concurrent.futures.wait(futures)]
