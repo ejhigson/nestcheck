@@ -224,7 +224,7 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
     return resampled_run
 
 
-def combine_ns_runs(run_list_in):
+def combine_ns_runs(run_list_in, logl_warn_only=True):
     """
     Combine a list of complete ns runs (each without any repeated threads)
     into a single ns run.
@@ -232,7 +232,7 @@ def combine_ns_runs(run_list_in):
     run_list = copy.deepcopy(run_list_in)
     nthread_tot = 0
     for i, _ in enumerate(run_list):
-        dp.check_ns_run(run_list[i])
+        dp.check_ns_run(run_list[i], logl_warn_only=logl_warn_only)
         run_list[i]['thread_labels'] += nthread_tot
         nthread_tot += run_list[i]['thread_min_max'].shape[0]
     thread_min_max = np.vstack([run['thread_min_max'] for run in run_list])
@@ -250,7 +250,7 @@ def combine_ns_runs(run_list_in):
     #     thread_min_max_new[i, :] = run['thread_min_max'][th_lab, :]
     # run['thread_labels'] = thread_labels_new
     # run['thread_min_max'] = thread_min_max_new
-    dp.check_ns_run(run)
+    dp.check_ns_run(run, logl_warn_only=logl_warn_only)
     return run
 
 
