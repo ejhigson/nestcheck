@@ -84,7 +84,9 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     for method_name in method_names:
         integrals = np.zeros(len(run_dict[method_name]))
         for nr, run in enumerate(run_dict[method_name]):
-            if logx_given_logl is not None:
+            if 'logx' in run:
+                logx = run['logx']
+            elif logx_given_logl is not None:
                 logx = logx_given_logl(run['logl'])
             else:
                 logx = ar.get_logx(run['nlive_array'], simulate=False)
