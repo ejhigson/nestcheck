@@ -220,7 +220,8 @@ def threads_given_birth_contours(logl, birth_logl):
     assert np.any(birth_logl == -1e+30), str(birth_logl.min())
     unique, counts = np.unique(birth_logl, return_counts=True)
     multi_birth_logls = unique[np.where(counts > 1)]
-    print(str(multi_birth_logls) + ' ' + str(counts[np.where(counts > 1)]))
+    # print(str(multi_birth_logls) + ' ' + str(counts[np.where(counts > 1)]))
+    # assert multi_birth_logls.shape[0] == 1, multi_birth_logls.shape
     assert multi_birth_logls[0] == -1e+30, (
         str(multi_birth_logls) + ' ' + str(counts[np.where(counts > 1)]))
     thread_labels = np.full(logl.shape, np.nan)
@@ -243,8 +244,11 @@ def threads_given_birth_contours(logl, birth_logl):
                     next_ind = np.where(birth_logl == logl[next_ind])[0]
                 thread_num += 1
     assert np.all(~np.isnan(thread_labels)), \
-        ('Point not given a thread labels! Indexes='
-         + str(np.where(thread_labels == 0)[0]))
+        ('Some points were not given a thread label! Indexes=' +
+         str(np.where(np.isnan(thread_labels))[0]) +
+         '\nlogls on which more than one live point was born are:' +
+         str(multi_birth_logls) + ' with num of births on each: ' +
+         str(counts[np.where(counts > 1)]))
     assert np.array_equal(thread_labels, thread_labels.astype(int)), \
         'Thread labels should all be ints!'
     thread_labels = thread_labels.astype(int)
