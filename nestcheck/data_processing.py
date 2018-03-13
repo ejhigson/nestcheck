@@ -15,7 +15,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     chains_dir = kwargs.pop('chains_dir', 'chains/')
     load = kwargs.pop('load', False)
     save = kwargs.pop('save', False)
-    logl_warn_only = kwargs.pop('logl_warn_only', False)
+    logl_warn_only = kwargs.pop('logl_warn_only', True)
     overwrite_existing = kwargs.pop('overwrite_existing', False)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
