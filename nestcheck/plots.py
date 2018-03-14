@@ -75,10 +75,15 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     # --------
     fig = plt.figure(figsize=figsize)
     ax = plt.gca()
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    # reserve colors for certain common method_names so they are always the
+    # same reguardless of method_name
+    linecolor_dict = {'standard': colors[2],
+                      'dynamic $G=0$': colors[8],
+                      'dynamic $G=1$': colors[9]}
+    ax.set_prop_cycle('color', [colors[i] for i in [4, 1, 6, 0, 3, 5, 7]])
     # the default color cycle contains some dark colors which don't show up
     # well - select just the light ones
-    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    ax.set_prop_cycle('color', [colors[i] for i in [2, 8, 4, 9, 1, 6]])
     integrals_dict = {}
     logx_min_list = []
     for method_name in method_names:
@@ -94,8 +99,13 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
             logx[0] = 0  # to make lines extend all the way to the end
             if nr == 0:
                 # Label the first line and store it so we can access its color
-                line, = ax.plot(logx, run['nlive_array'], linewidth=1,
-                                label=method_name)
+                try:
+                    line, = ax.plot(logx, run['nlive_array'], linewidth=1,
+                                    label=method_name,
+                                    color=linecolor_dict[method_name])
+                except KeyError:
+                    line, = ax.plot(logx, run['nlive_array'], linewidth=1,
+                                    label=method_name)
             else:
                 # Set other lines to same color and don't add labels
                 ax.plot(logx, run['nlive_array'], linewidth=1,
