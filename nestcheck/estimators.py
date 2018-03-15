@@ -3,17 +3,12 @@
 Functions for estimating quantities from nested sampling runs.
 Each estimator function should have arguments
 
-    def __call__(self, ns_run, logw=None, simulate=False):
+    def estimator_func(self, ns_run, logw=None, simulate=False):
         ...
 
 This allows logw to be provided if many estimators are being calculated from
 the same run so logw is only calculated once. Otherwise logw is calculated from
 the run if required.
-
-Each function should also have a latex_name (str) property.
-    latex_name: str
-        used for plotting results diagrams.
-
 """
 
 import functools
@@ -41,7 +36,7 @@ def get_latex_name(func_in, **kwargs):
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     ind_str = r'{\hat{' + str(param_ind + 1) + '}}'
     if func.__name__ == 'count_samples':
-        latex_name = r'# samples'
+        latex_name = r'samples'
     elif func.__name__ == 'logz':
         latex_name = r'$\mathrm{log} \mathcal{Z}$'
     elif func.__name__ == 'evidence':
