@@ -2,8 +2,8 @@
 """
 Test the nestcheck module installation.
 """
-
 import os
+import sys
 import shutil
 import unittest
 import functools
@@ -19,13 +19,79 @@ import nestcheck.analyse_run as ar
 import nestcheck.plots
 import nestcheck.data_processing
 import nestcheck.diagnostics
-# import PyPolyChord
+try:
+    import PyPolyChord
+    import PyPolyChord.priors
+    from PyPolyChord.settings import PolyChordSettings
+
+    def gaussian_likelihood(theta, sigma=1, n_derived=0):
+        """ Simple Gaussian Likelihood centred on the origin."""
+        phi = [0.0] * n_derived
+        dim = len(theta)
+        rad2 = sum([t ** 2 for t in theta])
+        logl = -np.log(2 * np.pi * (sigma ** 2)) * dim / 2.0
+        logl += -rad2 / (2 * sigma ** 2)
+        return logl, phi
+
+    def uniform_prior(hypercube, prior_scale=5):
+        """Uniform prior."""
+        ndims = len(hypercube)
+        theta = [0.0] * ndims
+        func = PyPolyChord.priors.UniformPrior(-prior_scale, prior_scale)
+        for i, x in enumerate(hypercube):
+            theta[i] = func(x)
+        return theta
+
+except ImportError:
+    print('WARNING: could not import PyPolyChord. Install PyPolyChord to use '
+          'full test suite.')
 
 
 TEST_CACHE_DIR = 'cache_tests'
 TEST_DIR_EXISTS_MSG = ('Directory ' + TEST_CACHE_DIR + ' exists! Tests use '
                        'this dir to check caching then delete it afterwards, '
                        'so the path should be left empty.')
+
+
+class TestDataProcessing(unittest.TestCase):
+
+    def setUp(self):
+        """Make a directory and data for io testing."""
+        assert not os.path.exists(TEST_CACHE_DIR), TEST_DIR_EXISTS_MSG
+
+    def tearDown(self):
+        """Remove any caches saved by the tests."""
+        try:
+            shutil.rmtree(TEST_CACHE_DIR)
+        except FileNotFoundError:
+            pass
+
+    @unittest.skipIf('PyPolyChord' not in sys.modules,
+                     'needs PyPolyChord to run')
+    def test_polychord_processing(self):
+        os.makedirs(TEST_CACHE_DIR)
+        ndim = 2
+        settings = PolyChordSettings(ndim, 0, base_dir=TEST_CACHE_DIR, seed=1,
+                                     file_root='test', nlive=20, feedback=-1)
+        PyPolyChord.run_polychord(gaussian_likelihood, 2, 0, settings,
+                                  uniform_prior)
+        run = nestcheck.data_processing.process_polychord_run(
+            settings.file_root, base_dir=settings.base_dir)
+        self.assertEqual(run['output']['nlike'], 8768)
+        self.assertAlmostEqual(run['output']['logZ'], e.logz(run), places=1)
+
+    def test_get_polychord_data(self):
+        # Try looking for chains which dont exist
+        data = nestcheck.data_processing.get_polychord_data(
+            'an_empty_path', 1,
+            base_dir='tests/data/', cache_dir='another_empty_path', save=True,
+            load=True)
+        self.assertEqual(len(data), 0)
+        # Test unexpected kwargs checks
+        self.assertRaises(
+            TypeError, nestcheck.data_processing.get_polychord_data,
+            'test_gaussian_standard_2d_10nlive_20nrepeats', 1,
+            base_dir='tests/data/', unexpected=1)
 
 
 class TestIOUtils(unittest.TestCase):
@@ -277,22 +343,6 @@ class TestParallelUtils(unittest.TestCase):
         self.assertRaises(TypeError, nestcheck.parallel_utils.parallel_apply,
                           self.func, self.x, func_args=self.func_args,
                           unexpected=1)
-
-
-class TestDataProcessing(unittest.TestCase):
-
-    def test_get_polychord_data(self):
-        # Try looking for chains which dont exist
-        data = nestcheck.data_processing.get_polychord_data(
-            'an_empty_path', 1,
-            base_dir='tests/data/', cache_dir='another_empty_path', save=True,
-            load=True)
-        self.assertEqual(len(data), 0)
-        # Test unexpected kwargs checks
-        self.assertRaises(
-            TypeError, nestcheck.data_processing.get_polychord_data,
-            'test_gaussian_standard_2d_10nlive_20nrepeats', 1,
-            base_dir='tests/data/', unexpected=1)
 
 
 class TestDiagnostics(unittest.TestCase):
