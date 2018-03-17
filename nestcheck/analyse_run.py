@@ -178,7 +178,8 @@ def get_run_threads(ns_run):
 # ----------------------------------------
 
 
-def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
+def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
+                           random_seed=False):
     """
     Bootstrap resamples threads of nested sampling run, returning a new
     (resampled) nested sampling run.
@@ -195,12 +196,22 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
         threads seperately. Useful when there are only a few threads which
         start by sampling the whole prior, as errors occur if none of these are
         included in the bootstrap resample.
+    random_seed: None, bool or int, optional
+        Set numpy random seed. Default is to use None (so a random seed is
+        chosen from the computer's internal state) to ensure reliable results
+        when multiprocessing. Can set to an integer or to False to not edit the
+        seed.
+
 
     Returns
     -------
     ns_run_temp: dict
         Nested sampling run dictionary.
     """
+    if random_seed is not False:
+        # save the random state so we dont edit it for other funcs
+        state = np.random.get_state()
+        np.random.seed(random_seed)
     if threads is None:
         threads = get_run_threads(ns_run)
     n_threads = len(threads)
@@ -213,7 +224,8 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
         except KeyError:
             print('WARNING: bootrap_resample_run: ninit_sep=True but ' +
                   'ns_run["settings"]["ninit"] does not exist.')
-    else:
+            ninit_sep = False
+    if not ninit_sep:
         inds = np.random.randint(0, n_threads, n_threads)
     threads_temp = [threads[i] for i in inds]
     resampled_run = combine_threads(threads_temp)
@@ -221,6 +233,9 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False):
         resampled_run['settings'] = ns_run['settings']
     except KeyError:
         pass
+    if random_seed is not False:
+        # if we have used a random seed then return to the original state
+        np.random.set_state(state)
     return resampled_run
 
 
@@ -322,8 +337,8 @@ def run_std_bootstrap(ns_run, estimator_list, **kwargs):
         Nested sampling run dictionary.
     estimator_list: list of estimator classes, each containing class method
         estimator(self, logw, ns_run)
-    n_simulate: int
-    ninit_sep: bool, optional
+    kwargs: dict
+        kwargs for run_bootstrap_values
 
     Returns
     -------
@@ -367,6 +382,8 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
         (Loredo, 2012) Figure 2 for an explanation.
         If true, the samples {X} are mapped to (2 mu - {X}), where mu is X's
         mean. This leaves the mean and standard deviation unchanged.
+    random_seeds: list, optional
+        list of random_seed arguments for bootstrap_resample_run.
 
     Returns
     -------
@@ -377,13 +394,16 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
     ninit_sep = kwargs.pop('ninit_sep', False)
     flip_skew = kwargs.pop('flip_skew', True)
     n_simulate = kwargs.pop('n_simulate')  # No default, must specify
+    random_seeds = kwargs.pop('random_seeds', [None] * n_simulate)
+    assert len(random_seeds) == n_simulate
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     threads = get_run_threads(ns_run)
     bs_values = np.zeros((len(estimator_list), n_simulate))
-    for i in range(n_simulate):
+    for i, random_seed in enumerate(random_seeds):
         ns_run_temp = bootstrap_resample_run(ns_run, threads=threads,
-                                             ninit_sep=ninit_sep)
+                                             ninit_sep=ninit_sep,
+                                             random_seed=random_seed)
         bs_values[:, i] = run_estimators(ns_run_temp, estimator_list)
         del ns_run_temp
     if flip_skew:
