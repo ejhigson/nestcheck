@@ -99,11 +99,13 @@ def check_ns_run_logls(run, warn_only=False):
     if repeat_logls != 0:
         msg = ('# unique logl values is ' + str(repeat_logls) +
                ' less than # points. Duplicate values: ' +
-               str(logl_u[np.where(counts > 1)[0]])
-               + ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
-               ', First point at inds ' +
-               str(np.where(run['logl'] == logl_u[np.where(counts > 1)[0][0]])
-                   [0]) + ' out of ' + str(run['logl'].shape[0]))
+               str(logl_u[np.where(counts > 1)[0]]))
+        if logl_u.shape[0] != 1:
+            msg += (', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
+                    ', First point at inds ' +
+                    str(np.where(run['logl'] ==
+                        logl_u[np.where(counts > 1)[0][0]])[0]) +
+                    ' out of ' + str(run['logl'].shape[0]))
     if not warn_only:
         assert repeat_logls == 0, msg
     else:
@@ -145,7 +147,6 @@ def process_polychord_run(file_root, base_dir='chains', logl_warn_only=False):
         ns_run['output'] = PolyChordOutput(base_dir, file_root).__dict__
     except ImportError:
         print('Failed to import PyPolyChord.output.PolyChordOutput')
-        pass
     # try:
     #     info = iou.pickle_load(root + '_info')
     #     for key in ['output', 'settings']:

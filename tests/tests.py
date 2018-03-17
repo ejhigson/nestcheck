@@ -18,19 +18,21 @@ import nestcheck.estimators as e
 import nestcheck.analyse_run as ar
 import nestcheck.plots
 import nestcheck.data_processing
-import nestcheck.diagnostics as d
+import nestcheck.diagnostics
+# import PyPolyChord
 
 
 TEST_CACHE_DIR = 'cache_tests'
+TEST_DIR_EXISTS_MSG = ('Directory ' + TEST_CACHE_DIR + ' exists! Tests use '
+                       'this dir to check caching then delete it afterwards, '
+                       'so the path should be left empty.')
+
 
 class TestIOUtils(unittest.TestCase):
 
     def setUp(self):
         """Make a directory and data for io testing."""
-        assert not os.path.exists(TEST_CACHE_DIR), (
-            'Directory ' + TEST_CACHE_DIR + ' exists! Tests use this '
-            'dir to check caching then delete it afterwards, so the path '
-            'should be left empty.')
+        assert not os.path.exists(TEST_CACHE_DIR), TEST_DIR_EXISTS_MSG
         self.test_data = np.random.random(10)
 
     def tearDown(self):
@@ -77,6 +79,56 @@ class TestIOUtils(unittest.TestCase):
                           unexpected=1)
 
 
+class TestAnalyseRun(unittest.TestCase):
+
+    def test_bootstrap_resample_run(self):
+        run = get_dummy_ns_run(2, 1, 2)
+        run['settings'] = {'ninit': 1}
+        # With only 2 threads and ninit=1, separating initial threads means
+        # that the resampled run can only contain each thread once
+        resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
+        self.assertTrue(np.array_equal(run['theta'], resamp['theta']))
+        # With random_seed=1 and 2 threads each with a single points,
+        # bootstrap_resample_run selects the second thread twice.
+        resamp = ar.bootstrap_resample_run(run, random_seed=1)
+        self.assertTrue(np.array_equal(
+            run['theta'][1, :], resamp['theta'][0, :]))
+        self.assertTrue(np.array_equal(
+            run['theta'][1, :], resamp['theta'][1, :]))
+        # Check error handeled if no ninit
+        del run['settings']
+        resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
+
+    def test_rel_posterior_mass(self):
+        self.assertTrue(np.array_equal(
+            ar.rel_posterior_mass(np.asarray([0, 1]), np.asarray([1, 0])),
+            np.asarray([1, 1])))
+
+    def test_run_std_bootstrap(self):
+        """Check bootstrap std is zero when the run only contains one
+        thread."""
+        run = get_dummy_ns_run(1, 10, 2)
+        stds = ar.run_std_bootstrap(run, [e.param_mean], n_simulate=10)
+        self.assertAlmostEqual(stds[0], 0, places=12)
+        self.assertRaises(TypeError, ar.run_std_bootstrap, run,
+                          [e.param_mean], n_simulate=10, unexpected=1)
+
+    def test_run_ci_bootstrap(self):
+        """Check bootstrap ci equals estimator expected value when the
+        run only contains one thread."""
+        run = get_dummy_ns_run(1, 10, 2)
+        ci = ar.run_ci_bootstrap(run, [e.param_mean], n_simulate=10,
+                                 cred_int=0.5)
+        self.assertAlmostEqual(ci[0], e.param_mean(run), places=12)
+
+    def test_run_std_simulate(self):
+        """Check simulate std is zero when the run only contains one
+        point."""
+        run = get_dummy_ns_run(1, 1, 2)
+        stds = ar.run_std_simulate(run, [e.param_mean], n_simulate=10)
+        self.assertAlmostEqual(stds[0], 0, places=12)
+
+
 class TestEstimators(unittest.TestCase):
 
     def setUp(self):
@@ -89,6 +141,12 @@ class TestEstimators(unittest.TestCase):
     def test_count_samples(self):
         """Check count_samples estimator."""
         self.assertEqual(e.count_samples(self.ns_run), self.nsamples)
+
+    def test_run_estimators(self):
+        """Check ar.run_estimators wrapper is working."""
+        out = ar.run_estimators(self.ns_run, [e.count_samples])
+        self.assertEqual(out.shape, (1,))  # out should be np array
+        self.assertEqual(out[0], self.nsamples)
 
     def test_logx(self):
         """Check logx estimator."""
@@ -221,9 +279,9 @@ class TestParallelUtils(unittest.TestCase):
                           unexpected=1)
 
 
-class TestNestCheck(unittest.TestCase):
+class TestDataProcessing(unittest.TestCase):
 
-    def test_data_processing(self):
+    def test_get_polychord_data(self):
         # Try looking for chains which dont exist
         data = nestcheck.data_processing.get_polychord_data(
             'an_empty_path', 1,
@@ -235,62 +293,32 @@ class TestNestCheck(unittest.TestCase):
             TypeError, nestcheck.data_processing.get_polychord_data,
             'test_gaussian_standard_2d_10nlive_20nrepeats', 1,
             base_dir='tests/data/', unexpected=1)
-#        self.ns_run = nestcheck.data_processing.get_polychord_data(
-#            'test_gaussian_standard_2d_10nlive_20nrepeats', 1,
-#            base_dir='tests/data/', cache_dir=TEST_CACHE_DIR + '/',
-#            save=True, load=True)
 
 
-# class TestDiagnostics(unittest.TestCase):
-# 
-#     def setUp(self):
-#         """
-#         Set up list of estimator objects and settings for each test.
-#         Use all the estimators in the module in each case, and choose settings
-#         so the tests run quickly.
-#         """
-#         assert not os.path.exists(TEST_CACHE_DIR), (
-#             'Directory ' + TEST_CACHE_DIR + ' exists! Tests use this '
-#             'dir to check caching then delete it afterwards, so the path '
-#             'should be left empty.')
-#         # Get some data
-#         self.standard_runs = nestcheck.data_processing.get_polychord_data(
-#             'v02_gaussian_standard_2d_10nlive_20nrepeats', 10,
-#             base_dir='tests/data/', cache_dir=TEST_CACHE_DIR + '/', save=True,
-#             load=True)
-#         self.dynamic_runs = nestcheck.data_processing.get_polychord_data(
-#             'v02_gaussian_standard_2d_10nlive_20nrepeats', 10,
-#             base_dir='tests/data/', cache_dir=TEST_CACHE_DIR + '/', save=True,
-#             load=True)
-#         self.estimator_list = [e.count_samples,
-#                                e.logz,
-#                                e.evidence,
-#                                e.param_mean,
-#                                functools.partial(e.param_mean, param_ind=1),
-#                                e.param_squared_mean,
-#                                functools.partial(e.param_cred,
-#                                                  probability=0.5),
-#                                functools.partial(e.param_cred,
-#                                                  probability=0.84),
-#                                e.r_mean,
-#                                functools.partial(e.r_cred, probability=0.5),
-#                                functools.partial(e.r_cred, probability=0.84)]
-#         self.estimator_names = [e.get_latex_name(est) for est in
-#                                 self.estimator_list]
-# 
-#     def tearDown(self):
-#         shutil.rmtree(TEST_CACHE_DIR)
-# 
-#     def test_error_summary(self):
-#         standard_df = d.run_error_summary(d.analyse_run_errors(
-#             self.standard_runs, self.estimator_list, self.estimator_names,
-#             100, thread_test=True,
-#             bs_test=True))
-#         standard_df.to_pickle('tests/data/standard_df_values.pkl')
-#         # Check the values of every row for the theta1 estimator
-#         test_values = pd.read_pickle('tests/data/standard_df_values.pkl')
-#         numpy.testing.assert_allclose(standard_df.values, test_values.values,
-#                                       rtol=1e-13)
+class TestDiagnostics(unittest.TestCase):
+
+    def test_run_list_error_summary(self):
+        run_list = []
+        for _ in range(10):
+            run_list.append(get_dummy_ns_run(1, 10, 2))
+        df = nestcheck.diagnostics.run_list_error_summary(
+            run_list, [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
+            bs_stat_dist=True, cache_root='temp', save=False, load=True)
+        self.assertTrue(np.all(~np.isnan(df.values)))
+        # Uncomment below line to update values if they are deliberately
+        # changed:
+        df.to_pickle('tests/run_list_error_summary.pkl')
+        # Check the values of every row for the theta1 estimator
+        test_values = pd.read_pickle('tests/run_list_error_summary.pkl')
+        numpy.testing.assert_allclose(df.values, test_values.values,
+                                      rtol=1e-13, atol=1e-13)
+        # print(df)
+
+    def test_run_list_error_values_unexpected_kwarg(self):
+        self.assertRaises(
+            TypeError, nestcheck.diagnostics.run_list_error_values,
+            [], [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
+            bs_stat_dist=True, save=True, load=True, unexpected=1)
 
 
 class TestPlots(unittest.TestCase):
@@ -325,6 +353,16 @@ class TestPlots(unittest.TestCase):
             TypeError, nestcheck.plots.bs_param_dists,
             self.ns_run, unexpected=0)
 
+    def test_bootstrap_kde_plot(self):
+        bs_df = pd.DataFrame(index=['run_1', 'run_2'])
+        bs_df['estimator_1'] = [np.random.random(10)] * 2
+        bs_df['estimator_2'] = [np.random.random(10)] * 2
+        fig = nestcheck.plots.bootstrap_kde_plot(bs_df)
+        self.assertIsInstance(fig, matplotlib.figure.Figure)
+        self.assertRaises(
+            TypeError, nestcheck.plots.bootstrap_kde_plot,
+            unexpected=0)
+
 
 # helper functions
 
@@ -332,10 +370,13 @@ def parallel_apply_func(x, arg, kwarg=-1):
     """A test function for checking parallel_apply."""
     return np.asarray([x, arg, kwarg])
 
-def get_dummy_ns_run(nlive, nsamples, ndim):
+
+def get_dummy_ns_run(nlive, nsamples, ndim, seed=False):
     """Generate template ns runs for quick testing without loading test
     data."""
     threads = []
+    if seed is not False:
+        np.random.seed(seed)
     for _ in range(nlive):
         thread = {'logl': np.zeros(nsamples),
                   'nlive_array': np.full(nsamples, 1.),
