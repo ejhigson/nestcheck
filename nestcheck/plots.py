@@ -250,6 +250,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     nx = kwargs.pop('nx', 100)
     ny = kwargs.pop('ny', nx)
     flip_x = kwargs.pop('flip_x', False)
+    tqdm_leave = kwargs.pop('tqdm_leave', False)
     colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     if kwargs:
@@ -280,7 +281,8 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         else:
             cache = cache_in
         y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
-                                     cache=cache, parallel=parallel)
+                                     cache=cache, parallel=parallel,
+                                     tqdm_leave=tqdm_leave)
         if flip_x:
             cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
                                      axes[nf], colors=colormap,
@@ -461,7 +463,7 @@ def param_logx_diagram(run_list, **kwargs):
             cache = cache_in
         y, pmf = fgivenx.compute_pmf(interp_alternate, logx_sup, samples,
                                      cache=cache, ny=npoints,
-                                     parallel=parallel)
+                                     parallel=parallel, tqdm_leave=False)
         cbar = fgivenx.plot.plot(logx_sup, y, pmf, ax_weight,
                                  rasterize_contours=rasterize_contours,
                                  colors=plt.get_cmap(colormaps[nrun]))
@@ -511,7 +513,7 @@ def param_logx_diagram(run_list, **kwargs):
                         ftheta(run['theta'][thread_inds])[::-1]
                 y, pmf = fgivenx.compute_pmf(interp_alternate, logx_sup,
                                              samples, y=ftheta_sups[nf],
-                                             cache=cache)
+                                             cache=cache, tqdm_leave=False)
                 _ = fgivenx.plot.plot(logx_sup, y, pmf, ax_samples,
                                       rasterize_contours=rasterize_contours,
                                       smooth=smooth_logx)
