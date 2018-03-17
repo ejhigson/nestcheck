@@ -11,8 +11,8 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     """
     Load and process polychord chains
     """
-    data_dir = kwargs.pop('data_dir', 'cache/')
-    chains_dir = kwargs.pop('chains_dir', 'chains/')
+    cache_dir = kwargs.pop('cache_dir', 'cache')
+    base_dir = kwargs.pop('base_dir', 'chains')
     load = kwargs.pop('load', False)
     save = kwargs.pop('save', False)
     logl_warn_only = kwargs.pop('logl_warn_only', True)
@@ -22,7 +22,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     save_name = file_root + '_' + str(n_runs) + 'runs'
     if load:
         try:
-            return iou.pickle_load(data_dir + save_name)
+            return iou.pickle_load(cache_dir + '/' + save_name)
         except OSError:  # FileNotFoundError is a subclass of OSError
             pass
     data = []
@@ -30,8 +30,8 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     # load and process chains
     for i in range(1, n_runs + 1):
         try:
-            root = chains_dir + file_root + '_' + str(i)
-            data.append(process_polychord_run(root,
+            data.append(process_polychord_run(file_root + '_' + str(i),
+                                              base_dir=base_dir,
                                               logl_warn_only=logl_warn_only))
         except (OSError, AssertionError, KeyError) as err:
             try:
@@ -49,7 +49,7 @@ def get_polychord_data(file_root, n_runs, **kwargs):
             print(message)
     if save:
         print('Processed new chains: saving to ' + save_name)
-        iou.pickle_save(data, data_dir + save_name, print_time=False,
+        iou.pickle_save(data, cache_dir + '/' + save_name, print_time=False,
                         overwrite_existing=overwrite_existing)
     return data
 
@@ -71,7 +71,8 @@ def check_ns_run_members(run):
         assert key in run_keys
         run_keys.remove(key)
     # Optional keys
-    for key in ['settings', 'output']:
+    # for key in ['settings', 'output']:
+    for key in ['output']:
         try:
             run_keys.remove(key)
         except ValueError:
@@ -133,33 +134,39 @@ def check_ns_run_threads(run):
              str(run['thread_min_max'][th_lab, :]))
 
 
-def process_polychord_run(root, logl_warn_only=False):
+def process_polychord_run(file_root, base_dir='chains', logl_warn_only=False):
     """
     Loads data from PolyChord run into the standard nestcheck format.
     """
-    dead_points = np.loadtxt(root + '_dead-birth.txt')
+    dead_points = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
     ns_run = process_polychord_dead_points(dead_points)
     try:
-        info = iou.pickle_load(root + '_info')
-        for key in ['output', 'settings']:
-            assert key not in ns_run
-            ns_run[key] = info.pop(key)
-        assert not info
-        # Run some tests based on the settings
-        # ------------------------------------
-        # For the standard ns case
-        if not ns_run['settings']['nlives']:
-            nthread = ns_run['thread_min_max'].shape[0]
-            assert nthread == ns_run['settings']['nlive'], \
-                str(nthread) + '!=' + str(ns_run['settings']['nlive'])
-            standard_nlive_array = np.zeros(ns_run['logl'].shape)
-            standard_nlive_array += ns_run['settings']['nlive']
-            for i in range(1, ns_run['settings']['nlive']):
-                standard_nlive_array[-i] = i
-            assert np.array_equal(ns_run['nlive_array'],
-                                  standard_nlive_array)
-    except OSError:
+        from PyPolyChord.output import PolyChordOutput
+        ns_run['output'] = PolyChordOutput(base_dir, file_root).__dict__
+    except ImportError:
+        print('Failed to import PyPolyChord.output.PolyChordOutput')
         pass
+    # try:
+    #     info = iou.pickle_load(root + '_info')
+    #     for key in ['output', 'settings']:
+    #         assert key not in ns_run
+    #         ns_run[key] = info.pop(key)
+    #     assert not info
+    #     # Run some tests based on the settings
+    #     # ------------------------------------
+    #     # For the standard ns case
+    #     if not ns_run['settings']['nlives']:
+    #         nthread = ns_run['thread_min_max'].shape[0]
+    #         assert nthread == ns_run['settings']['nlive'], \
+    #             str(nthread) + '!=' + str(ns_run['settings']['nlive'])
+    #         standard_nlive_array = np.zeros(ns_run['logl'].shape)
+    #         standard_nlive_array += ns_run['settings']['nlive']
+    #         for i in range(1, ns_run['settings']['nlive']):
+    #             standard_nlive_array[-i] = i
+    #         assert np.array_equal(ns_run['nlive_array'],
+    #                               standard_nlive_array)
+    # except OSError:
+    #     pass
     check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
 
