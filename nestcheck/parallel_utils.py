@@ -63,6 +63,10 @@ def parallel_apply(func, arg_iterable, **kwargs):
     tqdm_disable = kwargs.pop('tqdm_disable', False)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    assert isinstance(func_args, tuple), (
+        str(func_args) + ' is type ' + str(type(func_args)))
+    assert isinstance(func_pre_args, tuple), (
+        str(func_pre_args) + ' is type ' + str(type(func_pre_args)))
     # If running in a jupyter notebook then use tqdm_notebook. Otherwise use
     # regular tqdm progress bar
     try:
