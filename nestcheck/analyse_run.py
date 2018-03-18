@@ -384,6 +384,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
         mean. This leaves the mean and standard deviation unchanged.
     random_seeds: list, optional
         list of random_seed arguments for bootstrap_resample_run.
+        Defaults to range(n_simulate) in order to give reproducable results.
 
     Returns
     -------
@@ -394,7 +395,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
     ninit_sep = kwargs.pop('ninit_sep', False)
     flip_skew = kwargs.pop('flip_skew', True)
     n_simulate = kwargs.pop('n_simulate')  # No default, must specify
-    random_seeds = kwargs.pop('random_seeds', [None] * n_simulate)
+    random_seeds = kwargs.pop('random_seeds', range(n_simulate))
     assert len(random_seeds) == n_simulate
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
