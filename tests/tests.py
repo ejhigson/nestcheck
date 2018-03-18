@@ -56,7 +56,7 @@ TEST_DIR_EXISTS_MSG = ('Directory ' + TEST_CACHE_DIR + ' exists! Tests use '
 class TestDataProcessing(unittest.TestCase):
 
     def setUp(self):
-        """Make a directory and data for io testing."""
+        """Make a directory for saving test results."""
         assert not os.path.exists(TEST_CACHE_DIR), TEST_DIR_EXISTS_MSG
 
     def tearDown(self):

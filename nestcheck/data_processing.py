@@ -30,9 +30,9 @@ def get_polychord_data(file_root, n_runs, **kwargs):
     # load and process chains
     for i in range(1, n_runs + 1):
         try:
-            data.append(process_polychord_run(file_root + '_' + str(i),
-                                              base_dir=base_dir,
-                                              logl_warn_only=logl_warn_only))
+            data.append(process_polychord_run(
+                file_root + '_' + str(i), base_dir,
+                logl_warn_only=logl_warn_only))
         except (OSError, AssertionError, KeyError) as err:
             try:
                 errors[type(err).__name__].append(i)
@@ -136,7 +136,7 @@ def check_ns_run_threads(run):
              str(run['thread_min_max'][th_lab, :]))
 
 
-def process_polychord_run(file_root, base_dir='chains', logl_warn_only=False):
+def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     """
     Loads data from PolyChord run into the standard nestcheck format.
     """
