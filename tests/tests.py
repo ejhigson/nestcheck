@@ -7,6 +7,7 @@ import sys
 import shutil
 import unittest
 import functools
+import importlib
 import numpy as np
 import numpy.testing
 import pandas as pd
@@ -384,6 +385,8 @@ class TestPlots(unittest.TestCase):
             TypeError, nestcheck.plots.plot_run_nlive,
             ['standard'], {'standard': [self.ns_run] * 2}, unexpected=0)
 
+    @unittest.skipIf(importlib.util.find_spec('fgivenx') is None,
+                     'needs fgivenx to run')
     def test_param_logx_diagram(self):
         fig = nestcheck.plots.param_logx_diagram(
             self.ns_run, n_simulate=3, npoints=100)
@@ -392,6 +395,8 @@ class TestPlots(unittest.TestCase):
             TypeError, nestcheck.plots.param_logx_diagram,
             self.ns_run, unexpected=0)
 
+    @unittest.skipIf(importlib.util.find_spec('fgivenx') is None,
+                     'needs fgivenx to run')
     def test_bs_param_dists(self):
         fig = nestcheck.plots.bs_param_dists(
             self.ns_run, n_simulate=3, nx=10)
