@@ -4,54 +4,50 @@ Functions for processing nested sampling runs.
 """
 
 import numpy as np
-import nestcheck.io_utils as iou
+import nestcheck.parallel_utils
 
 
-def get_polychord_data(file_root, n_runs, **kwargs):
+def batch_process_data(file_roots, **kwargs):
     """
-    Load and process polychord chains
+    Process many runs in parallel with error handling.
     """
-    cache_dir = kwargs.pop('cache_dir', 'cache')
     base_dir = kwargs.pop('base_dir', 'chains')
-    load = kwargs.pop('load', False)
-    save = kwargs.pop('save', False)
-    logl_warn_only = kwargs.pop('logl_warn_only', True)
-    overwrite_existing = kwargs.pop('overwrite_existing', False)
+    process_func = kwargs.pop('process_func', process_polychord_run)
+    func_kwargs = kwargs.pop('func_kwargs', {})
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
-    save_name = file_root + '_' + str(n_runs) + 'runs'
-    if load:
-        try:
-            return iou.pickle_load(cache_dir + '/' + save_name)
-        except OSError:  # FileNotFoundError is a subclass of OSError
-            pass
-    data = []
+    data = nestcheck.parallel_utils.parallel_apply(
+        process_error_helper, file_roots, func_args=(base_dir, process_func),
+        func_kwargs=func_kwargs)
+    # Extract error information and print
     errors = {}
-    # load and process chains
-    for i in range(1, n_runs + 1):
-        try:
-            data.append(process_polychord_run(
-                file_root + '_' + str(i), base_dir,
-                logl_warn_only=logl_warn_only))
-        except (OSError, AssertionError, KeyError) as err:
+    for i, run in enumerate(data):
+        if 'error' in run:
+            index = file_roots.index(run['output']['file_root'])
             try:
-                errors[type(err).__name__].append(i)
+                errors[run['error']].append(index)
             except KeyError:
-                errors[type(err).__name__] = [i]
+                errors[run['error']] = [index]
     for error_name, val_list in errors.items():
         if val_list:
-            save = False  # only save if every file is processed ok
             message = (error_name + ' processing ' + str(len(val_list)) + ' / '
-                       + str(n_runs) + ' files')
-            if len(val_list) != n_runs:
-                message += ('. Runs with errors have roots ending with: ' +
-                            str(val_list))
+                       + str(len(file_roots)) + ' files')
+            if len(val_list) != len(file_roots):
+                message += ('. Roots with errors have indexes ending with: ' +
+                            str(sorted(val_list)))
             print(message)
-    if save:
-        print('Processed new chains: saving to ' + save_name)
-        iou.pickle_save(data, cache_dir + '/' + save_name, print_time=False,
-                        overwrite_existing=overwrite_existing)
-    return data
+    # return runs which did not have errors
+    return [run for run in data if 'error' not in run]
+
+
+def process_error_helper(root, base_dir, process_func, **func_kwargs):
+    """Processing wrapper which handles some common errors."""
+    try:
+        return process_func(root, base_dir, **func_kwargs)
+    except (OSError, AssertionError, KeyError, ValueError) as err:
+        run = {'error': type(err).__name__,
+               'output': {'file_root': root}}
+        return run
 
 
 def check_ns_run(run, logl_warn_only=False):
@@ -147,27 +143,9 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
         ns_run['output'] = PolyChordOutput(base_dir, file_root).__dict__
     except ImportError:
         print('Failed to import PyPolyChord.output.PolyChordOutput')
-    # try:
-    #     info = iou.pickle_load(root + '_info')
-    #     for key in ['output', 'settings']:
-    #         assert key not in ns_run
-    #         ns_run[key] = info.pop(key)
-    #     assert not info
-    #     # Run some tests based on the settings
-    #     # ------------------------------------
-    #     # For the standard ns case
-    #     if not ns_run['settings']['nlives']:
-    #         nthread = ns_run['thread_min_max'].shape[0]
-    #         assert nthread == ns_run['settings']['nlive'], \
-    #             str(nthread) + '!=' + str(ns_run['settings']['nlive'])
-    #         standard_nlive_array = np.zeros(ns_run['logl'].shape)
-    #         standard_nlive_array += ns_run['settings']['nlive']
-    #         for i in range(1, ns_run['settings']['nlive']):
-    #             standard_nlive_array[-i] = i
-    #         assert np.array_equal(ns_run['nlive_array'],
-    #                               standard_nlive_array)
-    # except OSError:
-    #     pass
+        ns_run['output'] = {}
+    ns_run['output']['file_root'] = file_root
+    ns_run['output']['base_dir'] = base_dir
     check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
 
