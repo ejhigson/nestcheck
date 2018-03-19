@@ -80,18 +80,15 @@ class TestDataProcessing(unittest.TestCase):
         self.assertEqual(run['output']['nlike'], 8768)
         self.assertAlmostEqual(run['output']['logZ'], e.logz(run), places=1)
 
-    def test_get_polychord_data(self):
+    def test_batch_process_data(self):
         # Try looking for chains which dont exist
-        data = nestcheck.data_processing.get_polychord_data(
-            'an_empty_path', 1,
-            base_dir='tests/data/', cache_dir='another_empty_path', save=True,
-            load=True)
+        data = nestcheck.data_processing.batch_process_data(
+            ['an_empty_path'], base_dir=TEST_CACHE_DIR)
         self.assertEqual(len(data), 0)
         # Test unexpected kwargs checks
         self.assertRaises(
-            TypeError, nestcheck.data_processing.get_polychord_data,
-            'test_gaussian_standard_2d_10nlive_20nrepeats', 1,
-            base_dir='tests/data/', unexpected=1)
+            TypeError, nestcheck.data_processing.batch_process_data,
+            ['path'], base_dir=TEST_CACHE_DIR, unexpected=1)
 
 
 class TestIOUtils(unittest.TestCase):
