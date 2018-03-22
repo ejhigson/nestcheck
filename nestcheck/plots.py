@@ -20,9 +20,6 @@ try:
 except ImportError:
     print('nestcheck.plots: fgivenx module not installed. Install fgivenx to '
           'use the full range of nestcheck plotting functions.')
-# Make matplotlib use tex and a nice font where the tex matches the non-tex
-matplotlib.rc('text', usetex=True)
-matplotlib.rc('font', **{'family': 'serif', 'serif': ['Computer Modern']})
 
 
 def plot_run_nlive(method_names, run_dict, **kwargs):
