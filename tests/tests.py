@@ -99,6 +99,11 @@ class TestIOUtils(unittest.TestCase):
         assert not os.path.exists(TEST_CACHE_DIR), TEST_DIR_EXISTS_MSG
         self.test_data = np.random.random(10)
 
+        @nestcheck.io_utils.save_load_result
+        def save_load_func(data):
+            return data
+        self.save_load_func = save_load_func
+
     def tearDown(self):
         """Remove any caches saved by the tests."""
         try:
@@ -106,12 +111,18 @@ class TestIOUtils(unittest.TestCase):
         except FileNotFoundError:
             pass
 
-    def test_save_load(self):
+    def test_save_load_wrapper(self):
         """Try saving and loading some test data and check it dosnt change."""
-        nestcheck.io_utils.pickle_save(self.test_data,
-                                       TEST_CACHE_DIR + '/io_test',
-                                       print_time=True)
-        data_out = nestcheck.io_utils.pickle_load(TEST_CACHE_DIR + '/io_test')
+        # Without save_name (will neither save nor load)
+        data_out = self.save_load_func(self.test_data, save=True, load=True)
+        self.assertTrue(np.array_equal(self.test_data, data_out))
+        # Before any data saved (will save but not load)
+        data_out = self.save_load_func(self.test_data, save=True, load=True,
+                                       save_name=TEST_CACHE_DIR + '/io_test')
+        self.assertTrue(np.array_equal(self.test_data, data_out))
+        # After data saved (will load)
+        data_out = self.save_load_func(self.test_data, save=True, load=True,
+                                       save_name=TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
 
     def test_load_filenotfound(self):
