@@ -30,6 +30,37 @@ def timing_decorator(func):
     return wrapper
 
 
+def save_load_result(func):
+    """
+    Saves and/or loads function results.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        """Wrapper for saving and loading"""
+        save_name = kwargs.pop('save_name', None)
+        save_dir = kwargs.pop('save_dir', 'cache')
+        save = kwargs.pop('save', save_name is not None)
+        load = kwargs.pop('load', save_name is not None)
+        if load:
+            if save_name is None:
+                print('WARNING: ' + func.__name__ + ' cannot load:',
+                      'save_name=None')
+            else:
+                try:
+                    return pickle_load(save_dir + '/' + save_name)
+                except OSError:
+                    pass
+        result = func(*args, **kwargs)
+        if save:
+            if save_name is None:
+                print('WARNING: ' + func.__name__ + ' cannot save:',
+                      'save_name=None')
+            else:
+                pickle_save(result, save_dir + '/' + save_name)
+        return result
+    return wrapper
+
+
 @timing_decorator
 def pickle_save(data, name, **kwargs):
     """Saves object with pickle,  appending name with the time file exists."""

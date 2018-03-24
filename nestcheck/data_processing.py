@@ -4,12 +4,17 @@ Functions for processing nested sampling runs.
 """
 
 import numpy as np
+import nestcheck.io_utils
 import nestcheck.parallel_utils
 
 
+@nestcheck.io_utils.save_load_result
 def batch_process_data(file_roots, **kwargs):
     """
     Process many runs in parallel with error handling.
+
+    Can cache result with 'save_name', 'save_dir', 'save' and 'load' kwargs (by
+    default this is not done). See save_load_result docstring for more details.
     """
     base_dir = kwargs.pop('base_dir', 'chains')
     process_func = kwargs.pop('process_func', process_polychord_run)
