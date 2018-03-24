@@ -19,32 +19,35 @@ def batch_process_data(file_roots, **kwargs):
     data = nestcheck.parallel_utils.parallel_apply(
         process_error_helper, file_roots, func_args=(base_dir, process_func),
         func_kwargs=func_kwargs)
+    # Sort processed runs into the same order as file_roots
+    data = sorted(data,
+                  key=lambda x: file_roots.index(x['output']['file_root']))
     # Extract error information and print
     errors = {}
     for i, run in enumerate(data):
         if 'error' in run:
-            index = file_roots.index(run['output']['file_root'])
             try:
-                errors[run['error']].append(index)
+                errors[run['error']].append(i)
             except KeyError:
-                errors[run['error']] = [index]
-    for error_name, val_list in errors.items():
-        if val_list:
-            message = (error_name + ' processing ' + str(len(val_list)) + ' / '
-                       + str(len(file_roots)) + ' files')
-            if len(val_list) != len(file_roots):
-                message += ('. Roots with errors have indexes ending with: ' +
-                            str(sorted(val_list)))
-            print(message)
+                errors[run['error']] = [i]
+    for error_name, index_list in errors.items():
+        message = (error_name + ' processing ' + str(len(index_list)) + ' / '
+                   + str(len(file_roots)) + ' files')
+        if len(index_list) != len(file_roots):
+            message += ('. Roots with errors have indexes ending with: ' +
+                        str(index_list))
+        print(message)
     # return runs which did not have errors
     return [run for run in data if 'error' not in run]
 
 
 def process_error_helper(root, base_dir, process_func, **func_kwargs):
     """Processing wrapper which handles some common errors."""
+    errors = func_kwargs.pop('errors',
+                             (OSError, AssertionError, KeyError, ValueError))
     try:
         return process_func(root, base_dir, **func_kwargs)
-    except (OSError, AssertionError, KeyError, ValueError) as err:
+    except errors as err:
         run = {'error': type(err).__name__,
                'output': {'file_root': root}}
         return run
@@ -88,7 +91,7 @@ def check_ns_run_members(run):
 
 
 def check_ns_run_logls(run, warn_only=False):
-    # Test logls are unique and in the correct order
+    """Test logls are unique and in the correct order."""
     assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
     logl_u, counts = np.unique(run['logl'], return_counts=True)
     repeat_logls = run['logl'].shape[0] - logl_u.shape[0]
@@ -97,11 +100,12 @@ def check_ns_run_logls(run, warn_only=False):
                ' less than # points. Duplicate values: ' +
                str(logl_u[np.where(counts > 1)[0]]))
         if logl_u.shape[0] != 1:
-            msg += (', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
-                    ', First point at inds ' +
-                    str(np.where(run['logl'] ==
-                        logl_u[np.where(counts > 1)[0][0]])[0]) +
-                    ' out of ' + str(run['logl'].shape[0]))
+            msg += (
+                ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
+                ', First point at inds ' +
+                str(np.where(run['logl'] == logl_u[np.where(
+                    counts > 1)[0][0]])[0])
+                + ' out of ' + str(run['logl'].shape[0]))
     if not warn_only:
         assert repeat_logls == 0, msg
     else:
@@ -110,7 +114,7 @@ def check_ns_run_logls(run, warn_only=False):
 
 
 def check_ns_run_threads(run):
-    # Check thread labels
+    """Check thread labels."""
     assert run['thread_labels'].dtype == int
     uniq_th = np.unique(run['thread_labels'])
     assert np.array_equal(
