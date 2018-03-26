@@ -11,6 +11,7 @@ import importlib
 import numpy as np
 import numpy.testing
 import pandas as pd
+import pandas.testing
 import matplotlib
 import scipy.special
 import nestcheck.parallel_utils
@@ -152,6 +153,89 @@ class TestIOUtils(unittest.TestCase):
         self.assertRaises(TypeError, nestcheck.io_utils.pickle_save,
                           self.test_data, TEST_CACHE_DIR + '/io_test',
                           unexpected=1)
+
+
+class TestPandasFunctions(unittest.TestCase):
+
+    def setUp(self):
+        self.nrows = 100
+        self.ncols = 3
+        self.data = np.random.random((self.nrows, self.ncols))
+        self.col_names = ['est ' + str(i) for i in range(self.ncols)]
+        self.df = pd.DataFrame(self.data, columns=self.col_names)
+        self.sum_df = nestcheck.pandas_functions.summary_df(
+            self.df, true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True)
+
+    def test_summary_df(self):
+        self.assertEqual(self.sum_df.shape, (7, self.ncols))
+        numpy.testing.assert_array_equal(
+            self.sum_df.loc[('mean', 'value'), :].values,
+            np.mean(self.data, axis=0))
+        numpy.testing.assert_array_equal(
+            self.sum_df.loc[('mean', 'uncertainty'), :].values,
+            np.std(self.data, axis=0, ddof=1) / np.sqrt(self.nrows))
+        numpy.testing.assert_array_equal(
+            self.sum_df.loc[('std', 'value'), :].values,
+            np.std(self.data, axis=0, ddof=1))
+        numpy.testing.assert_array_equal(
+            self.sum_df.loc[('rmse', 'value'), :].values,
+            np.sqrt(np.mean(self.data ** 2, axis=0)))
+        self.assertRaises(
+            TypeError, nestcheck.pandas_functions.summary_df,
+            self.df, true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True, unexpected=1)
+
+    def test_summary_df_from_array(self):
+        df = nestcheck.pandas_functions.summary_df_from_array(
+            self.data, self.col_names, true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True)
+        pandas.testing.assert_frame_equal(df, self.sum_df)
+        # check axis argument
+        df = nestcheck.pandas_functions.summary_df_from_array(
+            self.data.T, self.col_names, true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True, axis=1)
+        pandas.testing.assert_frame_equal(df, self.sum_df)
+
+    def test_summary_df_from_list(self):
+        data_list = [self.data[i, :] for i in range(self.nrows)]
+        df = nestcheck.pandas_functions.summary_df_from_list(
+            data_list, self.col_names, true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True)
+        pandas.testing.assert_frame_equal(df, self.sum_df)
+
+    def test_summary_df_from_multi(self):
+        multi = self.df
+        multi['method'] = 'method 1'
+        multi.set_index('method', drop=True, append=True, inplace=True)
+        multi = multi.reorder_levels([1, 0])
+        df = nestcheck.pandas_functions.summary_df_from_multi(
+            multi, true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True)
+        pandas.testing.assert_frame_equal(df.xs('method 1', level='method'),
+                                          self.sum_df)
+
+    def test_efficiency_gain_df(self):
+        data_list = [self.data[i, :] for i in range(self.nrows)]
+        method_names = ['old', 'new']
+        adjust_nsamp = np.asarray([1, 2])
+        method_values = [data_list] * len(method_names)
+        df = nestcheck.pandas_functions.efficiency_gain_df(
+            method_names, method_values, est_names=self.col_names,
+            true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True,
+            adjust_nsamp=adjust_nsamp)
+        print(df)
+        for i, method in enumerate(method_names[1:]):
+            gains = np.asarray([adjust_nsamp[0] / adjust_nsamp[i + 1]] *
+                               self.ncols)
+            for gain_type in ['rmse efficiency gain', 'std efficiency gain']:
+                numpy.testing.assert_array_equal(
+                    df.loc[(gain_type, method, 'value'), :].values, gains)
+        self.assertRaises(
+            TypeError, nestcheck.pandas_functions.efficiency_gain_df,
+            method_names, method_values, est_names=self.col_names,
+            unexpected=1)
 
 
 class TestAnalyseRun(unittest.TestCase):

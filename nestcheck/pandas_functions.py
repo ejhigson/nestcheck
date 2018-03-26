@@ -4,6 +4,7 @@ Transformations for pandas data frames.
 """
 
 
+import warnings
 import numpy as np
 import pandas as pd
 
@@ -254,8 +255,11 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     new_ind.append(results.index.get_level_values('result type'))
     results.set_index(new_ind, inplace=True)
     if include_true_values:
-        results.loc[('true values', '', 'value'), results.columns] = \
-            true_values
+        with warnings.catch_warnings():
+            # Performance not an issue here so suppress annoying warning
+            warnings.filterwarnings('ignore', message=(
+                'indexing past lexsort depth may impact performance.'))
+            results.loc[('true values', '', 'value'), :] = true_values
     results.sort_index(inplace=True)
     return results
 
@@ -289,50 +293,3 @@ def array_ratio_std(values_n, sigmas_n, values_d, sigmas_d):
     """
     return (values_n / values_d) * (((sigmas_n / values_n) ** 2 +
                                      (sigmas_d / values_d) ** 2)) ** 0.5
-# def add_ratio_row(df, ind_n, ind_d, row_name=None, shared_labels=None):
-#     """
-#     Given two row indexes, adds another row with their ratio.
-#
-#     Needs input data fram in format:
-#
-#         col1 col1_unc col2 col2_unc ...
-#
-#     row1
-#     row2
-#
-#     with _unc denoting uncertainty on columns and all columns having an
-#     uncertainty.
-#     """
-#     # divide cols into values and uncertainties
-#     cols_in = list(df.columns)
-#     if shared_labels is not None:
-#         cols_in = [c for c in cols_in if c not in shared_labels]
-#     cols_val = []
-#     cols_unc = []
-#     for c in cols_in:
-#         if c not in shared_labels:
-#             if c[-4:] == '_unc':
-#                 cols_unc.append(c)
-#             else:
-#                 cols_val.append(c)
-#     # check the format of the data frame is correct
-#     assert len(cols_val) == len(cols_unc)
-#     for i, _ in enumerate(cols_val):
-#         assert cols_val[i] + '_unc' == cols_unc[i]
-#     # get the ratio of the two rows as a series
-#     ratio = df[cols_val].loc[ind_n] / df[cols_val].loc[ind_d]
-#     unc_array = mf.array_ratio_std(df[cols_val].loc[ind_n].values,
-#                                    df[cols_unc].loc[ind_n].values,
-#                                    df[cols_val].loc[ind_d].values,
-#                                    df[cols_unc].loc[ind_d].values)
-#     for i, cu in enumerate(cols_unc):
-#         ratio[cu] = unc_array[i]
-#     if shared_labels is not None:
-#         for i, sl in enumerate(shared_labels):
-#             assert df[sl].loc[ind_n] == df[sl].loc[ind_d]
-#             ratio[sl] = df[sl].loc[ind_d]
-#     # add to data frame
-#     if row_name is None:
-#         row_name = ind_n + ' / ' + ind_d
-#     df.loc[row_name] = ratio
-#     return df
