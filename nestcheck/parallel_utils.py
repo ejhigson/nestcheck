@@ -86,12 +86,18 @@ def parallel_apply(func, arg_iterable, **kwargs):
         for element in arg_iterable:
             futures.append(pool.submit(func, *func_pre_args, element,
                                        *func_args, **func_kwargs))
-        # Progress bar for completion of tasks
-        for _ in progress(concurrent.futures.as_completed(futures),
-                          desc=tqdm_desc, leave=tqdm_leave,
-                          disable=tqdm_disable, total=len(arg_iterable)):
-            pass
-        # Use concurrent.futures.wait to return results
-        completed_futures = concurrent.futures.wait(futures)[0]
-        assert len(completed_futures) == len(arg_iterable)
-        return [fut.result() for fut in completed_futures]
+        results = []
+        for fut in progress(concurrent.futures.as_completed(futures),
+                            desc=tqdm_desc, leave=tqdm_leave,
+                            disable=tqdm_disable, total=len(arg_iterable)):
+            results.append(fut.result())
+        return results
+        # # Progress bar for completion of tasks
+        # for _ in progress(concurrent.futures.as_completed(futures),
+        #                   desc=tqdm_desc, leave=tqdm_leave,
+        #                   disable=tqdm_disable, total=len(arg_iterable)):
+        #     pass
+        # # Use concurrent.futures.wait to return results
+        # completed_futures = concurrent.futures.wait(futures)[0]
+        # assert len(completed_futures) == len(arg_iterable)
+        # return [fut.result() for fut in completed_futures]
