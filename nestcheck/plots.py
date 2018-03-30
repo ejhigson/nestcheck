@@ -66,7 +66,9 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', 'dynamic $G=0$')
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
-    assert set(method_names) == set(run_dict.keys())
+    assert set(method_names) == set(run_dict.keys()), (
+        'input method names=' + str(method_names) + ' do not match run_dict '
+        'keys=' + str(run_dict.keys()))
     # Plotting
     # --------
     fig = plt.figure(figsize=figsize)
