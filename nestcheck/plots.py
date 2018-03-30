@@ -31,7 +31,6 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
 
     Parameters
     ----------
-
     method_names: list of strs
     run_dict: dict of lists of nested sampling runs.
         Keys of run_dict must be method_names
@@ -177,31 +176,60 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     return fig
 
 
-def bootstrap_kde_plot(bs_df, labels=None, xlims=None, **kwargs):
+def kde_plot_df(df, xlims=None, **kwargs):
     """
-    Plots distributions of bootstrap values for each estimator. There is one
-    subplot for each estimator with all runs plotted on the same axis.
+    Plots kde estimates of distributions of samples in each cell of the
+    dataframe.
+
+    There is one subplot for each dataframe column and one kde line for each
+    row on each subplot.
+
+    Parameters
+    ----------
+    df: pandas data frame
+        Each cell must contain a 1d numpy array of samples.
+    num_xticks: int, optional
+        Number of xticks on each subplot
+    xlims: dict, optional
+        Dictionary of xlimits - keys are column names and values are lists of
+        length 2.
+    figsize: tuple, optional
+        Size of figure in inches.
+
+    Returns
+    -------
+    fig: matplotlib figure
     """
     assert xlims is None or isinstance(xlims, dict)
     figsize = kwargs.pop('figsize', (6.4, 1.5))
+    num_xticks = kwargs.pop('num_xticks', None)
+    normalized = kwargs.pop('normalized', True)
+    legend = kwargs.pop('legend', False)
+    legend_kwargs = kwargs.pop('legend_kwargs', {})
+    nrows = kwargs.pop('nrows', 1)
+    ncols = kwargs.pop('ncols', int(np.ceil(len(df.columns) / nrows)))
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
-    fig, axes = plt.subplots(nrows=1, ncols=len(bs_df.columns),
-                             figsize=figsize)
-    if labels is not None:
-        bs_df.columns = labels
-    for nax, col in enumerate(bs_df):
-        ax = axes[nax]
-        supmin = bs_df[col].apply(np.min).min()
-        supmax = bs_df[col].apply(np.max).max()
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
+    for nax, col in enumerate(df):
+        if nrows == 1:
+            ax = axes[nax]
+        else:
+            ax = axes[nax // ncols, nax % ncols]
+        supmin = df[col].apply(np.min).min()
+        supmax = df[col].apply(np.max).max()
         support = np.linspace(supmin - 0.1 * (supmax - supmin),
-                              supmax + 0.1 * (supmax - supmin), 100)
-        for samps in bs_df[col].values:
+                              supmax + 0.1 * (supmax - supmin), 200)
+        handles = []
+        labels = []
+        for name, samps in df[col].iteritems():
             kernel = scipy.stats.gaussian_kde(samps)
             pdf = kernel(support)
-            pdf /= pdf.max()
-            ax.plot(support, pdf)
-        ax.set_ylim([0, 1.1])
+            if normalized:
+                pdf /= pdf.max()
+            handles.append(ax.plot(support, pdf, label=name)[0])
+            labels.append(name)
+        ax.set_ylim(bottom=0)
         ax.set_yticks([])
         if xlims is not None:
             try:
@@ -209,16 +237,10 @@ def bootstrap_kde_plot(bs_df, labels=None, xlims=None, **kwargs):
             except KeyError:
                 pass
         ax.set_xlabel(col)
-        # if ax.is_first_col():
-        #     ax.set_ylabel('probability density')
-        # if ax.is_last_col():
-        #     prune = None
-        # else:
-        #     prune = 'upper'
-        # ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=2)
-        #                                                          prune=prune))
-        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=2))
-    # fig.subplots_adjust(wspace=0)
+        if num_xticks is not None:
+            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=num_xticks))
+    if legend:
+        fig.legend(handles, labels, **legend_kwargs)
     return fig
 
 

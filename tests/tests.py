@@ -501,14 +501,14 @@ class TestPlots(unittest.TestCase):
             TypeError, nestcheck.plots.bs_param_dists,
             self.ns_run, unexpected=0)
 
-    def test_bootstrap_kde_plot(self):
+    def test_kde_plot_df(self):
         bs_df = pd.DataFrame(index=['run_1', 'run_2'])
         bs_df['estimator_1'] = [np.random.random(10)] * 2
         bs_df['estimator_2'] = [np.random.random(10)] * 2
-        fig = nestcheck.plots.bootstrap_kde_plot(bs_df)
+        fig = nestcheck.plots.kde_plot_df(bs_df)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         self.assertRaises(
-            TypeError, nestcheck.plots.bootstrap_kde_plot,
+            TypeError, nestcheck.plots.kde_plot_df,
             unexpected=0)
 
 
