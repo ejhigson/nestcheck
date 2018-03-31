@@ -79,6 +79,11 @@ class TestDataProcessing(unittest.TestCase):
                                   uniform_prior)
         run = nestcheck.data_processing.process_polychord_run(
             settings.file_root, base_dir=settings.base_dir)
+        random_seed_msg = (
+            'Your PolyChord install\'s random seed number generator is '
+            'probably different to the one used to set the expected values.')
+        self.assertEqual(run['logl'][0], -23.8600960993736,
+                         msg=random_seed_msg)
         self.assertEqual(run['output']['nlike'], 12402)
         self.assertAlmostEqual(e.param_mean(run), -0.00019962261593814093, places=12)
         self.assertAlmostEqual(run['output']['logZ'], e.logz(run), places=1)
