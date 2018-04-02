@@ -46,6 +46,8 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
         load = kwargs.pop('load', False)
         if load:
             print('WARNING: analyse_run_errors cannot load: no cache given')
+        save = False
+        load = False
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(estimator_list) == len(estimator_names), (
