@@ -22,7 +22,7 @@ def timing_decorator(func):
         Parameters
         ----------
         print_time: bool, optional
-            whether or not to save
+            whether or not to print time function takes.
         """
         print_time = kwargs.pop('print_time', False)
         if not print_time:
@@ -119,9 +119,8 @@ def pickle_save(data, name, **kwargs):
         outfile = open(filename, 'wb')
         pickle.dump(data, outfile)
         outfile.close()
-    except MemoryError:
-        print('pickle_save could not save data due to memory error: exiting ' +
-              'without saving')
+    except (MemoryError, PermissionError) as err:
+        print(type(err).__name__ + ' in pickle_save: continue without saving')
 
 
 @timing_decorator

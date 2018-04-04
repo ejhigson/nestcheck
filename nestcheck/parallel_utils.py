@@ -10,8 +10,10 @@ import tqdm
 
 def parallel_map(func, *arg_iterable, chunksize=1, **kwargs):
     """
-    Apply function to iterable with parallel map.
-    Returns results in order.
+    Apply function to iterable with parallel map, and hence returns
+    results in order. functools.partial is used to freeze func_pre_args and
+    func_kwargs, meaning that the iterable argument must be the last positional
+    argument.
 
     Roughly equivalent to
 

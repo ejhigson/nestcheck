@@ -132,6 +132,8 @@ class TestIOUtils(unittest.TestCase):
         data_out = self.save_load_func(self.test_data, save=True, load=True,
                                        save_name=TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
+        # Check handling of permission and memory errors when saving
+        nestcheck.io_utils.pickle_save(data_out, '//')
 
     def test_load_filenotfound(self):
         """Test loading files which dont exist causes FileNotFoundError."""
