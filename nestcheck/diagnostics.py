@@ -24,9 +24,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     thread_pvalue = kwargs.pop('thread_pvalue', False)
     bs_stat_dist = kwargs.pop('bs_stat_dist', False)
     cache_root = kwargs.pop('cache_root', None)
-    parallelise = kwargs.pop('parallelise', True)
-    tqdm_disable = kwargs.pop('tqdm_disable', False)
-    tqdm_leave = kwargs.pop('tqdm_leave', False)
+    parallel = kwargs.pop('parallel', True)
     # Do caching
     # ----------
     if cache_root is not None:
@@ -64,10 +62,8 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
         # -----------------
         values_list = pu.parallel_apply(ar.run_estimators, run_list,
                                         func_args=(estimator_list,),
-                                        tqdm_desc='values',
-                                        parallelise=parallelise,
-                                        tqdm_leave=tqdm_leave,
-                                        tqdm_disable=tqdm_disable)
+                                        tqdm_kwargs={'desc': 'values'},
+                                        parallel=parallel)
         df = pd.DataFrame(np.stack(values_list, axis=0))
         df.index = df.index.map(str)
         df.columns = estimator_names
@@ -77,10 +73,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
         df = df.reorder_levels(['calculation type', 'run'])
         # Bootstrap
         bs_vals_df = bs_values_df(run_list, estimator_list, estimator_names,
-                                  n_simulate,
-                                  parallelise=parallelise,
-                                  tqdm_leave=tqdm_leave,
-                                  tqdm_disable=tqdm_disable)
+                                  n_simulate, parallel=parallel)
         # # ####################################
         # # For checking values are as expected
         # bs_mean_df = bs_vals_df.applymap(np.mean)
@@ -102,9 +95,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
         if thread_pvalue:
             t_vals_df = thread_values_df(run_list, estimator_list,
                                          estimator_names,
-                                         parallelise=parallelise,
-                                         tqdm_leave=tqdm_leave,
-                                         tqdm_disable=tqdm_disable)
+                                         parallel=parallel)
             t_d_df = pairwise_distances_on_cols(t_vals_df,
                                                 earth_mover_dist=False,
                                                 energy_dist=False)
@@ -229,14 +220,14 @@ def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
         each list element is an array of bootstrap resampled values of that
         estimator applied to that run.
     """
-    tqdm_desc = kwargs.pop('tqdm_desc', 'bs values')
+    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'desc': 'bs values'})
     assert len(estimator_list) == len(estimator_names), (
         'len(estimator_list) = {0} != len(estimator_names = {1}'
         .format(len(estimator_list), len(estimator_names)))
     bs_values_list = pu.parallel_apply(ar.run_bootstrap_values, run_list,
                                        func_args=(estimator_list,),
                                        func_kwargs={'n_simulate': n_simulate},
-                                       tqdm_desc=tqdm_desc, **kwargs)
+                                       tqdm_kwargs=tqdm_kwargs, **kwargs)
     df = pd.DataFrame()
     for i, name in enumerate(estimator_names):
         df[name] = [arr[i, :] for arr in bs_values_list]
@@ -257,16 +248,16 @@ def run_thread_values(run, estimator_list):
     return vals_array
 
 
-def thread_values_df(run_list, estimator_list, estimator_names,
-                     tqdm_desc='thread values', **kwargs):
+def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
     """Returns df containing estimator values for individual threads."""
+    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'desc': 'thread values'})
     assert len(estimator_list) == len(estimator_names), (
         'len(estimator_list) = {0} != len(estimator_names = {1}'
         .format(len(estimator_list), len(estimator_names)))
     # get thread results
     thread_vals_arrays = pu.parallel_apply(run_thread_values, run_list,
                                            func_args=(estimator_list,),
-                                           tqdm_desc=tqdm_desc, **kwargs)
+                                           tqdm_kwargs=tqdm_kwargs, **kwargs)
     df = pd.DataFrame()
     # print(len(thread_arr_l), [a.shape for a in thread_arr_l])
     for i, name in enumerate(estimator_names):

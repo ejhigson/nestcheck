@@ -68,8 +68,9 @@ class TestDataProcessing(unittest.TestCase):
         except FileNotFoundError:
             pass
 
-    @unittest.skipIf('PyPolyChord' not in sys.modules,
-                     'needs PyPolyChord to run')
+    # @unittest.skipIf('PyPolyChord' not in sys.modules,
+    #                  'needs PyPolyChord to run')
+    @unittest.skipIf(True, 'needs PyPolyChord to run')
     def test_polychord_processing(self):
         os.makedirs(TEST_CACHE_DIR)
         ndim = 2
@@ -417,7 +418,7 @@ class TestParallelUtils(unittest.TestCase):
         """Check parallel_apply with parallel=True."""
         results_list = nestcheck.parallel_utils.parallel_apply(
             self.func, self.x, func_args=self.func_args,
-            func_kwargs=self.func_kwargs, parallelise=True)
+            func_kwargs=self.func_kwargs, parallel=True)
         res_arr = np.vstack(results_list)
         self.assertTrue(np.all(res_arr[:, 1] == self.func_args[0]))
         self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
@@ -429,12 +430,12 @@ class TestParallelUtils(unittest.TestCase):
         """Check parallel_apply with parallel=False."""
         results_list = nestcheck.parallel_utils.parallel_apply(
             self.func, self.x, func_args=self.func_args,
-            func_kwargs=self.func_kwargs, parallelise=False)
+            func_kwargs=self.func_kwargs, parallel=False)
         res_arr = np.vstack(results_list)
         self.assertTrue(np.all(res_arr[:, 1] == self.func_args[0]))
         self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
         # Don't need to sort res_arr[:, 0] as will be in order when
-        # parallelise=False
+        # parallel=False
         self.assertTrue(np.array_equal(res_arr[:, 0], np.asarray(self.x)))
 
     def test_parallel_apply_unexpected_kwargs(self):
@@ -443,6 +444,34 @@ class TestParallelUtils(unittest.TestCase):
                           self.func, self.x, func_args=self.func_args,
                           unexpected=1)
 
+    def test_parallel_map_not_parallelised(self):
+        """Check parallel_map with parallel=False."""
+        func_pre_args = self.func_args
+        results_list = nestcheck.parallel_utils.parallel_map(
+            self.func, self.x, func_pre_args=func_pre_args,
+            func_kwargs=self.func_kwargs, parallel=False)
+        res_arr = np.vstack(results_list)
+        self.assertTrue(np.all(res_arr[:, 0] == func_pre_args[0]))
+        self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
+        # Don't need to sort as will be in order for map
+        self.assertTrue(np.array_equal(res_arr[:, 1], np.asarray(self.x)))
+
+    def test_parallel_map_parallelised(self):
+        """Check parallel_map with parallel=True."""
+        func_pre_args = self.func_args
+        results_list = nestcheck.parallel_utils.parallel_map(
+            self.func, self.x, func_pre_args=func_pre_args,
+            func_kwargs=self.func_kwargs, parallel=True)
+        res_arr = np.vstack(results_list)
+        self.assertTrue(np.all(res_arr[:, 0] == func_pre_args[0]))
+        self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
+        # Don't need to sort as will be in order for map
+        self.assertTrue(np.array_equal(res_arr[:, 1], np.asarray(self.x)))
+
+    def test_parallel_map_unexpected_kwargs(self):
+        """Unexpected kwarg should throw exception."""
+        self.assertRaises(TypeError, nestcheck.parallel_utils.parallel_map,
+                          self.func, self.x, unexpected=1)
 
 class TestDiagnostics(unittest.TestCase):
 

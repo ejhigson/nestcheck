@@ -271,7 +271,6 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     nx = kwargs.pop('nx', 100)
     ny = kwargs.pop('ny', nx)
     flip_x = kwargs.pop('flip_x', False)
-    tqdm_leave = kwargs.pop('tqdm_leave', False)
     colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     if kwargs:
@@ -303,7 +302,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
             cache = cache_in
         y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
                                      cache=cache, parallel=parallel,
-                                     tqdm_leave=tqdm_leave)
+                                     tqdm_leave=False)
         if flip_x:
             cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
                                      axes[nf], colors=colormap,
