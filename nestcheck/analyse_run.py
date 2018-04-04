@@ -581,7 +581,7 @@ def get_logx(nlive, simulate=False):
     if simulate:
         logx_steps = np.log(np.random.random(nlive.shape)) / nlive
     else:
-        logx_steps = -1 * (nlive ** -1)
+        logx_steps = -1 * (nlive.astype(float) ** -1)
     return np.cumsum(logx_steps)
 
 

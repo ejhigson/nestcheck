@@ -170,7 +170,8 @@ class TestPandasFunctions(unittest.TestCase):
         self.nrows = 100
         self.ncols = 3
         self.data = np.random.random((self.nrows, self.ncols))
-        self.col_names = ['est ' + str(i) for i in range(self.ncols)]
+        self.col_names = ['samples']
+        self.col_names += ['est ' + str(i) for i in range(self.ncols - 1)]
         self.df = pd.DataFrame(self.data, columns=self.col_names)
         self.sum_df = nestcheck.pandas_functions.summary_df(
             self.df, true_values=np.zeros(self.ncols),
@@ -245,9 +246,54 @@ class TestPandasFunctions(unittest.TestCase):
             TypeError, nestcheck.pandas_functions.efficiency_gain_df,
             method_names, method_values, est_names=self.col_names,
             unexpected=1)
+        # Use the efficiency gain df we just made to check
+        # paper_format_efficiency_gain_df
+        paper_df = nestcheck.pandas_functions.paper_format_efficiency_gain_df(df)
+        cols = [col for col in self.col_names if col != 'samples']
+        numpy.testing.assert_array_equal(
+            paper_df[cols].values,
+            df.loc[pd.IndexSlice[['std', 'std efficiency gain'], :, :], cols].values)
 
 
 class TestAnalyseRun(unittest.TestCase):
+
+    def test_combine_threads(self):
+        """Check combining threads when birth contours are not present or are
+        duplicated."""
+        nsamples = 5
+        ndim = 2
+        # Get two threads
+        threads = [get_dummy_ns_thread(nsamples, ndim, seed=False),
+                   get_dummy_ns_thread(nsamples, ndim, seed=False)]
+        # Sort in order of final logl
+        threads = sorted(threads, key=lambda run: run['logl'][-1])
+        t1 = threads[0]
+        t2 = threads[1]
+        # Get another thread starting on the last point of t2 (meaning it will
+        # not overlap with t1)
+        t_no_overlap = get_dummy_ns_thread(nsamples, ndim, seed=False,
+                                           logl_start=t2['logl'][-1])
+        # combining with t1 should throw an assertion error as nlive drops to
+        # zero in between the threads
+        self.assertRaises(AssertionError, ar.combine_threads, [t1, t_no_overlap],
+                          assert_birth_point=False)
+        # Get another thread starting on the last point of t1 so it overlaps
+        # with t2
+        t3 = get_dummy_ns_thread(nsamples, ndim, seed=False,
+                                 logl_start=t1['logl'][-1])
+        # When birth point not in run:
+        # Should raise assertion error only if assert_birth_point = True
+        ar.combine_threads([t2, t3])
+        self.assertRaises(AssertionError, ar.combine_threads, [t2, t3],
+                          assert_birth_point=True)
+        # When birth point in run once:
+        # should work with assert_birth_point = True
+        ar.combine_threads([t1, t2, t3], assert_birth_point=True)
+        # When birth point in run twice:
+        # Should raise assertion error only if assert_birth_point = True
+        ar.combine_threads([t1, t1, t2, t3])
+        self.assertRaises(AssertionError, ar.combine_threads, [t1, t1, t2, t3],
+                          assert_birth_point=True)
 
     def test_bootstrap_resample_run(self):
         run = get_dummy_ns_run(2, 1, 2)
@@ -258,11 +304,11 @@ class TestAnalyseRun(unittest.TestCase):
         self.assertTrue(np.array_equal(run['theta'], resamp['theta']))
         # With random_seed=1 and 2 threads each with a single points,
         # bootstrap_resample_run selects the second thread twice.
-        resamp = ar.bootstrap_resample_run(run, random_seed=1)
-        self.assertTrue(np.array_equal(
-            run['theta'][1, :], resamp['theta'][0, :]))
-        self.assertTrue(np.array_equal(
-            run['theta'][1, :], resamp['theta'][1, :]))
+        resamp = ar.bootstrap_resample_run(run, random_seed=0)
+        numpy.testing.assert_allclose(
+            run['theta'][0, :], resamp['theta'][0, :])
+        numpy.testing.assert_allclose(
+            run['theta'][1, :], resamp['theta'][1, :])
         # Check error handeled if no ninit
         del run['settings']
         resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
@@ -295,6 +341,12 @@ class TestAnalyseRun(unittest.TestCase):
         run = get_dummy_ns_run(1, 1, 2)
         stds = ar.run_std_simulate(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
+
+    def test_get_logw(self):
+        """Check IndexError raising"""
+        self.assertRaises(IndexError, ar.get_logw,
+                          {'nlive_array': np.asarray(1.),
+                           'logl': np.asarray([])})
 
 
 class TestEstimators(unittest.TestCase):
@@ -562,14 +614,20 @@ def get_dummy_ns_run(nlive, nsamples, ndim, seed=False):
     if seed is not False:
         np.random.seed(seed)
     for _ in range(nlive):
-        thread = {'logl': np.zeros(nsamples),
-                  'nlive_array': np.full(nsamples, 1.),
-                  'theta': np.random.random((nsamples, ndim)),
-                  'thread_labels': np.zeros(nsamples).astype(int)}
-        thread['thread_min_max'] = np.asarray([[-np.inf, thread['logl'][-1]]])
-        threads.append(thread)
+        threads.append(get_dummy_ns_thread(nsamples, ndim, seed=False))
     return ar.combine_ns_runs(threads)
 
+def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
+    """Generate a single ns thread for quick testing without loading test
+    data."""
+    thread = {'logl': np.sort(np.random.random(nsamples)),
+              'nlive_array': np.full(nsamples, 1.),
+              'theta': np.random.random((nsamples, ndim)),
+              'thread_labels': np.zeros(nsamples).astype(int)}
+    if logl_start != -np.inf:
+        thread['logl'] += logl_start
+    thread['thread_min_max'] = np.asarray([[logl_start, thread['logl'][-1]]])
+    return thread
 
 if __name__ == '__main__':
     unittest.main()
