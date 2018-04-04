@@ -60,17 +60,16 @@ class TestDataProcessing(unittest.TestCase):
         file_root = 'dummy_run'
         dead, run = get_dummy_dead_points()
         nestcheck.data_processing.check_ns_run(run)
-        np.savetxt(file_root + '.txt', dead)
         os.makedirs(TEST_CACHE_DIR)
         np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
         processed_run = nestcheck.data_processing.batch_process_data(
             [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
-            parallel=False)[0]
+            parallel=False, func_kwargs={'errors_to_handle': (OSError)})[0]
         nestcheck.data_processing.check_ns_run(processed_run)
-        for key in run.keys():
+        for key, value in processed_run.items():
             if key not in ['output']:
                 numpy.testing.assert_array_equal(
-                    run[key], processed_run[key], err_msg=key + ' not the same')
+                    value, run[key], err_msg=key + ' not the same')
         self.assertEqual(processed_run['output']['file_root'], file_root)
         self.assertEqual(processed_run['output']['base_dir'], TEST_CACHE_DIR)
 
@@ -537,40 +536,65 @@ class TestPlots(unittest.TestCase):
 
     def test_plot_run_nlive(self):
         fig = nestcheck.plots.plot_run_nlive(
-            ['standard'], {'standard': [self.ns_run] * 2})
+            ['type 1'], {'type 1': [self.ns_run] * 2},
+            logl_given_logx=lambda x: x, ymax=100)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
+        # Check unexpected kwarg raises type error
         self.assertRaises(
             TypeError, nestcheck.plots.plot_run_nlive,
-            ['standard'], {'standard': [self.ns_run] * 2}, unexpected=0)
+            ['type 1'], {'type 1': [self.ns_run] * 2}, unexpected=0)
+        # Check with logx_given_logl specified
+        fig = nestcheck.plots.plot_run_nlive(
+            ['type 1'], {'type 1': [self.ns_run] * 2},
+            logx_given_logl=lambda x: x,
+            logl_given_logx=lambda x: x,
+            cum_post_mass_norm='str', post_mass_norm='str')
+        # Using logx from run as (as in perfectns) should raise type error
+        self.ns_run['logx'] = None
+        self.assertRaises(
+            TypeError, nestcheck.plots.plot_run_nlive,
+            ['type 1'], {'type 1': [self.ns_run] * 2})
 
     @unittest.skipIf(importlib.util.find_spec('fgivenx') is None,
                      'needs fgivenx to run')
     def test_param_logx_diagram(self):
         fig = nestcheck.plots.param_logx_diagram(
-            self.ns_run, n_simulate=3, npoints=100)
+            self.ns_run, n_simulate=3, npoints=100, parallel=False)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         self.assertRaises(
             TypeError, nestcheck.plots.param_logx_diagram,
             self.ns_run, unexpected=0)
 
+    def test_plot_bs_dists_unexpected_kwarg(self):
+        self.assertRaises(
+            TypeError, nestcheck.plots.plot_bs_dists,
+            self.ns_run, [], [], unexpected=0)
+
+
     @unittest.skipIf(importlib.util.find_spec('fgivenx') is None,
                      'needs fgivenx to run')
     def test_bs_param_dists(self):
         fig = nestcheck.plots.bs_param_dists(
-            self.ns_run, n_simulate=3, nx=10)
+            self.ns_run, n_simulate=3, nx=10, parallel=False)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
+        # Check unexpected kwargs
         self.assertRaises(
             TypeError, nestcheck.plots.bs_param_dists,
             self.ns_run, unexpected=0)
 
     def test_kde_plot_df(self):
-        bs_df = pd.DataFrame(index=['run_1', 'run_2'])
-        bs_df['estimator_1'] = [np.random.random(10)] * 2
-        bs_df['estimator_2'] = [np.random.random(10)] * 2
-        fig = nestcheck.plots.kde_plot_df(bs_df)
+        df = pd.DataFrame(index=['run_1', 'run_2'])
+        df['estimator_1'] = [np.random.random(10)] * 2
+        df['estimator_2'] = [np.random.random(10)] * 2
+        df['estimator_3'] = [np.random.random(10)] * 2
+        df['estimator_4'] = [np.random.random(10)] * 2
+        fig = nestcheck.plots.kde_plot_df(df, xlims={}, num_xticks=3,
+                                          legend=True)
+        self.assertIsInstance(fig, matplotlib.figure.Figure)
+        fig = nestcheck.plots.kde_plot_df(df, nrows=2)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         self.assertRaises(
-            TypeError, nestcheck.plots.kde_plot_df,
+            TypeError, nestcheck.plots.kde_plot_df, df,
             unexpected=0)
 
 
@@ -622,7 +646,6 @@ def get_dummy_dead_points(ndims=2, nsamples=10):
     # threads[0] not threads[-1]. Hence add to threads[-1]['logl']
     threads[-1]['logl'] += 1
     threads[-1]['thread_min_max'][0, 1] += 1
-    print(threads)
     dead_arrs = []
     for th in threads:
         dead = np.zeros((nsamples, ndims + 2))

@@ -62,8 +62,8 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     logx_given_logl = kwargs.pop('logx_given_logl', None)
     logl_given_logx = kwargs.pop('logl_given_logx', None)
     npoints = kwargs.pop('npoints', 100)
-    post_mass_norm = kwargs.pop('post_mass_norm', 'dynamic $G=1$')
-    cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', 'dynamic $G=0$')
+    post_mass_norm = kwargs.pop('post_mass_norm', None)
+    cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', None)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert set(method_names) == set(run_dict.keys()), (
@@ -80,8 +80,6 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                       'dynamic $G=0$': colors[8],
                       'dynamic $G=1$': colors[9]}
     ax.set_prop_cycle('color', [colors[i] for i in [4, 1, 6, 0, 3, 5, 7]])
-    # the default color cycle contains some dark colors which don't show up
-    # well - select just the light ones
     integrals_dict = {}
     logx_min_list = []
     for method_name in method_names:
@@ -110,11 +108,6 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                         color=line.get_color())
             # for normalising analytic weight lines
             integrals[nr] = -np.trapz(run['nlive_array'], x=logx)
-        if not np.all(np.isfinite(integrals)):
-            print(method_name,
-                  'removing non-finite integrals from normalisation: ',
-                  np.count_nonzero(~np.isfinite(integrals)), '/',
-                  integrals.shape)
         integrals_dict[method_name] = integrals[np.isfinite(integrals)]
     # if not specified, set logx min to the lowest logx reached by a run
     if logx_min is None:

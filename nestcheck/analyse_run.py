@@ -124,10 +124,10 @@ def dict_given_run_array(samples, thread_min_max):
     nlive_array = np.zeros(samples.shape[0]) + nlive_0
     nlive_array[1:] += np.cumsum(samples[:-1, 2])
     assert nlive_array.min() > 0, \
-        ('nlive contains 0s or negative values!' +
+        ('nlive contains 0s or negative values.' +
          '\nnlive_array = ' + str(nlive_array) +
          '\nthread_min_max=' + str(thread_min_max))
-    assert nlive_array[-1] == 1, 'final point in nlive_array != 1!' \
+    assert nlive_array[-1] == 1, 'final point in nlive_array != 1.' \
         '\nnlive_array = ' + str(nlive_array)
     ns_run['nlive_array'] = nlive_array
     return ns_run

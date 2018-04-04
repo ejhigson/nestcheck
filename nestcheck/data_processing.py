@@ -52,11 +52,11 @@ def batch_process_data(file_roots, **kwargs):
 
 def process_error_helper(root, base_dir, process_func, **func_kwargs):
     """Processing wrapper which handles some common errors."""
-    errors = func_kwargs.pop('errors',
-                             (OSError, AssertionError, KeyError, ValueError))
+    errors_to_handle = func_kwargs.pop('errors_to_handle', ())
+    # 'errors_to_handle', (OSError, AssertionError, KeyError, ValueError))
     try:
         return process_func(root, base_dir, **func_kwargs)
-    except errors as err:
+    except errors_to_handle as err:
         run = {'error': type(err).__name__,
                'output': {'file_root': root}}
         return run
