@@ -55,6 +55,7 @@ def parallel_map(func, *arg_iterable, chunksize=1, **kwargs):
         pool = concurrent.futures.ProcessPoolExecutor(max_workers=max_workers)
         return list(pool.map(func_to_map, *arg_iterable, chunksize=chunksize))
     else:
+        print('Warning: parallel_map not parallelised!')
         return list(map(func_to_map, *arg_iterable))
 
 
@@ -115,7 +116,7 @@ def parallel_apply(func, arg_iterable, **kwargs):
     except (NameError, AssertionError):
         progress = tqdm.tqdm
     if not parallel:
-        print('Warning: parallel_apply not paralleld!')
+        print('Warning: parallel_apply not parallelised!')
         return [func(*func_pre_args, x, *func_args, **func_kwargs) for x in
                 progress(arg_iterable, **tqdm_kwargs)]
     else:

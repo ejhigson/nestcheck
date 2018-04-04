@@ -3,7 +3,6 @@
 Test the nestcheck module installation.
 """
 import os
-import sys
 import shutil
 import unittest
 import functools
@@ -21,32 +20,6 @@ import nestcheck.analyse_run as ar
 import nestcheck.plots
 import nestcheck.data_processing
 import nestcheck.diagnostics
-try:
-    import PyPolyChord
-    import PyPolyChord.priors
-    from PyPolyChord.settings import PolyChordSettings
-
-    def gaussian_likelihood(theta, sigma=1, n_derived=0):
-        """ Simple Gaussian Likelihood centred on the origin."""
-        phi = [0.0] * n_derived
-        dim = len(theta)
-        rad2 = sum([t ** 2 for t in theta])
-        logl = -np.log(2 * np.pi * (sigma ** 2)) * dim / 2.0
-        logl += -rad2 / (2 * sigma ** 2)
-        return logl, phi
-
-    def uniform_prior(hypercube, prior_scale=5):
-        """Uniform prior."""
-        ndims = len(hypercube)
-        theta = [0.0] * ndims
-        func = PyPolyChord.priors.UniformPrior(-prior_scale, prior_scale)
-        for i, x in enumerate(hypercube):
-            theta[i] = func(x)
-        return theta
-
-except ImportError:
-    print('WARNING: could not import PyPolyChord. Install PyPolyChord to use '
-          'full test suite.')
 
 
 TEST_CACHE_DIR = 'cache_tests'
@@ -68,36 +41,38 @@ class TestDataProcessing(unittest.TestCase):
         except FileNotFoundError:
             pass
 
-    # @unittest.skipIf('PyPolyChord' not in sys.modules,
-    #                  'needs PyPolyChord to run')
-    @unittest.skipIf(True, 'needs PyPolyChord to run')
-    def test_polychord_processing(self):
-        os.makedirs(TEST_CACHE_DIR)
-        ndim = 2
-        settings = PolyChordSettings(ndim, 0, base_dir=TEST_CACHE_DIR, seed=1,
-                                     file_root='test', nlive=20, feedback=-1)
-        PyPolyChord.run_polychord(gaussian_likelihood, 2, 0, settings,
-                                  uniform_prior)
-        run = nestcheck.data_processing.process_polychord_run(
-            settings.file_root, base_dir=settings.base_dir)
-        random_seed_msg = (
-            'Your PolyChord install\'s random seed number generator is '
-            'probably different to the one used to set the expected values.')
-        self.assertEqual(run['logl'][0], -23.8600960993736,
-                         msg=random_seed_msg)
-        self.assertEqual(run['output']['nlike'], 12402)
-        self.assertAlmostEqual(e.param_mean(run), -0.00019962261593814093, places=12)
-        self.assertAlmostEqual(run['output']['logZ'], e.logz(run), places=1)
-
-    def test_batch_process_data(self):
-        # Try looking for chains which dont exist
-        data = nestcheck.data_processing.batch_process_data(
-            ['an_empty_path'], base_dir=TEST_CACHE_DIR)
-        self.assertEqual(len(data), 0)
-        # Test unexpected kwargs checks
+    def test_batch_process_data_unexpected_kwarg(self):
+        """Test unexpected kwargs checks."""
         self.assertRaises(
             TypeError, nestcheck.data_processing.batch_process_data,
             ['path'], base_dir=TEST_CACHE_DIR, unexpected=1)
+
+    def test_check_ns_run_logls(self):
+        """Ensure check_ns_run_logls raises error if and only if
+        warn_only=False"""
+        repeat_logl_run = {'logl': np.asarray([0, 0, 1])}
+        self.assertRaises(
+            AssertionError, nestcheck.data_processing.check_ns_run_logls,
+            repeat_logl_run, warn_only=False)
+        nestcheck.data_processing.check_ns_run_logls(repeat_logl_run, warn_only=True)
+
+    def test_batch_process_data_not_present(self):
+        file_root = 'dummy_run'
+        dead, run = get_dummy_dead_points()
+        nestcheck.data_processing.check_ns_run(run)
+        np.savetxt(file_root + '.txt', dead)
+        os.makedirs(TEST_CACHE_DIR)
+        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
+        processed_run = nestcheck.data_processing.batch_process_data(
+            [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
+            parallel=False)[0]
+        nestcheck.data_processing.check_ns_run(processed_run)
+        for key in run.keys():
+            if key not in ['output']:
+                numpy.testing.assert_array_equal(
+                    run[key], processed_run[key], err_msg=key + ' not the same')
+        self.assertEqual(processed_run['output']['file_root'], file_root)
+        self.assertEqual(processed_run['output']['base_dir'], TEST_CACHE_DIR)
 
 
 class TestIOUtils(unittest.TestCase):
@@ -235,7 +210,6 @@ class TestPandasFunctions(unittest.TestCase):
             true_values=np.zeros(self.ncols),
             include_true_values=True, include_rmse=True,
             adjust_nsamp=adjust_nsamp)
-        print(df)
         for i, method in enumerate(method_names[1:]):
             gains = np.asarray([adjust_nsamp[0] / adjust_nsamp[i + 1]] *
                                self.ncols)
@@ -272,7 +246,7 @@ class TestAnalyseRun(unittest.TestCase):
         # Get another thread starting on the last point of t2 (meaning it will
         # not overlap with t1)
         t_no_overlap = get_dummy_ns_thread(nsamples, ndim, seed=False,
-                                           logl_start=t2['logl'][-1])
+                                           logl_start=t2['logl'][-1] + 1000)
         # combining with t1 should throw an assertion error as nlive drops to
         # zero in between the threads
         self.assertRaises(AssertionError, ar.combine_threads, [t1, t_no_overlap],
@@ -527,6 +501,7 @@ class TestParallelUtils(unittest.TestCase):
         self.assertRaises(TypeError, nestcheck.parallel_utils.parallel_map,
                           self.func, self.x, unexpected=1)
 
+
 class TestDiagnostics(unittest.TestCase):
 
     def test_run_list_error_summary(self):
@@ -544,7 +519,6 @@ class TestDiagnostics(unittest.TestCase):
         test_values = pd.read_pickle('tests/run_list_error_summary.pkl')
         numpy.testing.assert_allclose(df.values, test_values.values,
                                       rtol=1e-13, atol=1e-13)
-        # print(df)
 
     def test_run_list_error_values_unexpected_kwarg(self):
         self.assertRaises(
@@ -617,6 +591,7 @@ def get_dummy_ns_run(nlive, nsamples, ndim, seed=False):
         threads.append(get_dummy_ns_thread(nsamples, ndim, seed=False))
     return ar.combine_ns_runs(threads)
 
+
 def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
     """Generate a single ns thread for quick testing without loading test
     data."""
@@ -628,6 +603,41 @@ def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
         thread['logl'] += logl_start
     thread['thread_min_max'] = np.asarray([[logl_start, thread['logl'][-1]]])
     return thread
+
+
+def get_dummy_dead_points(ndims=2, nsamples=10):
+    """
+    Make a dead points array of the type produced by PolyChord. Also returns
+    the same nested sampling run as a dictionary in the standard nestcheck
+    format for checking.
+    """
+    threads = [get_dummy_ns_thread(nsamples, ndims, seed=False,
+                                   logl_start=-np.inf)]
+    threads.append(get_dummy_ns_thread(nsamples, ndims, seed=False,
+                                       logl_start=threads[0]['logl'][0]))
+    threads[-1]['thread_labels'] += 1
+    # to make sure thread labels derived from the dead points match the
+    # order in threads, we need to make sure the first point after the
+    # contour where 2 points are born (threads[0]['logl'][0]) is in
+    # threads[0] not threads[-1]. Hence add to threads[-1]['logl']
+    threads[-1]['logl'] += 1
+    threads[-1]['thread_min_max'][0, 1] += 1
+    print(threads)
+    dead_arrs = []
+    for th in threads:
+        dead = np.zeros((nsamples, ndims + 2))
+        dead[:, :ndims] = th['theta']
+        dead[:, ndims] = th['logl']
+        dead[1:, ndims + 1] = th['logl'][:-1]
+        if th['thread_min_max'][0, 0] == -np.inf:
+            dead[0, ndims + 1] = -1e30
+        else:
+            dead[0, ndims + 1] = th['thread_min_max'][0, 0]
+        dead_arrs.append(dead)
+    dead = np.vstack(dead_arrs)
+    dead = dead[np.argsort(dead[:, ndims]), :]
+    run = ar.combine_threads(threads)
+    return dead, run
 
 if __name__ == '__main__':
     unittest.main()

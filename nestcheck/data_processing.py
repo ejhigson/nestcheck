@@ -6,6 +6,10 @@ Functions for processing nested sampling runs.
 import numpy as np
 import nestcheck.io_utils
 import nestcheck.parallel_utils
+try:
+    import PyPolyChord.output
+except ImportError:
+    pass
 
 
 @nestcheck.io_utils.save_load_result
@@ -19,11 +23,12 @@ def batch_process_data(file_roots, **kwargs):
     base_dir = kwargs.pop('base_dir', 'chains')
     process_func = kwargs.pop('process_func', process_polychord_run)
     func_kwargs = kwargs.pop('func_kwargs', {})
+    parallel = kwargs.pop('parallel', True)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     data = nestcheck.parallel_utils.parallel_apply(
         process_error_helper, file_roots, func_args=(base_dir, process_func),
-        func_kwargs=func_kwargs)
+        func_kwargs=func_kwargs, parallel=parallel)
     # Sort processed runs into the same order as file_roots
     data = sorted(data,
                   key=lambda x: file_roots.index(x['output']['file_root']))
@@ -85,7 +90,8 @@ def check_ns_run_members(run):
     # Check type of mandatory members
     for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
                 'thread_min_max']:
-        assert isinstance(run[key], np.ndarray), key + ' is type ' + type(key)
+        assert isinstance(run[key], np.ndarray), (
+            key + ' is type ' + type(run[key]).__name__)
     # check shapes of keys
     assert run['logl'].ndim == 1
     assert run['logl'].shape == run['nlive_array'].shape
@@ -147,10 +153,11 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     dead_points = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
     ns_run = process_polychord_dead_points(dead_points)
     try:
-        from PyPolyChord.output import PolyChordOutput
-        ns_run['output'] = PolyChordOutput(base_dir, file_root).__dict__
-    except ImportError:
-        print('Failed to import PyPolyChord.output.PolyChordOutput')
+        ns_run['output'] = (PyPolyChord.output.PolyChordOutput(base_dir, file_root)
+                            .__dict__)
+    except (OSError, ImportError) as err:
+        print('WARNING: ' + type(err).__name__ + ' processing .stats file with ' +
+              'PyPolyChord.output.PolyChordOutput')
         ns_run['output'] = {}
     ns_run['output']['file_root'] = file_root
     ns_run['output']['base_dir'] = base_dir
