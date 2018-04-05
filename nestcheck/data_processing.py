@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-Functions for processing nested sampling runs.
+Functions for processing nested sampling data. Compatible wih MultiNest and
+PolyChord.
 """
 
 import numpy as np
@@ -15,19 +16,48 @@ except ImportError:
 @nestcheck.io_utils.save_load_result
 def batch_process_data(file_roots, **kwargs):
     """
-    Process many runs in parallel with error handling.
+    Process many runs in parallel with optional error handling.
 
-    Can cache result with 'save_name', 'save_dir', 'save' and 'load' kwargs (by
+    Can cache result with 'save_name', 'save' and 'load' kwargs (by
     default this is not done). See save_load_result docstring for more details.
+
+
+    Parameters
+    ----------
+    file_roots: list of strs
+        file_roots for the runs to load.
+    base_dir: str, optional
+        path to directory containing files.
+    process_func: function, optional
+        function to use to process the data.
+    func_kwargs: dict, optional
+        additional keyword arguments for process_func
+    parallel: bool, optional
+        whether or not to process runs in parallel
+    errors_to_handle: error or tuple of errors, optional
+        which errors to catch when they occur in processing rather than raising
+
+    Parameters from io_utils.save_load_result decorator (see its docstring for
+    more details):
+        save_name: str, optional
+        save: bool, optional
+        load: bool, optional
+        overwrite_existing: bool, optional
+
+    Returns
+    -------
+    list of ns_run dicts
     """
     base_dir = kwargs.pop('base_dir', 'chains')
     process_func = kwargs.pop('process_func', process_polychord_run)
     func_kwargs = kwargs.pop('func_kwargs', {})
     parallel = kwargs.pop('parallel', True)
+    errors_to_handle = kwargs.pop('errors_to_handle', ())
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     data = nestcheck.parallel_utils.parallel_apply(
         process_error_helper, file_roots, func_args=(base_dir, process_func),
+        errors_to_handle=errors_to_handle,
         func_kwargs=func_kwargs, parallel=parallel)
     # Sort processed runs into the same order as file_roots
     data = sorted(data,
@@ -50,10 +80,18 @@ def batch_process_data(file_roots, **kwargs):
     return [run for run in data if 'error' not in run]
 
 
-def process_error_helper(root, base_dir, process_func, **func_kwargs):
-    """Processing wrapper which handles some common errors."""
-    errors_to_handle = func_kwargs.pop('errors_to_handle', ())
-    # 'errors_to_handle', (OSError, AssertionError, KeyError, ValueError))
+def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
+                         **func_kwargs):
+    """
+    Wrapper which applies process_func and handles some common errors so
+    problems do not spoil the whole batch.
+
+    Useful errors to handle include:
+
+    OSError: if you are not sure if all the files exist
+    AssertionError: if some of the many assertions fail for known reasons - e.g.
+        there is an occasional non-unique logl due to limited numerical precision.
+    """
     try:
         return process_func(root, base_dir, **func_kwargs)
     except errors_to_handle as err:
@@ -62,93 +100,25 @@ def process_error_helper(root, base_dir, process_func, **func_kwargs):
         return run
 
 
-def check_ns_run(run, logl_warn_only=False):
-    """Checks a nested sampling run has some of the expected properties."""
-    assert isinstance(run, dict)
-    check_ns_run_members(run)
-    check_ns_run_logls(run, warn_only=logl_warn_only)
-    check_ns_run_threads(run)
-
-
-def check_ns_run_members(run):
-    """Checks a nested sampling run has some of the expected properties."""
-    run_keys = list(run.keys())
-    # Mandatory keys
-    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
-                'thread_min_max']:
-        assert key in run_keys
-        run_keys.remove(key)
-    # Optional keys
-    # for key in ['settings', 'output']:
-    for key in ['output']:
-        try:
-            run_keys.remove(key)
-        except ValueError:
-            pass
-    # Check for unexpected keys
-    assert not run_keys, 'Unexpected keys in ns_run: ' + str(run_keys)
-    # Check type of mandatory members
-    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
-                'thread_min_max']:
-        assert isinstance(run[key], np.ndarray), (
-            key + ' is type ' + type(run[key]).__name__)
-    # check shapes of keys
-    assert run['logl'].ndim == 1
-    assert run['logl'].shape == run['nlive_array'].shape
-    assert run['logl'].shape == run['thread_labels'].shape
-    assert run['theta'].ndim == 2
-    assert run['logl'].shape[0] == run['theta'].shape[0]
-
-
-def check_ns_run_logls(run, warn_only=False):
-    """Test logls are unique and in the correct order."""
-    assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
-    logl_u, counts = np.unique(run['logl'], return_counts=True)
-    repeat_logls = run['logl'].shape[0] - logl_u.shape[0]
-    if repeat_logls != 0:
-        msg = ('# unique logl values is ' + str(repeat_logls) +
-               ' less than # points. Duplicate values: ' +
-               str(logl_u[np.where(counts > 1)[0]]))
-        if logl_u.shape[0] != 1:
-            msg += (
-                ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
-                ', First point at inds ' +
-                str(np.where(run['logl'] == logl_u[np.where(
-                    counts > 1)[0][0]])[0])
-                + ' out of ' + str(run['logl'].shape[0]))
-    if not warn_only:
-        assert repeat_logls == 0, msg
-    else:
-        if repeat_logls != 0:
-            print('WARNING: ' + msg)
-
-
-def check_ns_run_threads(run):
-    """Check thread labels."""
-    assert run['thread_labels'].dtype == int
-    uniq_th = np.unique(run['thread_labels'])
-    assert np.array_equal(
-        np.asarray(range(run['thread_min_max'].shape[0])), uniq_th), \
-        str(uniq_th)
-    # Check thread_min_max
-    assert np.any(run['thread_min_max'][:, 0] == -np.inf), \
-        ('Run should have at least one thread which starts by sampling the ' +
-         'whole prior')
-    for th_lab in uniq_th:
-        inds = np.where(run['thread_labels'] == th_lab)[0]
-        assert run['thread_min_max'][th_lab, 0] < run['logl'][inds[0]], \
-            ('First point in thread has logl less than thread min logl! ' +
-             str(th_lab) + ', ' + str(run['logl'][inds[0]]),
-             str(run['thread_min_max'][th_lab, :]))
-        assert run['thread_min_max'][th_lab, 1] == run['logl'][inds[-1]], \
-            ('Last point in thread logl != thread end logl! ' +
-             str(th_lab) + ', ' + str(run['logl'][inds[0]]),
-             str(run['thread_min_max'][th_lab, :]))
-
-
 def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     """
-    Loads data from PolyChord run into the standard nestcheck format.
+    Loads data from PolyChord run into the nestcheck dictionary format for
+    analysis.
+
+    Parameters
+    ----------
+    file_root: str
+        PolyChord file_root setting.
+    base_dir: str
+        PolyChord base_dir setting.
+    logl_warn_only: bool, optional
+        Whether only a warning should be given (rather than an assertion error)
+        should be given if there are non-unique logls in the file.
+
+    Returns
+    -------
+    ns_run: dict
+        nested sampling run
     """
     dead_points = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
     ns_run = process_polychord_dead_points(dead_points)
@@ -167,7 +137,23 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
 
 def process_polychord_dead_points(dead_points, init_birth=-1e+30):
     """
-    Process a nested sampling dead points file.
+    Convert a PolyChord nested sampling dead points file into a nestcheck
+    nested sampling run dictionary.
+
+    Parameters
+    ----------
+    dead_points: 2d numpy array
+        Contents of PolyChord [root]_dead-birth.txt output file. Contains
+        columns: [parameters], logl, birth logl
+    init_birth: float or int, optional
+        The value used to represent the birth logl of the inital live points
+        sampled from the whole prior (i.e. to represent -inf).
+        PolyChord uses -1e+30.
+
+    Returns
+    -------
+    ns_run: dict
+        nested sampling run
     """
     dead_points = dead_points[np.argsort(dead_points[:, -2])]
     ns_run = {}
@@ -216,7 +202,8 @@ def process_polychord_dead_points(dead_points, init_birth=-1e+30):
 def threads_given_birth_contours(logl, birth_logl, init_birth=-1e+30):
     """
     Divides a nested sampling run into threads, using info on the contours at
-    which points were sampled.
+    which points were sampled. See "Sampling errors in nested sampling
+    parameter estimation" (Higson et al. 2017) for more information.
 
     Parameters
     ----------
@@ -280,3 +267,152 @@ def threads_given_birth_contours(logl, birth_logl, init_birth=-1e+30):
                           np.asarray(range(nthreads))), \
         str(np.unique(thread_labels))
     return thread_labels
+
+
+# Functions for checking nestcheck format nested sampling run dictionaries to
+# ensure they have the expected properties.
+
+
+def check_ns_run(run, logl_warn_only=False):
+    """
+    Checks a nestcheck format nested sampling run has the expected properties.
+
+    It should be a dictionary with keys:
+        logl: 1d numpy array of logl values (floats)
+        thread_labels: 1d numpy array of which thread each point refers to.
+        thread_min_max: 2d numpy array with shape (# threads, 2). Each row i
+            contains min logl (birth contour) and max logl for thread with
+            thread label i.
+        theta: 2d numpy array of samples. Each row represents a sample.
+        nlive_array: 1d numpy array of number of live points at each step.
+        output: (optional) dict containing extra info about run.
+
+    Parameters
+    ----------
+    run: dict
+        nested sampling run to check.
+    logl_warn_only: bool, optional
+        Whether only a warning should be given (rather than an assertion error)
+        should be given if there are non-unique logls in the file.
+
+
+    Raises
+    ------
+    AssertionError
+        if run does not have expected properties.
+    """
+    assert isinstance(run, dict)
+    check_ns_run_members(run)
+    check_ns_run_logls(run, warn_only=logl_warn_only)
+    check_ns_run_threads(run)
+
+
+def check_ns_run_members(run):
+    """
+    Check nested sampling run member keys and values.
+
+    Parameters
+    ----------
+    run: dict
+        nested sampling run to check.
+
+    Raises
+    ------
+    AssertionError
+        if run does not have expected properties.
+    """
+    run_keys = list(run.keys())
+    # Mandatory keys
+    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
+                'thread_min_max']:
+        assert key in run_keys
+        run_keys.remove(key)
+    # Optional keys
+    for key in ['output']:
+        try:
+            run_keys.remove(key)
+        except ValueError:
+            pass
+    # Check for unexpected keys
+    assert not run_keys, 'Unexpected keys in ns_run: ' + str(run_keys)
+    # Check type of mandatory members
+    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
+                'thread_min_max']:
+        assert isinstance(run[key], np.ndarray), (
+            key + ' is type ' + type(run[key]).__name__)
+    # check shapes of keys
+    assert run['logl'].ndim == 1
+    assert run['logl'].shape == run['nlive_array'].shape
+    assert run['logl'].shape == run['thread_labels'].shape
+    assert run['theta'].ndim == 2
+    assert run['logl'].shape[0] == run['theta'].shape[0]
+
+
+def check_ns_run_logls(run, warn_only=False):
+    """
+    Check run logls are unique and in the correct order.
+
+    Parameters
+    ----------
+    run: dict
+        nested sampling run to check.
+
+    Raises
+    ------
+    AssertionError
+        if run does not have expected properties.
+    """
+    assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
+    logl_u, counts = np.unique(run['logl'], return_counts=True)
+    repeat_logls = run['logl'].shape[0] - logl_u.shape[0]
+    if repeat_logls != 0:
+        msg = ('# unique logl values is ' + str(repeat_logls) +
+               ' less than # points. Duplicate values: ' +
+               str(logl_u[np.where(counts > 1)[0]]))
+        if logl_u.shape[0] != 1:
+            msg += (
+                ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
+                ', First point at inds ' +
+                str(np.where(run['logl'] == logl_u[np.where(
+                    counts > 1)[0][0]])[0])
+                + ' out of ' + str(run['logl'].shape[0]))
+    if not warn_only:
+        assert repeat_logls == 0, msg
+    else:
+        if repeat_logls != 0:
+            print('WARNING: ' + msg)
+
+
+def check_ns_run_threads(run):
+    """
+    Check thread labels and thread_min_max have expected properties.
+
+    Parameters
+    ----------
+    run: dict
+        nested sampling run to check.
+
+    Raises
+    ------
+    AssertionError
+        if run does not have expected properties.
+    """
+    assert run['thread_labels'].dtype == int
+    uniq_th = np.unique(run['thread_labels'])
+    assert np.array_equal(
+        np.asarray(range(run['thread_min_max'].shape[0])), uniq_th), \
+        str(uniq_th)
+    # Check thread_min_max
+    assert np.any(run['thread_min_max'][:, 0] == -np.inf), (
+        'Run should have at least one thread which starts by sampling the ' +
+        'whole prior')
+    for th_lab in uniq_th:
+        inds = np.where(run['thread_labels'] == th_lab)[0]
+        assert run['thread_min_max'][th_lab, 0] < run['logl'][inds[0]], (
+            'First point in thread has logl less than thread min logl! ' +
+            str(th_lab) + ', ' + str(run['logl'][inds[0]]),
+            str(run['thread_min_max'][th_lab, :]))
+        assert run['thread_min_max'][th_lab, 1] == run['logl'][inds[-1]], (
+            'Last point in thread logl != thread end logl! ' +
+            str(th_lab) + ', ' + str(run['logl'][inds[0]]),
+            str(run['thread_min_max'][th_lab, :]))

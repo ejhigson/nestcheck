@@ -55,6 +55,10 @@ def save_load_result(func):
             whether or not to save
         load: bool, optional
             whether or not to load
+        overwrite existing: bool, optional
+            When the save path already contains file: if True, file will be
+            overwritten, if False the data will be saved with the system time
+            appended to the file name
 
         Returns
         -------
@@ -64,6 +68,7 @@ def save_load_result(func):
         save_name = kwargs.pop('save_name', None)
         save = kwargs.pop('save', save_name is not None)
         load = kwargs.pop('load', save_name is not None)
+        overwrite_existing = kwargs.pop('overwrite_existing', True)
         if load:
             if save_name is None:
                 print('WARNING: ' + func.__name__ + ' cannot load:',
@@ -79,7 +84,8 @@ def save_load_result(func):
                 print('WARNING: ' + func.__name__ + ' cannot save:',
                       'save_name=None')
             else:
-                pickle_save(result, save_name)
+                pickle_save(result, save_name,
+                            overwrite_existing=overwrite_existing)
         return result
     return wrapper
 

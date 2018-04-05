@@ -569,6 +569,10 @@ class TestPlots(unittest.TestCase):
         self.assertRaises(
             TypeError, nestcheck.plots.plot_bs_dists,
             self.ns_run, [], [], unexpected=0)
+        self.assertRaises(
+            TypeError, nestcheck.plots.plot_bs_dists,
+            self.ns_run, [lambda x: x[:, 0]], [1], n_simulate=2,
+            cache=1)
 
 
     @unittest.skipIf(importlib.util.find_spec('fgivenx') is None,
