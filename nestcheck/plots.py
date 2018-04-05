@@ -48,8 +48,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     ymax: bool, optional
         Maximum value for plot's nlive axis (yaxis).
     npoints: int, optional
-        How many points to have in the logx array used to calculate and plot
-        analytical weights.
+        How many points to have in the fgivenx plot grids
     figsize: tuple, optional
         Size of figure in inches.
     post_mass_norm: str or None, optional
@@ -256,29 +255,66 @@ def bs_param_dists(run_list, **kwargs):
     """
     Creates posterior distributions and their bootstrap error functions for
     input runs and estimators.
+
+    For a more detailed description and some example use cases, see "Diagnostic
+    tests for nested sampling calculations" (Higson et al. 2018).
+
+    Parameters
+    ----------
+    run_list: nested sampling run or list of runs to plot
+    fthetas: list of functions, optional
+        quantities to plot. Each must map a 2d theta array to 1d ftheta array -
+        i.e. map every sample's theta vector (every row) to a scalar quantity.
+        E.g. use lambda x: x[:, 0] to plot the first parameter.
+    labels: list of strs, optional
+        Labels for each ftheta
+    ftheta_lims: dict, optional
+        Plot limits for each ftheta
+    n_simulate: int, optional
+        How many bootstrap replications should be used for the fgivenx
+        distributions?
+    random_seed: int, optional
+        Seed to make sure results are consistent and fgivenx caching can be used.
+    figsize: tuple, optional
+        matplotlib figsize in inches
+    figsize: tuple, optional
+        Size of figure in inches.
+    nx: int, optional
+        size of x-axis grid for fgivenx plots
+    ny: int, optional
+        size of y-axis grid for fgivenx plots
+    cache: str or None
+        root for fgivenx caching (no caching if None)
+    parallel: bool, optional
+        fgivenx parallel option
+    rasterize_contours: bool, optional
+        fgivenx rasterize_contours option
+
+    Returns
+    -------
+    fig: matplotlib figure
     """
-    if not isinstance(run_list, list):
-        run_list = [run_list]
-    n_simulate = kwargs.pop('n_simulate', 100)
-    cache_in = kwargs.pop('cache', None)
-    parallel = kwargs.pop('parallel', True)
-    smooth = kwargs.pop('smooth', False)
-    rasterize_contours = kwargs.pop('rasterize_contours', True)
-    nx = kwargs.pop('nx', 100)
-    ny = kwargs.pop('ny', nx)
-    # Use random seed to make samples consistent and allow caching.
-    # To avoid fixing seed use random_seed=None
-    random_seed = kwargs.pop('random_seed', 0)
-    state = np.random.get_state()  # save initial random state
-    np.random.seed(random_seed)
-    figsize = kwargs.pop('figsize', (6.4, 3))
     fthetas = kwargs.pop('fthetas', [lambda theta: theta[:, 0],
                                      lambda theta: theta[:, 1]])
     labels = kwargs.pop('labels', [r'$\theta_' + str(i + 1) + '$' for i in
                                    range(len(fthetas))])
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
+    n_simulate = kwargs.pop('n_simulate', 100)
+    random_seed = kwargs.pop('random_seed', 0)
+    figsize = kwargs.pop('figsize', (6.4, 3))
+    nx = kwargs.pop('nx', 100)
+    ny = kwargs.pop('ny', nx)
+    cache_in = kwargs.pop('cache', None)
+    parallel = kwargs.pop('parallel', True)
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    # Use random seed to make samples consistent and allow caching.
+    # To avoid fixing seed use random_seed=None
+    state = np.random.get_state()  # save initial random state
+    np.random.seed(random_seed)
+    if not isinstance(run_list, list):
+        run_list = [run_list]
     assert len(labels) == len(fthetas), \
         'There should be the same number of axes and labels'
     width_ratios = [40] * len(fthetas) + [1] * len(run_list)
@@ -295,7 +331,7 @@ def bs_param_dists(run_list, **kwargs):
             cache = cache_in
         # add bs distribution plots
         cbar = plot_bs_dists(run, fthetas, axes[:len(fthetas)],
-                             parallel=parallel, smooth=smooth,
+                             parallel=parallel,
                              ftheta_lims=ftheta_lims, cache=cache,
                              n_simulate=n_simulate, nx=nx, ny=ny,
                              rasterize_contours=rasterize_contours,
@@ -338,13 +374,42 @@ def param_logx_diagram(run_list, **kwargs):
     Parameters
     ----------
     run_list: nested sampling run or list of runs to plot
-    ymax: bool, optional
-        Maximum value for plot's nlive axis (yaxis).
+    fthetas: list of functions, optional
+        quantities to plot. Each must map a 2d theta array to 1d ftheta array -
+        i.e. map every sample's theta vector (every row) to a scalar quantity.
+        E.g. use lambda x: x[:, 0] to plot the first parameter.
+    labels: list of strs, optional
+        Labels for each ftheta
+    ftheta_lims: dict, optional
+        Plot limits for each ftheta
+    plot_means: bool, optional
+        Should the mean value of each ftheta be plotted?
+    n_simulate: int, optional
+        How many bootstrap replications should be used for the fgivenx
+        distributions?
+    random_seed: int, optional
+        Seed to make sure results are consistent and fgivenx caching can be used.
+    logx_min: float, optional
+        Lower limit of logx axis.
+    figsize: tuple, optional
+        matplotlib figsize in inches
+    colors: list of strs, optional
+        colors to plot run scatter plots with
+    colormaps: list of strs, optional
+        colormaps to plot run fgivenx plots with
     npoints: int, optional
         How many points to have in the logx array used to calculate and plot
         analytical weights.
     figsize: tuple, optional
         Size of figure in inches.
+    npoints: int, optional
+        size of grid for fgivenx plots
+    cache: str or None
+        root for fgivenx caching (no caching if None)
+    parallel: bool, optional
+        fgivenx parallel option
+    rasterize_contours: bool, optional
+        fgivenx rasterize_contours option
 
     Returns
     -------
@@ -355,36 +420,35 @@ def param_logx_diagram(run_list, **kwargs):
     labels = kwargs.pop('labels', [r'$\theta_' + str(i + 1) + '$' for i in
                                    range(len(fthetas))])
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
-    cache_in = kwargs.pop('cache', None)
-    parallel = kwargs.pop('parallel', True)
-    n_simulate = kwargs.pop('n_simulate', 100)
-    rasterize_contours = kwargs.pop('rasterize_contours', True)
-    if not isinstance(run_list, list):
-        run_list = [run_list]
-    if len(run_list) <= 2:
-        threads_to_plot = kwargs.pop('threads_to_plot', [1])
-    else:
-        threads_to_plot = kwargs.pop('threads_to_plot', [])
+    threads_to_plot = kwargs.pop('threads_to_plot', [0])
     plot_means = kwargs.pop('plot_means', True)
-    npoints = kwargs.pop('npoints', 100)
+    n_simulate = kwargs.pop('n_simulate', 100)
+    random_seed = kwargs.pop('random_seed', 0)
     logx_min = kwargs.pop('logx_min', None)
-    nlogx = kwargs.pop('nlogx', npoints)
-    ny_posterior = kwargs.pop('ny_posterior', npoints)
     figsize = kwargs.pop('figsize', (6.4, 2 * (1 + len(fthetas))))
     colors = kwargs.pop('colors', ['red', 'blue', 'grey', 'green', 'orange'])
     colormaps = kwargs.pop('colormaps', ['Reds_r', 'Blues_r', 'Greys_r',
                                          'Greens_r', 'Oranges_r'])
-    random_seed = kwargs.pop('random_seed', 0)
+    # Options for fgivenx
+    cache_in = kwargs.pop('cache', None)
+    parallel = kwargs.pop('parallel', True)
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
+    npoints = kwargs.pop('npoints', 100)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    nlogx = npoints
+    ny_posterior = npoints
     # Use random seed to make samples consistent and allow caching.
     # To avoid fixing seed use random_seed=None
     state = np.random.get_state()  # save initial random state
     np.random.seed(random_seed)
     assert len(fthetas) == len(labels)
     assert len(fthetas) == len(ftheta_lims)
+    if not isinstance(run_list, list):
+        run_list = [run_list]
     thread_linestyles = ['-', '-.', ':']
     # make figure
+    # -----------
     fig, axes = plt.subplots(nrows=1 + len(fthetas), ncols=2, figsize=figsize,
                              gridspec_kw={'wspace': 0,
                                           'hspace': 0,
@@ -450,14 +514,15 @@ def param_logx_diagram(run_list, **kwargs):
         logx = ar.get_logx(run['nlive_array'], simulate=False)
         for nf, ftheta in enumerate(fthetas):
             ax_samples = axes[1 + nf, 1]
-            for i in threads_to_plot:
-                thread_inds = np.where(run['thread_labels'] == i)[0]
-                ax_samples.plot(logx[thread_inds],
-                                ftheta(run['theta'][thread_inds]),
-                                linestyle=thread_linestyles[nrun],
-                                color='black', lw=1)
             ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
                                color=colors[nrun])
+            if threads_to_plot is not None:
+                for i in threads_to_plot:
+                    thread_inds = np.where(run['thread_labels'] == i)[0]
+                    ax_samples.plot(logx[thread_inds],
+                                    ftheta(run['theta'][thread_inds]),
+                                    linestyle=thread_linestyles[nrun],
+                                    color='black', lw=1)
             ax_samples.set_xlim([logx_min, 0])
             ax_samples.set_ylim(ftheta_lims[nf])
         # Plot posteriors
@@ -465,7 +530,7 @@ def param_logx_diagram(run_list, **kwargs):
         posterior_axes = [axes[i + 1, 0] for i in range(len(fthetas))]
         _ = plot_bs_dists(run, fthetas, posterior_axes,
                           ftheta_lims=ftheta_lims,
-                          flip_x=True, n_simulate=n_simulate,
+                          flip_axes=True, n_simulate=n_simulate,
                           rasterize_contours=rasterize_contours,
                           cache=cache_in, nx=npoints, ny=ny_posterior,
                           colormap=colormaps[nrun],
@@ -517,17 +582,50 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     Helper function for plotting uncertainties on posterior distributions using
     bootstrap resamples and the fgivenx module. Used by bs_param_dists and
     param_logx_diagram.
+
+    Parameters
+    ----------
+    run: nested sampling run
+    fthetas: list of functions
+        quantities to plot. Each must map a 2d theta array to 1d ftheta array -
+        i.e. map every sample's theta vector (every row) to a scalar quantity.
+        E.g. use lambda x: x[:, 0] to plot the first parameter.
+    axes: list of matplotlib axis objects
+    ftheta_lims: dict, optional
+        Plot limits for each ftheta
+    n_simulate: int, optional
+        How many bootstrap replications should be used for the fgivenx
+        distributions?
+    nx: int, optional
+        size of x-axis grid for fgivenx plots
+    ny: int, optional
+        size of y-axis grid for fgivenx plots
+    cache: str or None
+        root for fgivenx caching (no caching if None)
+    parallel: bool, optional
+        fgivenx parallel option
+    rasterize_contours: bool, optional
+        fgivenx rasterize_contours option
+    smooth: bool, optional
+        fgivenx smooth option
+    flip_axes: bool, optional
+        whether plot should be rotated 90 degrees anticlockwise to be on its
+        side
+
+    Returns
+    -------
+    cbar: matplotlib colorbar for use in higher order functions
     """
+    ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     n_simulate = kwargs.pop('n_simulate', 100)
-    parallel = kwargs.pop('parallel', True)
-    smooth = kwargs.pop('smooth', False)
-    cache_in = kwargs.pop('cache', None)
-    rasterize_contours = kwargs.pop('rasterize_contours', True)
+    colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
     nx = kwargs.pop('nx', 100)
     ny = kwargs.pop('ny', nx)
-    flip_x = kwargs.pop('flip_x', False)
-    colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
-    ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
+    cache_in = kwargs.pop('cache', None)
+    parallel = kwargs.pop('parallel', True)
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
+    smooth = kwargs.pop('smooth', False)
+    flip_axes = kwargs.pop('flip_axes', False)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(fthetas) == len(axes), \
@@ -558,7 +656,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
                                      cache=cache, parallel=parallel,
                                      tqdm_leave=False)
-        if flip_x:
+        if flip_axes:
             cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
                                      axes[nf], colors=colormap,
                                      rasterize_contours=rasterize_contours,
