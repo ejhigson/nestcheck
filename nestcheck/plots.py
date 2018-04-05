@@ -357,8 +357,6 @@ def param_logx_diagram(run_list, **kwargs):
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     cache_in = kwargs.pop('cache', None)
     parallel = kwargs.pop('parallel', True)
-    smooth_logx = kwargs.pop('smooth_logx', True)
-    scatter_plot = kwargs.pop('scatter_plot', True)
     n_simulate = kwargs.pop('n_simulate', 100)
     rasterize_contours = kwargs.pop('rasterize_contours', True)
     if not isinstance(run_list, list):
@@ -387,7 +385,6 @@ def param_logx_diagram(run_list, **kwargs):
     assert len(fthetas) == len(ftheta_lims)
     thread_linestyles = ['-', '-.', ':']
     # make figure
-    ftheta_sups = [np.linspace(lim[0], lim[1], npoints) for lim in ftheta_lims]
     fig, axes = plt.subplots(nrows=1 + len(fthetas), ncols=2, figsize=figsize,
                              gridspec_kw={'wspace': 0,
                                           'hspace': 0,
@@ -459,30 +456,8 @@ def param_logx_diagram(run_list, **kwargs):
                                 ftheta(run['theta'][thread_inds]),
                                 linestyle=thread_linestyles[nrun],
                                 color='black', lw=1)
-            if scatter_plot:
-                ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
-                                   color=colors[nrun])
-            else:
-                if cache_in is not None:
-                    cache = cache_in + '_param_' + str(nf)
-                else:
-                    cache = cache_in
-                th_unique, th_counts = np.unique(run['thread_labels'],
-                                                 return_counts=True)
-                samples = np.full((len(th_unique), 2 * th_counts.max()),
-                                  np.nan)
-                for i, th_lab in enumerate(th_unique):
-                    thread_inds = np.where(run['thread_labels'] == th_lab)[0]
-                    nsamp = thread_inds.shape[0]
-                    samples[i, :2 * nsamp:2] = logx[thread_inds][::-1]
-                    samples[i, 1:2 * nsamp:2] = \
-                        ftheta(run['theta'][thread_inds])[::-1]
-                y, pmf = fgivenx.compute_pmf(interp_alternate, logx_sup,
-                                             samples, y=ftheta_sups[nf],
-                                             cache=cache, tqdm_leave=False)
-                _ = fgivenx.plot.plot(logx_sup, y, pmf, ax_samples,
-                                      rasterize_contours=rasterize_contours,
-                                      smooth=smooth_logx)
+            ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
+                               color=colors[nrun])
             ax_samples.set_xlim([logx_min, 0])
             ax_samples.set_ylim(ftheta_lims[nf])
         # Plot posteriors
