@@ -9,10 +9,12 @@ import scipy.stats
 import nestcheck.analyse_run as ar
 import nestcheck.parallel_utils as pu
 import nestcheck.pandas_functions as pf
+import nestcheck.io_utils
 
 
+@nestcheck.io_utils.save_load_result
 def run_list_error_values(run_list, estimator_list, estimator_names,
-                          n_simulate, **kwargs):
+                          n_simulate=100, **kwargs):
     """
     Gets a data frame with calculation values and error estimates for each run
     in the input run list.
@@ -20,115 +22,133 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     NB when parallelised the results will not be produced in order (so results
     from some run number will not nessesarily correspond to that number run in
     run_list).
+
+    Parameters
+    ----------
+    run_list: list of dicts
+        list of nested sampling runs
+    estimator_list: list of functions
+        estimators to apply to runs
+    estimator_names: list of strs
+        must be same length as estimator_list
+    n_simulate: int, optional
+        number of bootstrap replications to use on each run
+    thread_pvalue: bool, optional
+        Whether or not to compute KS test diaganostic for correlations between
+        threads within a run.
+    bs_stat_dist: bool, optional
+        Whether or not to compute statistical distance between bootstrap error
+        distributions diaganostic.
+    parallel: bool, optional
+        whether or not to parallelise - see parallel_utils.parallel_apply
+        docstring fro more details.
     """
     thread_pvalue = kwargs.pop('thread_pvalue', False)
     bs_stat_dist = kwargs.pop('bs_stat_dist', False)
-    cache_root = kwargs.pop('cache_root', None)
     parallel = kwargs.pop('parallel', True)
-    # Do caching
-    # ----------
-    if cache_root is not None:
-        save = kwargs.pop('save', True)
-        load = kwargs.pop('load', True)
-        cache_name = ('cache/' + cache_root + '_' + str(len(run_list)) +
-                      'runs_' + str(n_simulate) + 'sim')
-        if thread_pvalue:
-            cache_name += '_td'
-        if bs_stat_dist:
-            cache_name += '_bd'
-        cache_name += '.pkl'
-    else:
-        save = kwargs.pop('save', False)
-        if save:
-            print('WARNING: analyse_run_errors cannot save: no cache given')
-        load = kwargs.pop('load', False)
-        if load:
-            print('WARNING: analyse_run_errors cannot load: no cache given')
-        save = False
-        load = False
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(estimator_list) == len(estimator_names), (
         'len(estimator_list) = {0} != len(estimator_names = {1}'
         .format(len(estimator_list), len(estimator_names)))
-    if load:
-        try:
-            df = pd.read_pickle(cache_name)
-            return df
-        except OSError:
-            load = False
-    if not load:
-        # Calculate results
-        # -----------------
-        values_list = pu.parallel_apply(ar.run_estimators, run_list,
-                                        func_args=(estimator_list,),
-                                        tqdm_kwargs={'desc': 'values'},
-                                        parallel=parallel)
-        df = pd.DataFrame(np.stack(values_list, axis=0))
-        df.index = df.index.map(str)
-        df.columns = estimator_names
-        df.index.name = 'run'
-        df['calculation type'] = 'values'
-        df.set_index('calculation type', drop=True, append=True, inplace=True)
-        df = df.reorder_levels(['calculation type', 'run'])
-        # Bootstrap
-        bs_vals_df = bs_values_df(run_list, estimator_list, estimator_names,
-                                  n_simulate, parallel=parallel)
-        # # ####################################
-        # # For checking values are as expected
-        # bs_mean_df = bs_vals_df.applymap(np.mean)
-        # bs_mean_df.index.name = 'run'
-        # bs_mean_df['calculation type'] = 'bootstrap mean'
-        # bs_mean_df.set_index('calculation type', drop=True, append=True,
-        #                      inplace=True)
-        # bs_mean_df = bs_mean_df.reorder_levels(['calculation type', 'run'])
-        # df = pd.concat([df, bs_mean_df])
-        # # ####################################
-        bs_std_df = bs_vals_df.applymap(lambda x: np.std(x, ddof=1))
-        bs_std_df.index.name = 'run'
-        bs_std_df['calculation type'] = 'bootstrap std'
-        bs_std_df.set_index('calculation type', drop=True, append=True,
-                            inplace=True)
-        bs_std_df = bs_std_df.reorder_levels(['calculation type', 'run'])
-        df = pd.concat([df, bs_std_df])
-        # Pairwise distances on thread distributions
-        if thread_pvalue:
-            t_vals_df = thread_values_df(run_list, estimator_list,
-                                         estimator_names,
-                                         parallel=parallel)
-            t_d_df = pairwise_distances_on_cols(t_vals_df,
-                                                earth_mover_dist=False,
-                                                energy_dist=False)
-            # Keep only the p value not the distance measures
-            t_d_df = t_d_df.xs('ks pvalue', level='calculation type',
-                               drop_level=False)
-            new_ind = ['thread ' + t_d_df.index
-                       .get_level_values('calculation type'),
-                       t_d_df.index.get_level_values('run')]
-            t_d_df.set_index(new_ind, inplace=True)
-            df = pd.concat([df, t_d_df])
-        # Pairwise distances on BS distributions
-        if bs_stat_dist:
-            b_d_df = pairwise_distances_on_cols(bs_vals_df)
-            # Get rid of the p value as this is not useful in the bootstrap
-            # case (see Higson 2018 for more details).
-            mask = (b_d_df.index.get_level_values('calculation type') !=
-                    'ks pvalue')
-            b_d_df = b_d_df.loc[mask, :]
-            new_ind = ['bootstrap ' + b_d_df.
-                       index.get_level_values('calculation type'),
-                       b_d_df.index.get_level_values('run')]
-            b_d_df.set_index(new_ind, inplace=True)
-            df = pd.concat([df, b_d_df])
-        if save:
-            df.to_pickle(cache_name)
+    # Calculation results
+    # -------------------
+    values_list = pu.parallel_apply(
+        ar.run_estimators, run_list, func_args=(estimator_list,),
+        parallel=parallel)
+    df = pd.DataFrame(np.stack(values_list, axis=0))
+    df.index = df.index.map(str)
+    df.columns = estimator_names
+    df.index.name = 'run'
+    df['calculation type'] = 'values'
+    df.set_index('calculation type', drop=True, append=True, inplace=True)
+    df = df.reorder_levels(['calculation type', 'run'])
+    # Bootstrap stds
+    # --------------
+    # Create bs_vals_df then convert to stds so bs_vals_df does not need to be
+    # recomputed if bs_stat_dist is True
+    bs_vals_df = bs_values_df(run_list, estimator_list, estimator_names,
+                              n_simulate, parallel=parallel)
+    bs_std_df = bs_vals_df.applymap(lambda x: np.std(x, ddof=1))
+    bs_std_df.index.name = 'run'
+    bs_std_df['calculation type'] = 'bootstrap std'
+    bs_std_df.set_index('calculation type', drop=True, append=True,
+                        inplace=True)
+    bs_std_df = bs_std_df.reorder_levels(['calculation type', 'run'])
+    df = pd.concat([df, bs_std_df])
+    # Pairwise KS p-values on threads
+    # -------------------------------
+    if thread_pvalue:
+        t_vals_df = thread_values_df(
+            run_list, estimator_list, estimator_names, parallel=parallel)
+        t_d_df = pairwise_distances_on_cols(
+            t_vals_df, earth_mover_dist=False, energy_dist=False)
+        # Keep only the p value not the distance measures
+        t_d_df = t_d_df.xs('ks pvalue', level='calculation type',
+                           drop_level=False)
+        # Append 'thread ' to caclulcation type
+        t_d_df.index.set_levels(['thread ks pvalue'], level='calculation type',
+                                inplace=True)
+        df = pd.concat([df, t_d_df])
+    # Pairwise distances on BS distributions
+    # --------------------------------------
+    if bs_stat_dist:
+        b_d_df = pairwise_distances_on_cols(bs_vals_df)
+        # Select only statistical distances - not KS pvalue as this is not
+        # useful for the bootstrap resample distributions (see Higson 2018 for more
+        # details).
+        dists = ['ks distance', 'earth mover distance', 'energy distance']
+        b_d_df = b_d_df.loc[pd.IndexSlice[dists, :], :]
+        # Append 'bootstrap ' to caclulcation type
+        new_ind = ['bootstrap ' + b_d_df.index.get_level_values('calculation type'),
+                   b_d_df.index.get_level_values('run')]
+        b_d_df.set_index(new_ind, inplace=True)
+        df = pd.concat([df, b_d_df])
+    return df
+
+
+def error_values_summary(error_values, **summary_df_kwargs):
+    """
+    Get summary statistics about calculation errors, including estimated
+    implementation errors.
+    
+    Parameters
+    ----------
+    error_values: pandas DataFrame
+        Of format output by run_list_error_values (look at it for more details)
+    summary_df_kwargs: dict, optional
+        See pandas_functions.summary_df docstring for more details.
+    """
+    df = pf.summary_df_from_multi(error_values, **summary_df_kwargs)
+    # get implementation stds
+    imp_std, imp_std_unc, imp_frac, imp_frac_unc = implementation_std(
+        df.loc[('values std', 'value')],
+        df.loc[('values std', 'uncertainty')],
+        df.loc[('bootstrap std mean', 'value')],
+        df.loc[('bootstrap std mean', 'uncertainty')])
+    df.loc[('implementation std', 'value'), df.columns] = imp_std
+    df.loc[('implementation std', 'uncertainty'), df.columns] = imp_std_unc
+    df.loc[('implementation std frac', 'value'), :] = imp_frac
+    df.loc[('implementation std frac', 'uncertainty'), :] = imp_frac_unc
+    # Return only the calculation types we are interested in, in order
+    calcs_to_keep = ['true values', 'values mean', 'values std',
+                     'values rmse', 'bootstrap std mean',
+                     'implementation std', 'implementation std frac',
+                     'thread ks pvalue mean', 'bootstrap ks distance mean',
+                     'bootstrap energy distance mean',
+                     'bootstrap earth mover distance mean']
+    df = pd.concat([df.xs(calc, level='calculation type', drop_level=False) for
+                    calc in calcs_to_keep if calc in
+                    df.index.get_level_values('calculation type')])
     return df
 
 
 def run_list_error_summary(run_list, estimator_list, estimator_names,
                            n_simulate, **kwargs):
     """
-    Gets mean error estimates and uncertainties for the run list.
+    Wrapper which runs run_list_error_values then applies error_values summary
+    to the resulting dataframe. See the docstrings for those two funcions for
+    more details.
     """
     true_values = kwargs.pop('true_values', None)
     include_true_values = kwargs.pop('include_true_values', False)
@@ -140,80 +160,12 @@ def run_list_error_summary(run_list, estimator_list, estimator_names,
                                 include_rmse=include_rmse)
 
 
-def error_values_summary(error_values, true_values=None,
-                         include_true_values=None, include_rmse=False):
-    df = pf.summary_df_from_multi(
-        error_values.xs('values', level='calculation type', drop_level=False),
-        include_rmse=include_rmse, true_values=true_values,
-        include_true_values=include_true_values)
-    # include the mean values for other metrics
-    mask = error_values.index.get_level_values('calculation type') != 'values'
-    df_temp = pf.summary_df_from_multi(error_values.loc[mask, :])
-    # to avoid making the table too big, only include the mean values of
-    # boostrap error estimates and statistical distance measures (not their
-    # variations)
-    mask = (~df_temp.index.get_level_values('calculation type')
-            .str.endswith(' std'))
-    df = pd.concat([df, df_temp.loc[mask, :]])
-    # get implementation stds
-    imp_std, imp_std_unc, imp_frac, imp_frac_unc = implementation_std(
-        df.loc[('values std', 'value')],
-        df.loc[('values std', 'uncertainty')],
-        df.loc[('bootstrap std mean', 'value')],
-        df.loc[('bootstrap std mean', 'uncertainty')], return_frac=True)
-    df.loc[('implementation std', 'value'), df.columns] = imp_std
-    df.loc[('implementation std', 'uncertainty'), df.columns] = imp_std_unc
-    df.loc[('implementation std frac', 'value'), :] = imp_frac
-    df.loc[('implementation std frac', 'uncertainty'), :] = imp_frac_unc
-    return df
-
-
-def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
-                       return_frac=True):
-    """
-    Estimates implementation errors from the standard
-    deviations of results and of bootstrap values.
-
-    Simulate errors dirstributions using the fact that (from central limit
-    theorem) our uncertainties on vals_std and bs_std are normal
-    distributions
-
-    """
-    # if the implementation errors are uncorrelated with the
-    # sampling errrors: var results = var imp + var sampling
-    # so std imp = sqrt(var results - var sampling)
-    imp_var = (vals_std ** 2) - (bs_std ** 2)
-    imp_std = np.sqrt(np.abs(imp_var)) * np.sign(imp_var)
-    ind = np.where(imp_std <= 0)[0]
-    imp_std[ind] = 0
-    imp_std_u = np.zeros(imp_std.shape)
-    if return_frac:
-        imp_frac = imp_std / vals_std
-        imp_frac_u = np.zeros(imp_frac.shape)
-    # Simulate errors dirstributions using the fact that (from central limit
-    # theorem) our uncertainties on vals_std and bs_std are normal
-    # distributions
-    size = 10 ** 6
-    for i, _ in enumerate(imp_std_u):
-        sim_vals_std = np.random.normal(vals_std[i], vals_std_u[i], size=size)
-        sim_bs_std = np.random.normal(bs_std[i], bs_std_u[i], size=size)
-        sim_imp_var = (sim_vals_std ** 2) - (sim_bs_std ** 2)
-        sim_imp_std = np.sqrt(np.abs(sim_imp_var)) * np.sign(sim_imp_var)
-        imp_std_u[i] = np.std(sim_imp_std, ddof=1)
-        if return_frac:
-            imp_frac_u[i] = np.std((sim_imp_std / sim_vals_std), ddof=1)
-    if return_frac:
-        return imp_std, imp_std_u, imp_frac, imp_frac_u
-    else:
-        return imp_std, imp_std_u
-
-
 def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
                  **kwargs):
     """
     Computes a data frame of bootstrap resampled values.
 
-    returns
+    Returns
     -------
     bs_values_df: pandas data frame
         columns represent estimators and rows represent runs.
@@ -240,14 +192,6 @@ def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
     return df
 
 
-def run_thread_values(run, estimator_list):
-    """Helper function for parallelising thread_values_df."""
-    threads = ar.get_run_threads(run)
-    vals_list = [ar.run_estimators(th, estimator_list) for th in threads]
-    vals_array = np.stack(vals_list, axis=1)
-    return vals_array
-
-
 def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
     """Returns df containing estimator values for individual threads."""
     tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'desc': 'thread values'})
@@ -259,7 +203,6 @@ def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
                                            func_args=(estimator_list,),
                                            tqdm_kwargs=tqdm_kwargs, **kwargs)
     df = pd.DataFrame()
-    # print(len(thread_arr_l), [a.shape for a in thread_arr_l])
     for i, name in enumerate(estimator_names):
         df[name] = [arr[i, :] for arr in thread_vals_arrays]
     # Check there are the correct number of thread values in each cell
@@ -269,6 +212,50 @@ def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
              ' values in each cell. The cell contains array with shape ' +
              str(vals_shape))
     return df
+
+
+# Helper functions
+# ----------------
+
+
+def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u):
+    """
+    Estimates implementation errors from the standard
+    deviations of results and of bootstrap values.
+
+    Simulate errors dirstributions using the fact that (from central limit
+    theorem) our uncertainties on vals_std and bs_std are normal
+    distributions
+
+    """
+    # if the implementation errors are uncorrelated with the
+    # sampling errrors: var results = var imp + var sampling
+    # so std imp = sqrt(var results - var sampling)
+    imp_var = (vals_std ** 2) - (bs_std ** 2)
+    imp_std = np.sqrt(np.abs(imp_var)) * np.sign(imp_var)
+    ind = np.where(imp_std <= 0)[0]
+    imp_std[ind] = 0
+    imp_std_u = np.zeros(imp_std.shape)
+    imp_frac = imp_std / vals_std
+    imp_frac_u = np.zeros(imp_frac.shape)
+    # Simulate errors distributions
+    size = 10 ** 6
+    for i, _ in enumerate(imp_std_u):
+        sim_vals_std = np.random.normal(vals_std[i], vals_std_u[i], size=size)
+        sim_bs_std = np.random.normal(bs_std[i], bs_std_u[i], size=size)
+        sim_imp_var = (sim_vals_std ** 2) - (sim_bs_std ** 2)
+        sim_imp_std = np.sqrt(np.abs(sim_imp_var)) * np.sign(sim_imp_var)
+        imp_std_u[i] = np.std(sim_imp_std, ddof=1)
+        imp_frac_u[i] = np.std((sim_imp_std / sim_vals_std), ddof=1)
+    return imp_std, imp_std_u, imp_frac, imp_frac_u
+
+
+def run_thread_values(run, estimator_list):
+    """Helper function for parallelising thread_values_df."""
+    threads = ar.get_run_threads(run)
+    vals_list = [ar.run_estimators(th, estimator_list) for th in threads]
+    vals_array = np.stack(vals_list, axis=1)
+    return vals_array
 
 
 def pairwise_distances_on_cols(df_in, earth_mover_dist=True, energy_dist=True):

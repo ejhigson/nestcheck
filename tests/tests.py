@@ -82,6 +82,8 @@ class TestIOUtils(unittest.TestCase):
 
         @nestcheck.io_utils.save_load_result
         def save_load_func(data):
+            """Helper for testing save and load functions via the
+            io_utils.save_load_result decorator."""
             return data
         self.save_load_func = save_load_func
 
@@ -195,8 +197,11 @@ class TestPandasFunctions(unittest.TestCase):
         df = nestcheck.pandas_functions.summary_df_from_multi(
             multi, true_values=np.zeros(self.ncols),
             include_true_values=True, include_rmse=True)
-        pandas.testing.assert_frame_equal(df.xs('method 1', level='method'),
-                                          self.sum_df)
+        # NB true values are not assigned to method 1 in summary_df_from_multi
+        # so need to select from self.sum_df without them (i.e. remove first
+        # row)
+        pandas.testing.assert_frame_equal(
+            df.xs('method 1', level='method'), self.sum_df.iloc[1:, :])
 
     def test_efficiency_gain_df(self):
         data_list = [self.data[i, :] for i in range(self.nrows)]
@@ -503,20 +508,34 @@ class TestParallelUtils(unittest.TestCase):
 class TestDiagnostics(unittest.TestCase):
 
     def test_run_list_error_summary(self):
+        """Test error df summary using numpy seeds."""
         run_list = []
-        for _ in range(10):
-            run_list.append(get_dummy_ns_run(1, 10, 2))
+        for i in range(5):
+            run_list.append(get_dummy_ns_run(5, 10, 2, seed=i))
         df = nestcheck.diagnostics.run_list_error_summary(
             run_list, [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
-            bs_stat_dist=True, cache_root='temp', save=False, load=True)
+            bs_stat_dist=True, parallel=False)
         self.assertTrue(np.all(~np.isnan(df.values)))
-        # Uncomment below line to update values if they are deliberately
-        # changed:
-        df.to_pickle('tests/run_list_error_summary.pkl')
-        # Check the values of every row for the theta1 estimator
-        test_values = pd.read_pickle('tests/run_list_error_summary.pkl')
-        numpy.testing.assert_allclose(df.values, test_values.values,
-                                      rtol=1e-13, atol=1e-13)
+        expected_vals = np.asarray([[5.09427108e-01],
+                                    [5.09720232e-02],
+                                    [1.13976909e-01],
+                                    [4.02969225e-02],
+                                    [4.99353118e-02],
+                                    [6.39955410e-03],
+                                    [1.02455846e-01],
+                                    [5.15595587e-02],
+                                    [8.98917570e-01],
+                                    [5.86991821e+01],
+                                    [5.45196361e-01],
+                                    [1.10751031e-01],
+                                    [6.90000000e-01],
+                                    [9.48097510e-02],
+                                    [3.44786867e-01],
+                                    [7.23108036e-02],
+                                    [1.23162149e-01],
+                                    [3.04057491e-02]])
+        numpy.testing.assert_allclose(df.values, expected_vals,
+                                      rtol=1e-6, atol=1e-6)
 
     def test_run_list_error_values_unexpected_kwarg(self):
         self.assertRaises(
@@ -618,6 +637,8 @@ def get_dummy_ns_run(nlive, nsamples, ndim, seed=False):
 def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
     """Generate a single ns thread for quick testing without loading test
     data."""
+    if seed is not False:
+        np.random.seed(seed)
     thread = {'logl': np.sort(np.random.random(nsamples)),
               'nlive_array': np.full(nsamples, 1.),
               'theta': np.random.random((nsamples, ndim)),

@@ -69,7 +69,12 @@ def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
     """
     if inds_to_keep is None:
         inds_to_keep = list(multi_in.index.names)[:-1]
-    df = multi_in.groupby(inds_to_keep).apply(summary_df, **kwargs)
+    # Need to pop include true values and add seperately at the end as
+    # otherwise we get multiple true values added
+    include_true_values = kwargs.pop('include_true_values', False)
+    true_values = kwargs.get('true_values', None)
+    df = multi_in.groupby(inds_to_keep).apply(
+        summary_df, include_true_values=False, **kwargs)
     if 'calculation type' in inds_to_keep:
         # If there is already an index called 'calculation type' in multi,
         # prepend the 'calculation type' values ('mean' and 'std') produced by
@@ -84,6 +89,11 @@ def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
         df['calculation type'] = list(ind)
         df.set_index('calculation type', append=True, inplace=True)
         df = df.reorder_levels(order)
+    if include_true_values:
+        assert true_values is not None
+        tv_ind = ['true values' if name == 'calculation type' else '' for name in
+                  df.index.names[:-1]] + ['value']
+        df.loc[tuple(tv_ind), :] = true_values
     return df
 
 

@@ -256,15 +256,6 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
     samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
     # Make combined run
     run = dict_given_run_array(samples_temp, thread_min_max)
-    # # Now we need to reorder the thread labels and thread_min_max values so
-    # # they go in order
-    # thread_labels_new = np.zeros(run['thread_labels'].shape).astype(int)
-    # thread_min_max_new = np.zeros(run['thread_min_max'].shape)
-    # for i, th_lab in enumerate(np.unique(run['thread_labels'])):
-    #     thread_labels_new[np.where(run['thread_labels'] == th_lab)[0]] = i
-    #     thread_min_max_new[i, :] = run['thread_min_max'][th_lab, :]
-    # run['thread_labels'] = thread_labels_new
-    # run['thread_min_max'] = thread_min_max_new
     dp.check_ns_run(run, logl_warn_only=logl_warn_only)
     return run
 
