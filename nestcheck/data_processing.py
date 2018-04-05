@@ -32,8 +32,6 @@ def batch_process_data(file_roots, **kwargs):
         function to use to process the data.
     func_kwargs: dict, optional
         additional keyword arguments for process_func
-    parallel: bool, optional
-        whether or not to process runs in parallel
     errors_to_handle: error or tuple of errors, optional
         which errors to catch when they occur in processing rather than raising
 
@@ -44,6 +42,9 @@ def batch_process_data(file_roots, **kwargs):
         load: bool, optional
         overwrite_existing: bool, optional
 
+    Remaining kwargs passed to parallel_utils.parallel_apply (see its
+    docstring for more details).
+
     Returns
     -------
     list of ns_run dicts
@@ -51,14 +52,10 @@ def batch_process_data(file_roots, **kwargs):
     base_dir = kwargs.pop('base_dir', 'chains')
     process_func = kwargs.pop('process_func', process_polychord_run)
     func_kwargs = kwargs.pop('func_kwargs', {})
-    parallel = kwargs.pop('parallel', True)
-    errors_to_handle = kwargs.pop('errors_to_handle', ())
-    if kwargs:
-        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    func_kwargs['errors_to_handle'] = kwargs.pop('errors_to_handle', ())
     data = nestcheck.parallel_utils.parallel_apply(
         process_error_helper, file_roots, func_args=(base_dir, process_func),
-        errors_to_handle=errors_to_handle,
-        func_kwargs=func_kwargs, parallel=parallel)
+        func_kwargs=func_kwargs, **kwargs)
     # Sort processed runs into the same order as file_roots
     data = sorted(data,
                   key=lambda x: file_roots.index(x['output']['file_root']))
@@ -262,10 +259,11 @@ def threads_given_birth_contours(logl, birth_logl, init_birth=-1e+30):
         'Thread labels should all be ints!'
     thread_labels = thread_labels.astype(int)
     # Check unique thread labels are a sequence from 0 to nthreads-1
-    nthreads = sum(thread_start_counts)
-    assert np.array_equal(np.unique(thread_labels),
-                          np.asarray(range(nthreads))), \
-        str(np.unique(thread_labels))
+    assert np.array_equal(
+        np.unique(thread_labels),
+        np.asarray(range(sum(thread_start_counts)))), (
+            str(np.unique(thread_labels)) + ' is not equal to range('
+            + str(sum(thread_start_counts)) + ')')
     return thread_labels
 
 

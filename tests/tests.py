@@ -64,7 +64,7 @@ class TestDataProcessing(unittest.TestCase):
         np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
         processed_run = nestcheck.data_processing.batch_process_data(
             [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
-            parallel=False, func_kwargs={'errors_to_handle': (OSError)})[0]
+            parallel=False, errors_to_handle=OSError)[0]
         nestcheck.data_processing.check_ns_run(processed_run)
         for key, value in processed_run.items():
             if key not in ['output']:
