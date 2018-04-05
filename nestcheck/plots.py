@@ -478,8 +478,8 @@ def param_logx_diagram(run_list, **kwargs):
         except TypeError:
             cache = None
         y, pmf = fgivenx.compute_pmf(interp_alternate, logx_sup, samples,
-                                     cache=cache, ny=npoints,
-                                     parallel=parallel, tqdm_leave=False)
+                                     cache=cache, ny=npoints, parallel=parallel,
+                                     tqdm_kwargs={'leave': False})
         cbar = fgivenx.plot.plot(logx_sup, y, pmf, ax_weight,
                                  rasterize_contours=rasterize_contours,
                                  colors=plt.get_cmap(colormaps[nrun]))
@@ -643,7 +643,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
             cache = None
         y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
                                      cache=cache, parallel=parallel,
-                                     tqdm_leave=False)
+                                     tqdm_kwargs={'leave': False})
         if flip_axes:
             cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
                                      axes[nf], colors=colormap,
