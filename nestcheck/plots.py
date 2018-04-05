@@ -25,7 +25,8 @@ except ImportError:
 def plot_run_nlive(method_names, run_dict, **kwargs):
     """
     Plot the allocations of live points as a function of logX for the input
-    sets of nested sampling runs.
+    sets of nested sampling runs of the type used in the dynamic nested
+    sampling paper (Higson et al. 2017).
     Plots also include analytically calculated distributions of relative
     posterior mass and relative posterior mass remaining.
 
@@ -34,11 +35,11 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     method_names: list of strs
     run_dict: dict of lists of nested sampling runs.
         Keys of run_dict must be method_names
-    logx_given_logl: function
+    logx_given_logl: function, optional
         For mapping points' logl values to logx values.
         If not specified the logx coordinates for each run are estimated using
         its numbers of live points.
-    logl_given_logx: function
+    logl_given_logx: function, optional
         For calculating the relative posterior mass and posterior mass
         remaining at each logx coordinate.
     logx_min: float, optional
@@ -51,17 +52,23 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
         analytical weights.
     figsize: tuple, optional
         Size of figure in inches.
+    post_mass_norm: str or None, optional
+        specify method_name for runs use form normalising the analytic
+        posterior mass curve. If None, all runs are used.
+    cum_post_mass_norm: str or None, optional
+        specify method_name for runs use form normalising the analytic
+        cumulative posterior mass remaining curve. If None, all runs are used.
 
     Returns
     -------
     fig: matplotlib figure
     """
-    logx_min = kwargs.pop('logx_min', None)
-    ymax = kwargs.pop('ymax', None)
-    figsize = kwargs.pop('figsize', (6.4, 2))
     logx_given_logl = kwargs.pop('logx_given_logl', None)
     logl_given_logx = kwargs.pop('logl_given_logx', None)
+    logx_min = kwargs.pop('logx_min', None)
+    ymax = kwargs.pop('ymax', None)
     npoints = kwargs.pop('npoints', 100)
+    figsize = kwargs.pop('figsize', (6.4, 2))
     post_mass_norm = kwargs.pop('post_mass_norm', None)
     cum_post_mass_norm = kwargs.pop('cum_post_mass_norm', None)
     if kwargs:
@@ -75,7 +82,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     ax = plt.gca()
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
     # reserve colors for certain common method_names so they are always the
-    # same reguardless of method_name
+    # same reguardless of method_name order for consistency in the paper
     linecolor_dict = {'standard': colors[2],
                       'dynamic $G=0$': colors[8],
                       'dynamic $G=1$': colors[9]}
@@ -183,13 +190,21 @@ def kde_plot_df(df, xlims=None, **kwargs):
     ----------
     df: pandas data frame
         Each cell must contain a 1d numpy array of samples.
-    num_xticks: int, optional
-        Number of xticks on each subplot
     xlims: dict, optional
         Dictionary of xlimits - keys are column names and values are lists of
         length 2.
+    num_xticks: int, optional
+        Number of xticks on each subplot
     figsize: tuple, optional
         Size of figure in inches.
+    nrows: int, optional
+        number of rows of subplots
+    ncols: int, optional
+        number of columns of subplots
+    legend: bool, optional
+        should a legend be added?
+    legend_kwargs: dict, optional
+        additional kwargs for legend
 
     Returns
     -------
@@ -198,7 +213,6 @@ def kde_plot_df(df, xlims=None, **kwargs):
     assert xlims is None or isinstance(xlims, dict)
     figsize = kwargs.pop('figsize', (6.4, 1.5))
     num_xticks = kwargs.pop('num_xticks', None)
-    normalized = kwargs.pop('normalized', True)
     legend = kwargs.pop('legend', False)
     legend_kwargs = kwargs.pop('legend_kwargs', {})
     nrows = kwargs.pop('nrows', 1)
@@ -220,8 +234,7 @@ def kde_plot_df(df, xlims=None, **kwargs):
         for name, samps in df[col].iteritems():
             kernel = scipy.stats.gaussian_kde(samps)
             pdf = kernel(support)
-            if normalized:
-                pdf /= pdf.max()
+            pdf /= pdf.max()
             handles.append(ax.plot(support, pdf, label=name)[0])
             labels.append(name)
         ax.set_ylim(bottom=0)
@@ -237,75 +250,6 @@ def kde_plot_df(df, xlims=None, **kwargs):
     if legend:
         fig.legend(handles, labels, **legend_kwargs)
     return fig
-
-
-# Model definitions
-# =================
-
-def interp_alternate(x, theta):
-    theta = theta[~np.isnan(theta)]
-    x_int = theta[::2]
-    y_int = theta[1::2]
-    return np.interp(x, x_int, y_int)
-
-
-def samp_kde(x, theta):
-    theta = theta[~np.isnan(theta)]
-    kde = scipy.stats.gaussian_kde(theta)
-    return kde(x)
-
-
-def plot_bs_dists(run, fthetas, axes, **kwargs):
-    n_simulate = kwargs.pop('n_simulate', 100)
-    parallel = kwargs.pop('parallel', True)
-    smooth = kwargs.pop('smooth', False)
-    cache_in = kwargs.pop('cache', None)
-    rasterize_contours = kwargs.pop('rasterize_contours', True)
-    nx = kwargs.pop('nx', 100)
-    ny = kwargs.pop('ny', nx)
-    flip_x = kwargs.pop('flip_x', False)
-    colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
-    ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
-    if kwargs:
-        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
-    assert len(fthetas) == len(axes), \
-        'There should be the same number of axes and functions to plot'
-    assert len(fthetas) == len(ftheta_lims), \
-        'There should be the same number of axes and functions to plot'
-    threads = ar.get_run_threads(run)
-    # get a list of evenly weighted theta samples from bootstrap resampling
-    bs_even_samps = []
-    for i in range(n_simulate):
-        run_temp = ar.bootstrap_resample_run(run, threads=threads)
-        logw_temp = ar.get_logw(run_temp, simulate=False)
-        w_temp = np.exp(logw_temp - logw_temp.max())
-        even_w_inds = np.where(w_temp > np.random.random(w_temp.shape))[0]
-        bs_even_samps.append(run_temp['theta'][even_w_inds, :])
-    for nf, ftheta in enumerate(fthetas):
-        # Make an array where each row contains one bootstrap replication's
-        # samples
-        max_samps = max([a.shape[0] for a in bs_even_samps])
-        samples_array = np.full((n_simulate, max_samps), np.nan)
-        for i, samps in enumerate(bs_even_samps):
-            samples_array[i, :samps.shape[0]] = ftheta(samps)
-        theta = np.linspace(ftheta_lims[nf][0], ftheta_lims[nf][1], nx)
-        if cache_in is not None:
-            cache = cache_in + '_' + str(nf)
-        else:
-            cache = cache_in
-        y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
-                                     cache=cache, parallel=parallel,
-                                     tqdm_leave=False)
-        if flip_x:
-            cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
-                                     axes[nf], colors=colormap,
-                                     rasterize_contours=rasterize_contours,
-                                     smooth=smooth)
-        else:
-            cbar = fgivenx.plot.plot(theta, y, pmf, axes[nf],
-                                     rasterize_contours=rasterize_contours,
-                                     colors=colormap, smooth=smooth)
-    return cbar
 
 
 def bs_param_dists(run_list, **kwargs):
@@ -384,32 +328,46 @@ def bs_param_dists(run_list, **kwargs):
 
 def param_logx_diagram(run_list, **kwargs):
     """
-    Creates parameter estimation diagrams using the specified estimators.
+    Creates diagrams of a nested sampling run's evolution as it iterates
+    towards higher likelihoods, expressed as a function of log X, where X(L) is
+    the fraction of the prior volume with likelihood greater than some value L.
+
+    For a more detailed description and some example use cases, see "Diagnostic
+    tests for nested sampling calculations" (Higson et al. 2018).
+
+    Parameters
+    ----------
+    run_list: nested sampling run or list of runs to plot
+    ymax: bool, optional
+        Maximum value for plot's nlive axis (yaxis).
+    npoints: int, optional
+        How many points to have in the logx array used to calculate and plot
+        analytical weights.
+    figsize: tuple, optional
+        Size of figure in inches.
+
+    Returns
+    -------
+    fig: matplotlib figure
     """
-    if not isinstance(run_list, list):
-        run_list = [run_list]
-    cache_in = kwargs.pop('cache', None)
-    parallel = kwargs.pop('parallel', True)
-    # Use random seed to make samples consistent and allow caching.
-    # To avoid fixing seed use random_seed=None
-    random_seed = kwargs.pop('random_seed', 0)
-    state = np.random.get_state()  # save initial random state
-    np.random.seed(random_seed)
-    smooth_logx = kwargs.pop('smooth_logx', True)
-    scatter_plot = kwargs.pop('scatter_plot', True)
-    n_simulate = kwargs.pop('n_simulate', 100)
-    rasterize_contours = kwargs.pop('rasterize_contours', True)
-    if len(run_list) <= 2:
-        threads_to_plot = kwargs.pop('threads_to_plot', [1])
-    else:
-        threads_to_plot = kwargs.pop('threads_to_plot', [])
-    thread_linestyles = ['-', '-.']
-    plot_means = kwargs.pop('plot_means', True)
     fthetas = kwargs.pop('fthetas', [lambda theta: theta[:, 0],
                                      lambda theta: theta[:, 1]])
     labels = kwargs.pop('labels', [r'$\theta_' + str(i + 1) + '$' for i in
                                    range(len(fthetas))])
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
+    cache_in = kwargs.pop('cache', None)
+    parallel = kwargs.pop('parallel', True)
+    smooth_logx = kwargs.pop('smooth_logx', True)
+    scatter_plot = kwargs.pop('scatter_plot', True)
+    n_simulate = kwargs.pop('n_simulate', 100)
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
+    if not isinstance(run_list, list):
+        run_list = [run_list]
+    if len(run_list) <= 2:
+        threads_to_plot = kwargs.pop('threads_to_plot', [1])
+    else:
+        threads_to_plot = kwargs.pop('threads_to_plot', [])
+    plot_means = kwargs.pop('plot_means', True)
     npoints = kwargs.pop('npoints', 100)
     logx_min = kwargs.pop('logx_min', None)
     nlogx = kwargs.pop('nlogx', npoints)
@@ -418,10 +376,16 @@ def param_logx_diagram(run_list, **kwargs):
     colors = kwargs.pop('colors', ['red', 'blue', 'grey', 'green', 'orange'])
     colormaps = kwargs.pop('colormaps', ['Reds_r', 'Blues_r', 'Greys_r',
                                          'Greens_r', 'Oranges_r'])
+    random_seed = kwargs.pop('random_seed', 0)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    # Use random seed to make samples consistent and allow caching.
+    # To avoid fixing seed use random_seed=None
+    state = np.random.get_state()  # save initial random state
+    np.random.seed(random_seed)
     assert len(fthetas) == len(labels)
     assert len(fthetas) == len(ftheta_lims)
+    thread_linestyles = ['-', '-.', ':']
     # make figure
     ftheta_sups = [np.linspace(lim[0], lim[1], npoints) for lim in ftheta_lims]
     fig, axes = plt.subplots(nrows=1 + len(fthetas), ncols=2, figsize=figsize,
@@ -456,17 +420,6 @@ def param_logx_diagram(run_list, **kwargs):
             w_rel /= np.trapz(w_rel, x=logx_temp)
             samples[i, ::2] = logx_temp
             samples[i, 1::2] = w_rel
-        # For absolute weights
-        # logx_list = []
-        # logw_list = []
-        # for i in range(n_simulate):
-        #     logx_temp = ar.get_logx(run['nlive_array'], simulate=True)[::-1]
-        #     logx_list.append(logx_temp)
-        #     logw_list.append(logx_temp + run['logl'][::-1])
-        # logw_max = np.hstack(logw_list).max()
-        # for i in range(n_simulate):
-        #     samples[i, ::2] = logx_list[i]
-        #     samples[i, 1::2] = np.exp(logw_list[i] - logw_max)
         if logx_min is None:
             logx_min = samples[:, 0].min()
         logx_sup = np.linspace(logx_min, 0, nlogx)
@@ -556,7 +509,7 @@ def param_logx_diagram(run_list, **kwargs):
             for nf, mean in enumerate(means):
                 for ax in [axes[nf + 1, 0], axes[nf + 1, 1]]:
                     ax.axhline(y=mean, lw=1, linestyle='--', color=color)
-    # Format axes (only do ones even if there are multiple runs
+    # Format axes
     for nf, ax in enumerate(posterior_axes):
         ax.set_ylim(ftheta_lims[nf])
         ax.invert_xaxis()  # only invert once, not for every run!
@@ -579,3 +532,79 @@ def param_logx_diagram(run_list, **kwargs):
             ax.set_xticks([])
     np.random.set_state(state)  # return to original random state
     return fig
+
+
+# Helper functions
+# ----------------
+
+def plot_bs_dists(run, fthetas, axes, **kwargs):
+    """
+    Helper function for plotting uncertainties on posterior distributions using
+    bootstrap resamples and the fgivenx module. Used by bs_param_dists and
+    param_logx_diagram.
+    """
+    n_simulate = kwargs.pop('n_simulate', 100)
+    parallel = kwargs.pop('parallel', True)
+    smooth = kwargs.pop('smooth', False)
+    cache_in = kwargs.pop('cache', None)
+    rasterize_contours = kwargs.pop('rasterize_contours', True)
+    nx = kwargs.pop('nx', 100)
+    ny = kwargs.pop('ny', nx)
+    flip_x = kwargs.pop('flip_x', False)
+    colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
+    ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    assert len(fthetas) == len(axes), \
+        'There should be the same number of axes and functions to plot'
+    assert len(fthetas) == len(ftheta_lims), \
+        'There should be the same number of axes and functions to plot'
+    threads = ar.get_run_threads(run)
+    # get a list of evenly weighted theta samples from bootstrap resampling
+    bs_even_samps = []
+    for i in range(n_simulate):
+        run_temp = ar.bootstrap_resample_run(run, threads=threads)
+        logw_temp = ar.get_logw(run_temp, simulate=False)
+        w_temp = np.exp(logw_temp - logw_temp.max())
+        even_w_inds = np.where(w_temp > np.random.random(w_temp.shape))[0]
+        bs_even_samps.append(run_temp['theta'][even_w_inds, :])
+    for nf, ftheta in enumerate(fthetas):
+        # Make an array where each row contains one bootstrap replication's
+        # samples
+        max_samps = max([a.shape[0] for a in bs_even_samps])
+        samples_array = np.full((n_simulate, max_samps), np.nan)
+        for i, samps in enumerate(bs_even_samps):
+            samples_array[i, :samps.shape[0]] = ftheta(samps)
+        theta = np.linspace(ftheta_lims[nf][0], ftheta_lims[nf][1], nx)
+        if cache_in is not None:
+            cache = cache_in + '_' + str(nf)
+        else:
+            cache = cache_in
+        y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
+                                     cache=cache, parallel=parallel,
+                                     tqdm_leave=False)
+        if flip_x:
+            cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
+                                     axes[nf], colors=colormap,
+                                     rasterize_contours=rasterize_contours,
+                                     smooth=smooth)
+        else:
+            cbar = fgivenx.plot.plot(theta, y, pmf, axes[nf],
+                                     rasterize_contours=rasterize_contours,
+                                     colors=colormap, smooth=smooth)
+    return cbar
+
+
+def interp_alternate(x, theta):
+    """Helper function for making fgivenx plots in param_logx_diagram."""
+    theta = theta[~np.isnan(theta)]
+    x_int = theta[::2]
+    y_int = theta[1::2]
+    return np.interp(x, x_int, y_int)
+
+
+def samp_kde(x, theta):
+    """Helper function for making kde plot in plot_bs_dists diagram."""
+    theta = theta[~np.isnan(theta)]
+    kde = scipy.stats.gaussian_kde(theta)
+    return kde(x)
