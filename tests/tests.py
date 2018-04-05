@@ -6,7 +6,6 @@ import os
 import shutil
 import unittest
 import functools
-import importlib
 import numpy as np
 import numpy.testing
 import pandas as pd
@@ -555,11 +554,13 @@ class TestPlots(unittest.TestCase):
             TypeError, nestcheck.plots.plot_run_nlive,
             ['type 1'], {'type 1': [self.ns_run] * 2})
 
-    @unittest.skipIf(importlib.util.find_spec('fgivenx') is None,
-                     'needs fgivenx to run')
     def test_param_logx_diagram(self):
         fig = nestcheck.plots.param_logx_diagram(
             self.ns_run, n_simulate=3, npoints=100, parallel=False)
+        self.assertIsInstance(fig, matplotlib.figure.Figure)
+        fig = nestcheck.plots.param_logx_diagram(
+            [self.ns_run, self.ns_run], n_simulate=3, npoints=100,
+            parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         self.assertRaises(
             TypeError, nestcheck.plots.param_logx_diagram,
@@ -569,17 +570,11 @@ class TestPlots(unittest.TestCase):
         self.assertRaises(
             TypeError, nestcheck.plots.plot_bs_dists,
             self.ns_run, [], [], unexpected=0)
-        self.assertRaises(
-            TypeError, nestcheck.plots.plot_bs_dists,
-            self.ns_run, [lambda x: x[:, 0]], [1], n_simulate=2,
-            cache=1)
 
-
-    @unittest.skipIf(importlib.util.find_spec('fgivenx') is None,
-                     'needs fgivenx to run')
     def test_bs_param_dists(self):
         fig = nestcheck.plots.bs_param_dists(
-            self.ns_run, n_simulate=3, nx=10, parallel=False)
+            self.ns_run, n_simulate=3, nx=10,
+            parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         # Check unexpected kwargs
         self.assertRaises(

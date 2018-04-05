@@ -2,10 +2,8 @@
 """
 Functions for diagnostic plots of nested sampling runs.
 
-Includes functions for plotting empirical parameter estimation diagrams of the
-type described
-in Section 3.1 and Figure 3 of "Sampling errors in nested sampling parameter
-estimation" (Higson 2017) for nest sampling runs.
+Includes functions for plots described "Diagnostic tests for nested sampling
+calculations" (Higson et al. 2018).
 """
 
 import numpy as np
@@ -14,12 +12,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1
 import nestcheck.analyse_run as ar
-try:
-    import fgivenx.plot
-    import fgivenx
-except ImportError:
-    print('nestcheck.plots: fgivenx module not installed. Install fgivenx to '
-          'use the full range of nestcheck plotting functions.')
+import fgivenx.plot
+import fgivenx
 
 
 def plot_run_nlive(method_names, run_dict, **kwargs):
@@ -325,10 +319,10 @@ def bs_param_dists(run_list, **kwargs):
     colormaps = ['Reds_r', 'Blues_r', 'Greys_r', 'Greens_r', 'Oranges_r']
     # plot in reverse order so reds are final plot and always on top
     for nrun, run in reversed(list(enumerate(run_list))):
-        if cache_in is not None:
+        try:
             cache = cache_in + '_' + str(nrun)
-        else:
-            cache = cache_in
+        except TypeError:
+            cache = None
         # add bs distribution plots
         cbar = plot_bs_dists(run, fthetas, axes[:len(fthetas)],
                              parallel=parallel,
@@ -340,11 +334,10 @@ def bs_param_dists(run_list, **kwargs):
         colorbar_plot = plt.colorbar(cbar, cax=axes[len(fthetas) + nrun],
                                      ticks=[1, 2, 3])
         colorbar_plot.solids.set_edgecolor('face')
+        colorbar_plot.ax.set_yticklabels([])
         if nrun == len(run_list) - 1:
             colorbar_plot.ax.set_yticklabels(
                 [r'$1\sigma$', r'$2\sigma$', r'$3\sigma$'])
-        else:
-            colorbar_plot.ax.set_yticklabels([])
     # Format axis ticks and labels
     for nax, ax in enumerate(axes[:len(fthetas)]):
         ax.set_yticks([])
@@ -356,8 +349,8 @@ def bs_param_dists(run_list, **kwargs):
             prune = 'upper'
         else:
             prune = None
-        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=5,
-                                                                 prune=prune))
+        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(
+            nbins=5, prune=prune))
     np.random.set_state(state)  # return to original random state
     return fig
 
@@ -465,10 +458,6 @@ def param_logx_diagram(run_list, **kwargs):
     colorbar_ax_list = list(reversed(colorbar_ax_list))
     # plot runs in reverse order to put the first run on top
     for nrun, run in reversed(list(enumerate(run_list))):
-        if cache_in is not None:
-            if nrun != len(run_list) - 1:
-                cache_in = cache_in[:-2]
-            cache_in += '_' + str(nrun)
         # Weight Plot
         # -----------
         ax_weight = axes[0, 1]
@@ -484,10 +473,10 @@ def param_logx_diagram(run_list, **kwargs):
         if logx_min is None:
             logx_min = samples[:, 0].min()
         logx_sup = np.linspace(logx_min, 0, nlogx)
-        if cache_in is not None:
-            cache = cache_in + '_weights'
-        else:
-            cache = cache_in
+        try:
+            cache = cache_in + '_' + str(nrun) + '_weights'
+        except TypeError:
+            cache = None
         y, pmf = fgivenx.compute_pmf(interp_alternate, logx_sup, samples,
                                      cache=cache, ny=npoints,
                                      parallel=parallel, tqdm_leave=False)
@@ -504,11 +493,10 @@ def param_logx_diagram(run_list, **kwargs):
                                      ticks=[1, 2, 3])
         colorbar_ax_list[nrun].yaxis.set_ticks_position('left')
         colorbar_plot.solids.set_edgecolor('face')
+        colorbar_plot.ax.set_yticklabels([])
         if nrun == 0:
             colorbar_plot.ax.set_yticklabels(
                 [r'$1\sigma$', r'$2\sigma$', r'$3\sigma$'])
-        else:
-            colorbar_plot.ax.set_yticklabels([])
         # samples plot
         # ------------
         logx = ar.get_logx(run['nlive_array'], simulate=False)
@@ -649,10 +637,10 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         for i, samps in enumerate(bs_even_samps):
             samples_array[i, :samps.shape[0]] = ftheta(samps)
         theta = np.linspace(ftheta_lims[nf][0], ftheta_lims[nf][1], nx)
-        if cache_in is not None:
+        try:
             cache = cache_in + '_' + str(nf)
-        else:
-            cache = cache_in
+        except TypeError:
+            cache = None
         y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
                                      cache=cache, parallel=parallel,
                                      tqdm_leave=False)
