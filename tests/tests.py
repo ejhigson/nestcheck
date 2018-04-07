@@ -3,6 +3,7 @@
 Test the nestcheck module installation.
 """
 import os
+import sys
 import shutil
 import unittest
 import functools
@@ -548,9 +549,22 @@ class TestPlots(unittest.TestCase):
 
     def setUp(self):
         """Get some dummy data to plot."""
-        self.ns_run = get_dummy_ns_run(10, 100, 2)
+        self.ns_run = get_dummy_ns_run(3, 10, 2)
         nestcheck.data_processing.check_ns_run(self.ns_run,
                                                logl_warn_only=True)
+
+    def test_alternate_helper(self):
+        alt_samps = np.random.random(3)
+        alt_samps[-1] = np.nan
+        x = np.random.random()
+
+        def temp_func(xarg, arg1, arg2):
+            """Func for testing alternate_helper."""
+            return sum((xarg, arg1, arg2))
+
+        ans = nestcheck.plots.alternate_helper(
+            x, alt_samps, func=temp_func)
+        self.assertEqual(ans, sum((x, alt_samps[0], alt_samps[1])))
 
     def test_plot_run_nlive(self):
         fig = nestcheck.plots.plot_run_nlive(
@@ -573,13 +587,34 @@ class TestPlots(unittest.TestCase):
             TypeError, nestcheck.plots.plot_run_nlive,
             ['type 1'], {'type 1': [self.ns_run] * 2})
 
+    def test_weighted_1d_gaussian_kde(self):
+        x = np.linspace(-0.5, 1.5, 10)
+        samps = np.random.random(40)
+        weights = np.ones(samps.shape)
+        # Should be same as non-weighted scipy version when weights equal
+        numpy.testing.assert_allclose(
+            scipy.stats.gaussian_kde(samps)(x),
+            nestcheck.plots.weighted_1d_gaussian_kde(x, samps, weights))
+        # If x not 1d, should be AssertionError
+        self.assertRaises(
+            AssertionError, nestcheck.plots.weighted_1d_gaussian_kde,
+            np.atleast_2d(x), samps, weights)
+        # If samps not 1d, should be AssertionError
+        self.assertRaises(
+            AssertionError, nestcheck.plots.weighted_1d_gaussian_kde,
+            x, np.atleast_2d(samps), weights)
+        # If weights not same shape as samps, should be AssertionError
+        self.assertRaises(
+            AssertionError, nestcheck.plots.weighted_1d_gaussian_kde,
+            x, samps, weights[1:])
+
     def test_param_logx_diagram(self):
         fig = nestcheck.plots.param_logx_diagram(
-            self.ns_run, n_simulate=3, npoints=100, parallel=False)
+            self.ns_run, n_simulate=2, npoints=10, parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         fig = nestcheck.plots.param_logx_diagram(
-            [self.ns_run, self.ns_run], n_simulate=3, npoints=100,
-            parallel=True)
+            [self.ns_run, self.ns_run], n_simulate=2, npoints=10,
+            fthetas=[lambda theta: theta[:, 0]], parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         self.assertRaises(
             TypeError, nestcheck.plots.param_logx_diagram,
@@ -598,7 +633,8 @@ class TestPlots(unittest.TestCase):
         # Check unexpected kwargs
         self.assertRaises(
             TypeError, nestcheck.plots.bs_param_dists,
-            self.ns_run, unexpected=0)
+            self.ns_run,
+            unexpected=0)
 
     def test_kde_plot_df(self):
         df = pd.DataFrame(index=['run_1', 'run_2'])
@@ -682,5 +718,15 @@ def get_dummy_dead_points(ndims=2, nsamples=10):
     run = ar.combine_threads(threads)
     return dead, run
 
-if __name__ == '__main__':
-    unittest.main()
+
+if 'nose' in sys.modules.keys():
+    if __name__ == '__main__':
+        unittest.main()
+else:
+    # If not being run with nose, use cProfile to profile tests
+    import cProfile
+    import pstats
+    cProfile.run('unittest.main()', 'restats')
+    p = pstats.Stats('restats')
+    os.remove('restats')
+    p.strip_dirs().sort_stats('cumtime').print_stats('tests.py', 20)

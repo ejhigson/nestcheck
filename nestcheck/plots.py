@@ -226,8 +226,7 @@ def kde_plot_df(df, xlims=None, **kwargs):
         handles = []
         labels = []
         for name, samps in df[col].iteritems():
-            kernel = scipy.stats.gaussian_kde(samps)
-            pdf = kernel(support)
+            pdf = scipy.stats.gaussian_kde(samps)(support)
             pdf /= pdf.max()
             handles.append(ax.plot(support, pdf, label=name)[0])
             labels.append(name)
@@ -668,12 +667,6 @@ def alternate_helper(x, alt_samps, func=None):
     arg1 = alt_samps[::2]
     arg2 = alt_samps[1::2]
     return func(x, arg1, arg2)
-
-
-def weighted_1d_gaussian_kde_old(x, samples, weights):
-    even_w_inds = np.where(weights > np.random.random(weights.shape))[0]
-    return weighted_1d_gaussian_kde(x, samples[even_w_inds],
-                                    np.ones(even_w_inds.shape))
 
 
 def weighted_1d_gaussian_kde(x, samples, weights):
