@@ -6,6 +6,7 @@ Includes functions for plots described "Diagnostic tests for nested sampling
 calculations" (Higson et al. 2018).
 """
 
+import functools
 import numpy as np
 import scipy.stats
 import matplotlib
@@ -477,7 +478,8 @@ def param_logx_diagram(run_list, **kwargs):
             cache = cache_in + '_' + str(nrun) + '_weights'
         except TypeError:
             cache = None
-        y, pmf = fgivenx.compute_pmf(interp_alternate, logx_sup, samples,
+        interp_alt = functools.partial(alternate_helper, func=np.interp)
+        y, pmf = fgivenx.compute_pmf(interp_alt, logx_sup, samples,
                                      cache=cache, ny=npoints, parallel=parallel,
                                      tqdm_kwargs={'leave': False})
         cbar = fgivenx.plot.plot(logx_sup, y, pmf, ax_weight,
@@ -622,50 +624,112 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         'There should be the same number of axes and functions to plot'
     threads = ar.get_run_threads(run)
     # get a list of evenly weighted theta samples from bootstrap resampling
-    bs_even_samps = []
+    bs_samps = []
     for i in range(n_simulate):
         run_temp = ar.bootstrap_resample_run(run, threads=threads)
         logw_temp = ar.get_logw(run_temp, simulate=False)
         w_temp = np.exp(logw_temp - logw_temp.max())
-        even_w_inds = np.where(w_temp > np.random.random(w_temp.shape))[0]
-        bs_even_samps.append(run_temp['theta'][even_w_inds, :])
+        bs_samps.append((run_temp['theta'], w_temp))
     for nf, ftheta in enumerate(fthetas):
         # Make an array where each row contains one bootstrap replication's
         # samples
-        max_samps = max([a.shape[0] for a in bs_even_samps])
+        max_samps = 2 * max([bs_samp[0].shape[0] for bs_samp in bs_samps])
         samples_array = np.full((n_simulate, max_samps), np.nan)
-        for i, samps in enumerate(bs_even_samps):
-            samples_array[i, :samps.shape[0]] = ftheta(samps)
-        theta = np.linspace(ftheta_lims[nf][0], ftheta_lims[nf][1], nx)
+        for i, (theta, weights) in enumerate(bs_samps):
+            nsamp = 2 * theta.shape[0]
+            samples_array[i, :nsamp:2] = ftheta(theta)
+            samples_array[i, 1:nsamp:2] = weights
+        ftheta_vals = np.linspace(ftheta_lims[nf][0], ftheta_lims[nf][1], nx)
         try:
             cache = cache_in + '_' + str(nf)
         except TypeError:
             cache = None
-        y, pmf = fgivenx.compute_pmf(samp_kde, theta, samples_array, ny=ny,
+        samp_kde = functools.partial(alternate_helper,
+                                     func=weighted_1d_gaussian_kde)
+        y, pmf = fgivenx.compute_pmf(samp_kde, ftheta_vals, samples_array, ny=ny,
                                      cache=cache, parallel=parallel,
                                      tqdm_kwargs={'leave': False})
         if flip_axes:
-            cbar = fgivenx.plot.plot(y, theta, np.swapaxes(pmf, 0, 1),
+            cbar = fgivenx.plot.plot(y, ftheta_vals, np.swapaxes(pmf, 0, 1),
                                      axes[nf], colors=colormap,
                                      rasterize_contours=rasterize_contours,
                                      smooth=smooth)
         else:
-            cbar = fgivenx.plot.plot(theta, y, pmf, axes[nf],
+            cbar = fgivenx.plot.plot(ftheta_vals, y, pmf, axes[nf],
                                      rasterize_contours=rasterize_contours,
                                      colors=colormap, smooth=smooth)
     return cbar
 
 
-def interp_alternate(x, theta):
-    """Helper function for making fgivenx plots in param_logx_diagram."""
-    theta = theta[~np.isnan(theta)]
-    x_int = theta[::2]
-    y_int = theta[1::2]
-    return np.interp(x, x_int, y_int)
+def alternate_helper(x, alt_samps, func=None):
+    """Helper function for making fgivenx plots of functions with 2 array arguments
+    of variable lengths."""
+    alt_samps = alt_samps[~np.isnan(alt_samps)]
+    arg1 = alt_samps[::2]
+    arg2 = alt_samps[1::2]
+    return func(x, arg1, arg2)
 
 
-def samp_kde(x, theta):
-    """Helper function for making kde plot in plot_bs_dists diagram."""
-    theta = theta[~np.isnan(theta)]
+def weighted_1d_gaussian_kde_old(x, samples, weights):
+    even_w_inds = np.where(weights > np.random.random(weights.shape))[0]
+    return weighted_1d_gaussian_kde(x, samples[even_w_inds],
+                                    np.ones(even_w_inds.shape))
+
+
+def weighted_1d_gaussian_kde(x, samples, weights):
+    """
+    Gaussian kde with weighted samples (1d only). Uses Scott bandwidth factor.
+
+    When all the sample weights are equal, this is equivalent to
+
     kde = scipy.stats.gaussian_kde(theta)
     return kde(x)
+
+    When the weights are not all equal, we compute the effective number
+    of samples as the information content (Shannon entropy)
+
+    nsamp_eff = exp(- sum_i (w_i log(w_i)))
+
+    Alternative ways to estimate nsamp_eff include Kish's formula
+
+    nsamp_eff = (sum_i w_i) ** 2 / (sum_i w_i ** 2)
+
+    See https://en.wikipedia.org/wiki/Effective_sample_size and "Effective
+    sample size for importance sampling based on discrepancy measures"
+    (Martino et al. 2017) for more information.
+
+    Parameters
+    ----------
+    x: 1d numpy array
+        Coordinates at which to evaluate the kde
+    samples: 1d numpy array
+        Samples from which to calculate kde
+    weights: 1d numpy array of same shape as samples
+        Weights of each point. Need not be normalised as this is done inside
+        the function.
+
+    Returns
+    -------
+    result: 1d numpy array of same shape as x
+        kde evaluated at x values
+    """
+    assert x.ndim == 1
+    assert samples.ndim == 1
+    assert samples.shape == weights.shape
+    # normalise weights and find effective number of samples
+    weights /= np.sum(weights)
+    nz_weights = weights[np.nonzero(weights)]
+    nsamp_eff = np.exp(-1. * np.sum(nz_weights * np.log(nz_weights)))
+    # Calculate the weighted sample variance
+    mu = np.sum(weights * samples)
+    var = np.sum(weights * ((samples - mu) ** 2))
+    var *= nsamp_eff / (nsamp_eff - 1)  # correct for bias using nsamp_eff
+    # Calculate bandwidth
+    scott_factor = np.power(nsamp_eff, -1. / (5))  # 1d Scott factor
+    sig = np.sqrt(var) * scott_factor
+    # Calculate and weight residuals
+    xx, ss = np.meshgrid(x, samples)
+    chisquared = ((xx - ss) / sig) ** 2
+    energy = np.exp(-0.5 * chisquared) / np.sqrt(2 * np.pi * (sig ** 2))
+    result = np.sum(energy * weights[:, np.newaxis], axis=0)
+    return result
