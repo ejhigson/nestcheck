@@ -122,7 +122,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     try:
         ns_run['output'] = (PyPolyChord.output.PolyChordOutput(base_dir, file_root)
                             .__dict__)
-    except (OSError, ImportError) as err:
+    except (OSError, NameError) as err:
         print('WARNING: ' + type(err).__name__ + ' processing .stats file with ' +
               'PyPolyChord.output.PolyChordOutput')
         ns_run['output'] = {}
