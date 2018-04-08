@@ -610,15 +610,18 @@ class TestPlots(unittest.TestCase):
 
     def test_param_logx_diagram(self):
         fig = nestcheck.plots.param_logx_diagram(
-            self.ns_run, n_simulate=2, npoints=10, parallel=True)
+            self.ns_run, n_simulate=2, npoints=5, parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
-        fig = nestcheck.plots.param_logx_diagram(
-            [self.ns_run, self.ns_run], n_simulate=2, npoints=10,
-            fthetas=[lambda theta: theta[:, 0]], parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
+        # Unexpected kwarg
         self.assertRaises(
             TypeError, nestcheck.plots.param_logx_diagram,
             self.ns_run, unexpected=0)
+        # ftheta not same length as labels
+        self.assertRaises(
+            AssertionError, nestcheck.plots.param_logx_diagram,
+            self.ns_run, fthetas=[lambda x: x], labels=['a', 'b'],
+            plot_means=False)
 
     def test_plot_bs_dists_unexpected_kwarg(self):
         self.assertRaises(
@@ -627,14 +630,13 @@ class TestPlots(unittest.TestCase):
 
     def test_bs_param_dists(self):
         fig = nestcheck.plots.bs_param_dists(
-            self.ns_run, n_simulate=3, nx=10,
+            self.ns_run, n_simulate=2, nx=5,
             parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         # Check unexpected kwargs
         self.assertRaises(
             TypeError, nestcheck.plots.bs_param_dists,
-            self.ns_run,
-            unexpected=0)
+            self.ns_run, unexpected=0)
 
     def test_kde_plot_df(self):
         df = pd.DataFrame(index=['run_1', 'run_2'])

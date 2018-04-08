@@ -262,7 +262,7 @@ def bs_param_dists(run_list, **kwargs):
         E.g. use lambda x: x[:, 0] to plot the first parameter.
     labels: list of strs, optional
         Labels for each ftheta
-    ftheta_lims: dict, optional
+    ftheta_lims: list, optional
         Plot limits for each ftheta
     n_simulate: int, optional
         How many bootstrap replications should be used for the fgivenx
@@ -317,6 +317,7 @@ def bs_param_dists(run_list, **kwargs):
                                           'width_ratios': width_ratios},
                              figsize=figsize)
     colormaps = ['Reds_r', 'Blues_r', 'Greys_r', 'Greens_r', 'Oranges_r']
+    mean_colors = ['darkred', 'darkblue', 'darkgrey', 'darkgreen', 'darkorange']
     # plot in reverse order so reds are final plot and always on top
     for nrun, run in reversed(list(enumerate(run_list))):
         try:
@@ -329,6 +330,7 @@ def bs_param_dists(run_list, **kwargs):
                              ftheta_lims=ftheta_lims, cache=cache,
                              n_simulate=n_simulate, nx=nx, ny=ny,
                              rasterize_contours=rasterize_contours,
+                             mean_color=mean_colors[nrun],
                              colormap=colormaps[nrun])
         # add colorbar
         colorbar_plot = plt.colorbar(cbar, cax=axes[len(fthetas) + nrun],
@@ -343,12 +345,9 @@ def bs_param_dists(run_list, **kwargs):
         ax.set_yticks([])
         ax.set_xlabel(labels[nax])
         if ax.is_first_col():
-            ax.set_ylabel('probability density')
+            ax.set_ylabel('probability')
         # Prune final xtick label so it dosn't overlap with next plot
-        if nax != len(fthetas) - 1:
-            prune = 'upper'
-        else:
-            prune = None
+        prune = 'upper' if nax != len(fthetas) - 1 else None
         ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(
             nbins=5, prune=prune))
     np.random.set_state(state)  # return to original random state
@@ -429,16 +428,20 @@ def param_logx_diagram(run_list, **kwargs):
     npoints = kwargs.pop('npoints', 100)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
-    nlogx = npoints
-    ny_posterior = npoints
+    if not isinstance(run_list, list):
+        run_list = [run_list]
     # Use random seed to make samples consistent and allow caching.
     # To avoid fixing seed use random_seed=None
     state = np.random.get_state()  # save initial random state
     np.random.seed(random_seed)
+    if not plot_means:
+        mean_colors = [None] * len(colors)
+    else:
+        mean_colors = ['dark' + col for col in colors]
+    nlogx = npoints
+    ny_posterior = npoints
     assert len(fthetas) == len(labels)
     assert len(fthetas) == len(ftheta_lims)
-    if not isinstance(run_list, list):
-        run_list = [run_list]
     thread_linestyles = ['-', '-.', ':']
     # make figure
     # -----------
@@ -523,37 +526,30 @@ def param_logx_diagram(run_list, **kwargs):
                           rasterize_contours=rasterize_contours,
                           cache=cache_in, nx=npoints, ny=ny_posterior,
                           colormap=colormaps[nrun],
+                          mean_color=mean_colors[nrun],
                           parallel=parallel)
-        # Plot means
-        # ----------
+        # Plot means onto scatter plot
+        # ----------------------------
         if plot_means:
             logw_expected = ar.get_logw(run, simulate=False)
             w_rel = np.exp(logw_expected - logw_expected.max())
             w_rel /= np.sum(w_rel)
             means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]
-            if len(run_list) == 1:
-                color = 'black'
-            else:
-                color = 'dark' + colors[nrun]
             for nf, mean in enumerate(means):
-                for ax in [axes[nf + 1, 0], axes[nf + 1, 1]]:
-                    ax.axhline(y=mean, lw=1, linestyle='--', color=color)
+                axes[nf + 1, 1].axhline(y=mean, lw=1, linestyle='--',
+                                        color=mean_colors[nrun])
     # Format axes
     for nf, ax in enumerate(posterior_axes):
         ax.set_ylim(ftheta_lims[nf])
-        ax.invert_xaxis()  # only invert once, not for every run!
+        ax.invert_xaxis()  # only invert each axis once, not for every run!
     axes[-1, 1].set_xlabel(r'$\log X$')
     # Add labels
     for i, label in enumerate(labels):
         axes[i + 1, 0].set_ylabel(label)
         # Prune final ytick label so it dosn't overlap with next plot
-        if i != 0:
-            prune = 'upper'
-        else:
-            prune = None
-        axes[i + 1, 0].yaxis.set_major_locator(matplotlib.ticker
-                                               .MaxNLocator(nbins=3,
-                                                            prune=prune))
+        prune = 'upper' if i != 0 else None
+        axes[i + 1, 0].yaxis.set_major_locator(
+            matplotlib.ticker.MaxNLocator(nbins=3, prune=prune))
     for _, ax in np.ndenumerate(axes):
         if not ax.is_first_col():
             ax.set_yticklabels([])
@@ -580,11 +576,16 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         i.e. map every sample's theta vector (every row) to a scalar quantity.
         E.g. use lambda x: x[:, 0] to plot the first parameter.
     axes: list of matplotlib axis objects
-    ftheta_lims: dict, optional
+    ftheta_lims: list, optional
         Plot limits for each ftheta
     n_simulate: int, optional
         How many bootstrap replications should be used for the fgivenx
         distributions?
+    colormap: matplotlib colormap
+        colors to plot fgivenx distribution
+    mean_color: matplotlib color as str
+        color to plot mean of each parameter. If None (default) means are not
+        plotted.
     nx: int, optional
         size of x-axis grid for fgivenx plots
     ny: int, optional
@@ -608,6 +609,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     n_simulate = kwargs.pop('n_simulate', 100)
     colormap = kwargs.pop('colormap', plt.get_cmap('Reds_r'))
+    mean_color = kwargs.pop('mean_color', None)
     nx = kwargs.pop('nx', 100)
     ny = kwargs.pop('ny', nx)
     cache_in = kwargs.pop('cache', None)
@@ -657,6 +659,18 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
             cbar = fgivenx.plot.plot(ftheta_vals, y, pmf, axes[nf],
                                      rasterize_contours=rasterize_contours,
                                      colors=colormap, smooth=smooth)
+    # Plot means
+    # ----------
+    if mean_color is not None:
+        logw_expected = ar.get_logw(run, simulate=False)
+        w_rel = np.exp(logw_expected - logw_expected.max())
+        w_rel /= np.sum(w_rel)
+        means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]
+        for nf, mean in enumerate(means):
+            if flip_axes:
+                axes[nf].axhline(y=mean, lw=1, linestyle='--', color=mean_color)
+            else:
+                axes[nf].axvline(x=mean, lw=1, linestyle='--', color=mean_color)
     return cbar
 
 
