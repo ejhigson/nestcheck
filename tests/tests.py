@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test the nestcheck module installation.
+Test the nestcheck module.
 """
 import os
 import sys
@@ -30,6 +30,8 @@ TEST_DIR_EXISTS_MSG = ('Directory ' + TEST_CACHE_DIR + ' exists! Tests use '
 
 class TestDataProcessing(unittest.TestCase):
 
+    """Tests for data_processing.py"""
+
     def setUp(self):
         """Make a directory for saving test results."""
         assert not os.path.exists(TEST_CACHE_DIR), TEST_DIR_EXISTS_MSG
@@ -54,7 +56,9 @@ class TestDataProcessing(unittest.TestCase):
         self.assertRaises(
             AssertionError, nestcheck.data_processing.check_ns_run_logls,
             repeat_logl_run, warn_only=False)
-        nestcheck.data_processing.check_ns_run_logls(repeat_logl_run, warn_only=True)
+        with self.assertWarns(UserWarning):
+            nestcheck.data_processing.check_ns_run_logls(repeat_logl_run,
+                                                         warn_only=True)
 
     def test_batch_process_data_not_present(self):
         file_root = 'dummy_run'
@@ -62,9 +66,10 @@ class TestDataProcessing(unittest.TestCase):
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
         np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
-        processed_run = nestcheck.data_processing.batch_process_data(
-            [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
-            parallel=False, errors_to_handle=OSError)[0]
+        with self.assertWarns(UserWarning):
+            processed_run = nestcheck.data_processing.batch_process_data(
+                [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
+                parallel=False, errors_to_handle=OSError)[0]
         nestcheck.data_processing.check_ns_run(processed_run)
         for key, value in processed_run.items():
             if key not in ['output']:
@@ -75,6 +80,8 @@ class TestDataProcessing(unittest.TestCase):
 
 
 class TestIOUtils(unittest.TestCase):
+
+    """Tests for io_utils.py."""
 
     def setUp(self):
         """Make a directory and data for io testing."""
@@ -98,18 +105,21 @@ class TestIOUtils(unittest.TestCase):
     def test_save_load_wrapper(self):
         """Try saving and loading some test data and check it dosnt change."""
         # Without save_name (will neither save nor load)
-        data_out = self.save_load_func(self.test_data, save=True, load=True)
+        with self.assertWarns(UserWarning):
+            data_out = self.save_load_func(self.test_data, save=True, load=True)
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # Before any data saved (will save but not load)
-        data_out = self.save_load_func(self.test_data, save=True, load=True,
-                                       save_name=TEST_CACHE_DIR + '/io_test')
+        with self.assertWarns(UserWarning):
+            data_out = self.save_load_func(self.test_data, save=True, load=True,
+                                           save_name=TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # After data saved (will load)
         data_out = self.save_load_func(self.test_data, save=True, load=True,
                                        save_name=TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # Check handling of permission and memory errors when saving
-        nestcheck.io_utils.pickle_save(data_out, '//')
+        with self.assertWarns(UserWarning):
+            nestcheck.io_utils.pickle_save(data_out, '//')
 
     def test_load_filenotfound(self):
         """Test loading files which dont exist causes FileNotFoundError."""
@@ -289,7 +299,8 @@ class TestAnalyseRun(unittest.TestCase):
             run['theta'][1, :], resamp['theta'][1, :])
         # Check error handeled if no ninit
         del run['settings']
-        resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
+        with self.assertWarns(UserWarning):
+            resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
 
     def test_rel_posterior_mass(self):
         self.assertTrue(np.array_equal(
@@ -460,9 +471,10 @@ class TestParallelUtils(unittest.TestCase):
 
     def test_parallel_apply_not_parallelised(self):
         """Check parallel_apply with parallel=False."""
-        results_list = nestcheck.parallel_utils.parallel_apply(
-            self.func, self.x, func_args=self.func_args,
-            func_kwargs=self.func_kwargs, parallel=False)
+        with self.assertWarns(UserWarning):
+            results_list = nestcheck.parallel_utils.parallel_apply(
+                self.func, self.x, func_args=self.func_args,
+                func_kwargs=self.func_kwargs, parallel=False)
         res_arr = np.vstack(results_list)
         self.assertTrue(np.all(res_arr[:, 1] == self.func_args[0]))
         self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
@@ -479,9 +491,10 @@ class TestParallelUtils(unittest.TestCase):
     def test_parallel_map_not_parallelised(self):
         """Check parallel_map with parallel=False."""
         func_pre_args = self.func_args
-        results_list = nestcheck.parallel_utils.parallel_map(
-            self.func, self.x, func_pre_args=func_pre_args,
-            func_kwargs=self.func_kwargs, parallel=False)
+        with self.assertWarns(UserWarning):
+            results_list = nestcheck.parallel_utils.parallel_map(
+                self.func, self.x, func_pre_args=func_pre_args,
+                func_kwargs=self.func_kwargs, parallel=False)
         res_arr = np.vstack(results_list)
         self.assertTrue(np.all(res_arr[:, 0] == func_pre_args[0]))
         self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
@@ -513,9 +526,10 @@ class TestDiagnostics(unittest.TestCase):
         run_list = []
         for i in range(5):
             run_list.append(get_dummy_ns_run(5, 10, 2, seed=i))
-        df = nestcheck.diagnostics.run_list_error_summary(
-            run_list, [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
-            bs_stat_dist=True, parallel=False)
+        with self.assertWarns(UserWarning):
+            df = nestcheck.diagnostics.run_list_error_summary(
+                run_list, [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
+                bs_stat_dist=True, parallel=False)
         self.assertTrue(np.all(~np.isnan(df.values)))
         expected_vals = np.asarray([[5.09427108e-01],
                                     [5.09720232e-02],
@@ -542,10 +556,12 @@ class TestDiagnostics(unittest.TestCase):
         self.assertRaises(
             TypeError, nestcheck.diagnostics.run_list_error_values,
             [], [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
-            bs_stat_dist=True, save=True, load=True, unexpected=1)
+            bs_stat_dist=True, unexpected=1)
 
 
 class TestPlots(unittest.TestCase):
+
+    """Tests for plots.py."""
 
     def setUp(self):
         """Get some dummy data to plot."""
@@ -610,7 +626,7 @@ class TestPlots(unittest.TestCase):
 
     def test_param_logx_diagram(self):
         fig = nestcheck.plots.param_logx_diagram(
-            self.ns_run, n_simulate=2, npoints=5, parallel=True)
+            self.ns_run, n_simulate=2, npoints=10, parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         # Unexpected kwarg
@@ -630,7 +646,7 @@ class TestPlots(unittest.TestCase):
 
     def test_bs_param_dists(self):
         fig = nestcheck.plots.bs_param_dists(
-            self.ns_run, n_simulate=2, nx=5,
+            self.ns_run, n_simulate=2, nx=10,
             parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         # Check unexpected kwargs

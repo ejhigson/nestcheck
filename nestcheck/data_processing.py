@@ -4,6 +4,7 @@ Functions for processing nested sampling data. Compatible wih MultiNest and
 PolyChord.
 """
 
+import warnings
 import numpy as np
 import nestcheck.io_utils
 import nestcheck.parallel_utils
@@ -122,9 +123,10 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     try:
         ns_run['output'] = (PyPolyChord.output.PolyChordOutput(base_dir, file_root)
                             .__dict__)
-    except (OSError, NameError) as err:
-        print('WARNING: ' + type(err).__name__ + ' processing .stats file with ' +
-              'PyPolyChord.output.PolyChordOutput')
+    except (FileNotFoundError, NameError) as err:
+        wtype = ImportWarning if type(err).__name__ == 'NameError' else UserWarning
+        warnings.warn((type(err).__name__ + ' processing .stats file with '
+                       'PyPolyChord.output.PolyChordOutput'), wtype)
         ns_run['output'] = {}
     ns_run['output']['file_root'] = file_root
     ns_run['output']['base_dir'] = base_dir
@@ -378,7 +380,7 @@ def check_ns_run_logls(run, warn_only=False):
         assert repeat_logls == 0, msg
     else:
         if repeat_logls != 0:
-            print('WARNING: ' + msg)
+            warnings.warn(msg, UserWarning)
 
 
 def check_ns_run_threads(run):

@@ -5,6 +5,7 @@ Contains helper functions for saving, loading and input/output.
 
 
 import time
+import warnings
 import pickle
 import functools
 import os.path
@@ -71,18 +72,20 @@ def save_load_result(func):
         overwrite_existing = kwargs.pop('overwrite_existing', True)
         if load:
             if save_name is None:
-                print('WARNING: ' + func.__name__ + ' cannot load:',
-                      'save_name=None')
+                warnings.warn((func.__name__ + ' has load=True but cannot ' +
+                               'load because save_name=None'), UserWarning)
             else:
                 try:
                     return pickle_load(save_name)
                 except OSError:
-                    pass
+                    warnings.warn((func.__name__ + ' had OSError loading file ' +
+                                   save_name + '. Continuing without loading.'),
+                                  UserWarning)
         result = func(*args, **kwargs)
         if save:
             if save_name is None:
-                print('WARNING: ' + func.__name__ + ' cannot save:',
-                      'save_name=None')
+                warnings.warn((func.__name__ + ' has save=True but cannot ' +
+                               'save because save_name=None'), UserWarning)
             else:
                 pickle_save(result, save_name,
                             overwrite_existing=overwrite_existing)
@@ -126,7 +129,8 @@ def pickle_save(data, name, **kwargs):
         pickle.dump(data, outfile)
         outfile.close()
     except (MemoryError, PermissionError) as err:
-        print(type(err).__name__ + ' in pickle_save: continue without saving')
+        warnings.warn((type(err).__name__ + ' in pickle_save: continue without'
+                       ' saving.'), UserWarning)
 
 
 @timing_decorator

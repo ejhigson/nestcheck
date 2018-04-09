@@ -5,6 +5,7 @@ estimate sampling errors.
 """
 
 import copy
+import warnings
 import numpy as np
 import scipy.special
 import nestcheck.data_processing as dp
@@ -218,12 +219,18 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
     if ninit_sep:
         try:
             ninit = ns_run['settings']['ninit']
+            assert np.all(ns_run['thread_min_max'][:ninit, 0] == -np.inf), (
+                'ninit_sep assumes the initial threads are labeled '
+                '(0,...,ninit-1), so these should start by sampling the whole '
+                'prior.')
             inds = np.random.randint(0, ninit, ninit)
             inds = np.append(inds, np.random.randint(ninit, n_threads,
                                                      n_threads - ninit))
         except KeyError:
-            print('WARNING: bootrap_resample_run: ninit_sep=True but ' +
-                  'ns_run["settings"]["ninit"] does not exist.')
+            warnings.warn(('bootrap_resample_run has kwarg ninit_sep=True but '
+                           'ns_run["settings"]["ninit"] does not exist. '
+                           'Doing bootstrap with ninit_sep=False'),
+                          UserWarning)
             ninit_sep = False
     if not ninit_sep:
         inds = np.random.randint(0, n_threads, n_threads)
@@ -567,8 +574,8 @@ def get_logx(nlive, simulate=False):
     logw: 1d numpy array
         Log posterior masses of points
     """
-    assert nlive.min() > 0, 'nlive contains zeros or negative values!' \
-        'nlive = ' + str(nlive)
+    assert nlive.min() > 0, (
+        'nlive contains zeros or negative values! nlive = ' + str(nlive))
     if simulate:
         logx_steps = np.log(np.random.random(nlive.shape)) / nlive
     else:
@@ -578,10 +585,19 @@ def get_logx(nlive, simulate=False):
 
 def log_subtract(loga, logb):
     """
-    Returns log(a-b) given loga and logb, where loga > logb.
+    Numerically stable way to calculate log(a-b) given loga and logb (where
+    loga > logb) while avoiding overflow errors.
     See https://hips.seas.harvard.edu/blog/2013/01/09/computing-log-sum-exp/
     for more details.
+
+    Parameters
+    ----------
+    loga: float
+    logb: float
+        must be less than loga
+
+    Returns
+    -------
+    log(a - b): float
     """
-    # assert loga >= logb, 'log_subtract: a-b is negative for loga=' + \
-    #                       str(loga) + ' and logb=' + str(logb)
     return loga + np.log(1 - np.exp(logb - loga))
