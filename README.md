@@ -1,4 +1,14 @@
 nestcheck
 =========
-
-Remember to reference the version of PolyChord needed to get birth contours.
+                        _______________________________________
+           .---.__     /                                       \
+          /  /6|__\ --=  Check your nest(ed sampling results)! |
+          \  \/--`     \_______________________________________/
+          /  \\
+         /    )\
+        /  _.' /
+       //~`\\-'        .-.
+      //   (~))   .-. /   \.-.
+jgs  /    ~~~~~  /   \    /   \ ~~~~~
+           ~~~~~~~~~~~~~~~~~~~~~~~~~
+             ~~~~~~~~~~~~~~~~~~~
