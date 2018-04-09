@@ -41,7 +41,18 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
         distributions diaganostic.
     parallel: bool, optional
         whether or not to parallelise - see parallel_utils.parallel_apply
-        docstring fro more details.
+    save_name: str or None, optional
+        See nestcheck.io_utils.save_load_result
+    save: bool, optional
+        See nestcheck.io_utils.save_load_result
+    load: bool, optional
+        See nestcheck.io_utils.save_load_result
+    overwrite_existing: bool, optional
+        See nestcheck.io_utils.save_load_result
+
+    Returns
+    -------
+    df: pandas DataFrame
     """
     thread_pvalue = kwargs.pop('thread_pvalue', False)
     bs_stat_dist = kwargs.pop('bs_stat_dist', False)

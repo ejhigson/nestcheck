@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """
-Functions for processing nested sampling data. Compatible wih MultiNest and
-PolyChord.
+Functions for processing nested sampling data.
 """
 
 import warnings
@@ -17,11 +16,14 @@ except ImportError:
 @nestcheck.io_utils.save_load_result
 def batch_process_data(file_roots, **kwargs):
     """
-    Process many runs in parallel with optional error handling.
+    Process output from many nested sampling runs in parallel with optional error
+    handling and caching.
 
     Can cache result with 'save_name', 'save' and 'load' kwargs (by
     default this is not done). See save_load_result docstring for more details.
 
+    Remaining kwargs passed to parallel_utils.parallel_apply (see its
+    docstring for more details).
 
     Parameters
     ----------
@@ -35,16 +37,14 @@ def batch_process_data(file_roots, **kwargs):
         additional keyword arguments for process_func
     errors_to_handle: error or tuple of errors, optional
         which errors to catch when they occur in processing rather than raising
-
-    Parameters from io_utils.save_load_result decorator (see its docstring for
-    more details):
-        save_name: str, optional
-        save: bool, optional
-        load: bool, optional
-        overwrite_existing: bool, optional
-
-    Remaining kwargs passed to parallel_utils.parallel_apply (see its
-    docstring for more details).
+    save_name: str or None, optional
+        See nestcheck.io_utils.save_load_result
+    save: bool, optional
+        See nestcheck.io_utils.save_load_result
+    load: bool, optional
+        See nestcheck.io_utils.save_load_result
+    overwrite_existing: bool, optional
+        See nestcheck.io_utils.save_load_result
 
     Returns
     -------
@@ -57,7 +57,8 @@ def batch_process_data(file_roots, **kwargs):
     data = nestcheck.parallel_utils.parallel_apply(
         process_error_helper, file_roots, func_args=(base_dir, process_func),
         func_kwargs=func_kwargs, **kwargs)
-    # Sort processed runs into the same order as file_roots
+    # Sort processed runs into the same order as file_roots (as parallel_apply
+    # does not preserve order)
     data = sorted(data,
                   key=lambda x: file_roots.index(x['output']['file_root']))
     # Extract error information and print
