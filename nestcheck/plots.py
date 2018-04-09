@@ -309,8 +309,8 @@ def bs_param_dists(run_list, **kwargs):
     np.random.seed(random_seed)
     if not isinstance(run_list, list):
         run_list = [run_list]
-    assert len(labels) == len(fthetas), \
-        'There should be the same number of axes and labels'
+    assert len(labels) == len(fthetas), (
+        'There should be the same number of axes and labels')
     width_ratios = [40] * len(fthetas) + [1] * len(run_list)
     fig, axes = plt.subplots(nrows=1, ncols=len(run_list) + len(fthetas),
                              gridspec_kw={'wspace': 0.05,

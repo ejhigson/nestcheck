@@ -9,7 +9,7 @@ import functools
 import tqdm
 
 
-def parallel_map(func, *arg_iterable, chunksize=1, **kwargs):
+def parallel_map(func, *arg_iterable, **kwargs):
     """
     Apply function to iterable with parallel map, and hence returns
     results in order. functools.partial is used to freeze func_pre_args and
@@ -45,6 +45,7 @@ def parallel_map(func, *arg_iterable, chunksize=1, **kwargs):
     -------
     results_list: list of function outputs
     """
+    chunksize = kwargs.pop('chunksize', 1)
     func_pre_args = kwargs.pop('func_pre_args', ())
     func_kwargs = kwargs.pop('func_kwargs', {})
     max_workers = kwargs.pop('max_workers', None)
@@ -120,25 +121,16 @@ def parallel_apply(func, arg_iterable, **kwargs):
     if not parallel:
         warnings.warn(('parallel_apply has parallel=False - turn on '
                        'parallelisation for faster processing'), UserWarning)
-        return [func(*func_pre_args, x, *func_args, **func_kwargs) for x in
+        return [func(*(func_pre_args + (x,) + func_args), **func_kwargs) for x in
                 progress(arg_iterable, **tqdm_kwargs)]
     else:
         pool = concurrent.futures.ProcessPoolExecutor(max_workers=max_workers)
         futures = []
         for element in arg_iterable:
-            futures.append(pool.submit(func, *func_pre_args, element,
-                                       *func_args, **func_kwargs))
+            futures.append(pool.submit(
+                func, *(func_pre_args + (element,) + func_args), **func_kwargs))
         results = []
         for fut in progress(concurrent.futures.as_completed(futures),
                             total=len(arg_iterable), **tqdm_kwargs):
             results.append(fut.result())
         return results
-        # # Progress bar for completion of tasks
-        # for _ in progress(concurrent.futures.as_completed(futures),
-        #                   desc=tqdm_desc, leave=tqdm_leave,
-        #                   disable=tqdm_disable, total=len(arg_iterable)):
-        #     pass
-        # # Use concurrent.futures.wait to return results
-        # completed_futures = concurrent.futures.wait(futures)[0]
-        # assert len(completed_futures) == len(arg_iterable)
-        # return [fut.result() for fut in completed_futures]
