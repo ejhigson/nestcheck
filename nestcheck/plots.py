@@ -7,15 +7,15 @@ calculations" (Higson et al. 2018).
 """
 
 import functools
-import numpy as np
-import scipy.stats
+import fgivenx
+import fgivenx.plot
 import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1
-import nestcheck.ns_run_utils
+import numpy as np
+import scipy.stats
 import nestcheck.error_analysis
-import fgivenx.plot
-import fgivenx
+import nestcheck.ns_run_utils
 
 
 def plot_run_nlive(method_names, run_dict, **kwargs):
@@ -30,7 +30,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     ----------
     method_names: list of strs
     run_dict: dict of lists of nested sampling runs.
-        Keys of run_dict must be method_names
+        Keys of run_dict must be method_names.
     logx_given_logl: function, optional
         For mapping points' logl values to logx values.
         If not specified the logx coordinates for each run are estimated using
@@ -44,14 +44,14 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     ymax: bool, optional
         Maximum value for plot's nlive axis (yaxis).
     npoints: int, optional
-        How many points to have in the fgivenx plot grids
+        Number of points to have in the fgivenx plot grids.
     figsize: tuple, optional
         Size of figure in inches.
     post_mass_norm: str or None, optional
-        specify method_name for runs use form normalising the analytic
+        Specify method_name for runs use form normalising the analytic
         posterior mass curve. If None, all runs are used.
     cum_post_mass_norm: str or None, optional
-        specify method_name for runs use form normalising the analytic
+        Specify method_name for runs use form normalising the analytic
         cumulative posterior mass remaining curve. If None, all runs are used.
 
     Returns
@@ -76,8 +76,8 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
     fig = plt.figure(figsize=figsize)
     ax = plt.gca()
     colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-    # reserve colors for certain common method_names so they are always the
-    # same reguardless of method_name order for consistency in the paper
+    # Reserve colors for certain common method_names so they are always the
+    # same regardless of method_name order for consistency in the paper.
     linecolor_dict = {'standard': colors[2],
                       'dynamic $G=0$': colors[8],
                       'dynamic $G=1$': colors[9]}
@@ -175,11 +175,11 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
 
 def kde_plot_df(df, xlims=None, **kwargs):
     """
-    Plots kde estimates of distributions of samples in each cell of the
-    dataframe.
+    Plots kde estimates of distributions of samples in each cell of the input
+    pandas DataFrame.
 
-    There is one subplot for each dataframe column and one kde line for each
-    row on each subplot.
+    There is one subplot for each dataframe column, and on each subplot there
+    is one kde line.
 
     Parameters
     ----------
@@ -189,17 +189,17 @@ def kde_plot_df(df, xlims=None, **kwargs):
         Dictionary of xlimits - keys are column names and values are lists of
         length 2.
     num_xticks: int, optional
-        Number of xticks on each subplot
+        Number of xticks on each subplot.
     figsize: tuple, optional
         Size of figure in inches.
     nrows: int, optional
-        number of rows of subplots
+        Number of rows of subplots.
     ncols: int, optional
-        number of columns of subplots
+        Number of columns of subplots.
     legend: bool, optional
-        should a legend be added?
+        Should a legend be added?
     legend_kwargs: dict, optional
-        additional kwargs for legend
+        Additional kwargs for legend.
 
     Returns
     -------
@@ -256,34 +256,33 @@ def bs_param_dists(run_list, **kwargs):
 
     Parameters
     ----------
-    run_list: nested sampling run or list of runs to plot
+    run_list: dict or list of dicts
+        Nested sampling run(s) to plot.
     fthetas: list of functions, optional
-        quantities to plot. Each must map a 2d theta array to 1d ftheta array -
+        Quantities to plot. Each must map a 2d theta array to 1d ftheta array -
         i.e. map every sample's theta vector (every row) to a scalar quantity.
         E.g. use lambda x: x[:, 0] to plot the first parameter.
     labels: list of strs, optional
-        Labels for each ftheta
+        Labels for each ftheta.
     ftheta_lims: list, optional
-        Plot limits for each ftheta
+        Plot limits for each ftheta.
     n_simulate: int, optional
-        How many bootstrap replications should be used for the fgivenx
-        distributions?
+        Number of bootstrap replications to be used for the fgivenx
+        distributions.
     random_seed: int, optional
         Seed to make sure results are consistent and fgivenx caching can be used.
     figsize: tuple, optional
-        matplotlib figsize in inches
-    figsize: tuple, optional
-        Size of figure in inches.
+        Matplotlib figsize in (inches).
     nx: int, optional
-        size of x-axis grid for fgivenx plots
+        Size of x-axis grid for fgivenx plots.
     ny: int, optional
-        size of y-axis grid for fgivenx plots
+        Size of y-axis grid for fgivenx plots.
     cache: str or None
-        root for fgivenx caching (no caching if None)
+        Root for fgivenx caching (no caching if None).
     parallel: bool, optional
-        fgivenx parallel option
+        fgivenx parallel option.
     rasterize_contours: bool, optional
-        fgivenx rasterize_contours option
+        fgivenx rasterize_contours option.
 
     Returns
     -------
@@ -347,7 +346,7 @@ def bs_param_dists(run_list, **kwargs):
         ax.set_xlabel(labels[nax])
         if ax.is_first_col():
             ax.set_ylabel('probability')
-        # Prune final xtick label so it dosn't overlap with next plot
+        # Prune final xtick label so it doesn't overlap with next plot
         prune = 'upper' if nax != len(fthetas) - 1 else None
         ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(
             nbins=5, prune=prune))
@@ -366,43 +365,39 @@ def param_logx_diagram(run_list, **kwargs):
 
     Parameters
     ----------
-    run_list: nested sampling run or list of runs to plot
+    run_list: dict or list of dicts
+        Nested sampling run(s) to plot.
     fthetas: list of functions, optional
-        quantities to plot. Each must map a 2d theta array to 1d ftheta array -
+        Quantities to plot. Each must map a 2d theta array to 1d ftheta array -
         i.e. map every sample's theta vector (every row) to a scalar quantity.
         E.g. use lambda x: x[:, 0] to plot the first parameter.
     labels: list of strs, optional
-        Labels for each ftheta
+        Labels for each ftheta.
     ftheta_lims: dict, optional
-        Plot limits for each ftheta
+        Plot limits for each ftheta.
     plot_means: bool, optional
         Should the mean value of each ftheta be plotted?
     n_simulate: int, optional
-        How many bootstrap replications should be used for the fgivenx
-        distributions?
+        Number of bootstrap replications to use for the fgivenx distributions.
     random_seed: int, optional
         Seed to make sure results are consistent and fgivenx caching can be used.
     logx_min: float, optional
         Lower limit of logx axis.
     figsize: tuple, optional
-        matplotlib figsize in inches
+        Matplotlib figure size (in inches).
     colors: list of strs, optional
-        colors to plot run scatter plots with
+        Colors to plot run scatter plots with.
     colormaps: list of strs, optional
-        colormaps to plot run fgivenx plots with
+        Colormaps to plot run fgivenx plots with.
     npoints: int, optional
         How many points to have in the logx array used to calculate and plot
         analytical weights.
-    figsize: tuple, optional
-        Size of figure in inches.
-    npoints: int, optional
-        size of grid for fgivenx plots
     cache: str or None
-        root for fgivenx caching (no caching if None)
+        Root for fgivenx caching (no caching if None).
     parallel: bool, optional
-        fgivenx parallel option
+        fgivenx parallel option.
     rasterize_contours: bool, optional
-        fgivenx rasterize_contours option
+        fgivenx rasterize_contours option.
 
     Returns
     -------
@@ -547,7 +542,7 @@ def param_logx_diagram(run_list, **kwargs):
     # Add labels
     for i, label in enumerate(labels):
         axes[i + 1, 0].set_ylabel(label)
-        # Prune final ytick label so it dosn't overlap with next plot
+        # Prune final ytick label so it doesn't overlap with next plot
         prune = 'upper' if i != 0 else None
         axes[i + 1, 0].yaxis.set_major_locator(
             matplotlib.ticker.MaxNLocator(nbins=3, prune=prune))
@@ -571,41 +566,43 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
 
     Parameters
     ----------
-    run: nested sampling run
+    run: dict
+        Nested sampling run to plot.
     fthetas: list of functions
-        quantities to plot. Each must map a 2d theta array to 1d ftheta array -
+        Quantities to plot. Each must map a 2d theta array to 1d ftheta array -
         i.e. map every sample's theta vector (every row) to a scalar quantity.
         E.g. use lambda x: x[:, 0] to plot the first parameter.
     axes: list of matplotlib axis objects
     ftheta_lims: list, optional
-        Plot limits for each ftheta
+        Plot limits for each ftheta.
     n_simulate: int, optional
-        How many bootstrap replications should be used for the fgivenx
-        distributions?
+        Number of bootstrap replications to use for the fgivenx
+        distributions.
     colormap: matplotlib colormap
-        colors to plot fgivenx distribution
+        Colors to plot fgivenx distribution.
     mean_color: matplotlib color as str
-        color to plot mean of each parameter. If None (default) means are not
+        Color to plot mean of each parameter. If None (default) means are not
         plotted.
     nx: int, optional
-        size of x-axis grid for fgivenx plots
+        Size of x-axis grid for fgivenx plots.
     ny: int, optional
-        size of y-axis grid for fgivenx plots
+        Size of y-axis grid for fgivenx plots.
     cache: str or None
-        root for fgivenx caching (no caching if None)
+        Root for fgivenx caching (no caching if None).
     parallel: bool, optional
-        fgivenx parallel option
+        fgivenx parallel option.
     rasterize_contours: bool, optional
-        fgivenx rasterize_contours option
+        fgivenx rasterize_contours option.
     smooth: bool, optional
-        fgivenx smooth option
+        fgivenx smooth option.
     flip_axes: bool, optional
-        whether plot should be rotated 90 degrees anticlockwise to be on its
-        side
+        Whether or not plot should be rotated 90 degrees anticlockwise onto its
+        side.
 
     Returns
     -------
-    cbar: matplotlib colorbar for use in higher order functions
+    cbar: matplotlib colorbar
+        For use in higher order functions.
     """
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     n_simulate = kwargs.pop('n_simulate', 100)
@@ -710,9 +707,9 @@ def weighted_1d_gaussian_kde(x, samples, weights):
     Parameters
     ----------
     x: 1d numpy array
-        Coordinates at which to evaluate the kde
+        Coordinates at which to evaluate the kde.
     samples: 1d numpy array
-        Samples from which to calculate kde
+        Samples from which to calculate kde.
     weights: 1d numpy array of same shape as samples
         Weights of each point. Need not be normalised as this is done inside
         the function.
@@ -720,7 +717,7 @@ def weighted_1d_gaussian_kde(x, samples, weights):
     Returns
     -------
     result: 1d numpy array of same shape as x
-        kde evaluated at x values
+        Kde evaluated at x values.
     """
     assert x.ndim == 1
     assert samples.ndim == 1
@@ -756,14 +753,14 @@ def rel_posterior_mass(logx, logl):
     Parameters
     ----------
     logx: 1d numpy array
-        logx values at which to calculate posterior mass.
+        Logx values at which to calculate posterior mass.
     logl: 1d numpy array
-        logl values corresponding to each logx (same shape as logx).
+        Logl values corresponding to each logx (same shape as logx).
 
     Returns
     -------
     w_rel: 1d numpy array
-        Relative posterior mass at each input logx value
+        Relative posterior mass at each input logx value.
     """
     logw = logx + logl
     w_rel = np.exp(logw - logw.max())

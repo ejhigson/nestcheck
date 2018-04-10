@@ -3,9 +3,9 @@
 Parallel wrapper functions using the concurrent.futures module.
 """
 
-import warnings
 import concurrent.futures
 import functools
+import warnings
 import tqdm
 
 
@@ -31,7 +31,7 @@ def parallel_map(func, *arg_iterable, **kwargs):
     func_pre_args: tuple, optional
         Positional arguments to place before the iterable argument in func.
     func_kwargs: dict, optional
-        Additional keyword argumnets for func.
+        Additional keyword arguments for func.
     parallel: bool, optional
         To turn off parallelisation if needed.
     max_workers: int or None, optional
@@ -64,7 +64,7 @@ def parallel_map(func, *arg_iterable, **kwargs):
 
 def parallel_apply(func, arg_iterable, **kwargs):
     """
-    Apply function to iterable with paralleisation and a tqdm progress bar.
+    Apply function to iterable with parallelisation and a tqdm progress bar.
 
     Roughly equivalent to
 
@@ -83,7 +83,7 @@ def parallel_apply(func, arg_iterable, **kwargs):
     func_pre_args: tuple, optional
         Positional arguments to place before the iterable argument in func.
     func_kwargs: dict, optional
-        Additional keyword argumnets for func.
+        Additional keyword arguments for func.
     parallel: bool, optional
         To turn off parallelisation if needed.
     max_workers: int or None, optional

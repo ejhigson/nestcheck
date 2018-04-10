@@ -6,11 +6,11 @@ runs.
 
 import numpy as np
 import pandas as pd
+import nestcheck.error_analysis
+import nestcheck.io_utils
 import nestcheck.ns_run_utils
 import nestcheck.parallel_utils as pu
 import nestcheck.pandas_functions as pf
-import nestcheck.error_analysis
-import nestcheck.io_utils
 
 
 @nestcheck.io_utils.save_load_result

@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """
-Transformations for pandas data frames.
+Useful transformations and operations on pandas DataFrames.
 """
 
-
-import warnings
 import copy
+import warnings
 import numpy as np
 import pandas as pd
 
@@ -21,14 +20,14 @@ def summary_df_from_array(results_array, names, axis=0, **kwargs):
     ----------
     results_array: 2d numpy array
     names: list of str
-        names for the output df's columns
+        Names for the output df's columns.
     axis: int, optional
-        axis on which to calculate summary statistics
+        Axis on which to calculate summary statistics.
 
     Returns
     -------
     df: MultiIndex DataFrame
-        see summary_df docstring for more details
+        See summary_df docstring for more details.
     """
     assert axis == 0 or axis == 1
     df = pd.DataFrame(results_array)
@@ -47,14 +46,17 @@ def summary_df_from_list(results_list, names, **kwargs):
 
     Parameters
     ----------
-    results_list: list of 1d numpy arrays of length names
-    names: list of str
-        names for the output df's columns
+    results_list: list of 1d numpy arrays
+        Must have same length as names.
+    names: list of strs
+        Names for the output df's columns.
+    kwargs: dict, optional
+        Keyword arguments to pass to summary_df.
 
     Returns
     -------
     df: MultiIndex DataFrame
-        see summary_df docstring for more details
+        See summary_df docstring for more details.
     """
     for arr in results_list:
         assert arr.shape == (len(names),)
@@ -65,11 +67,19 @@ def summary_df_from_list(results_list, names, **kwargs):
 
 def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
     """
-    summary_df with option to preserve some indexes of a multiindex.
+    Apply summary_df to a multiindex while preserving some levels.
+
+    Parameters
+    ----------
+    multi_in: multiindex pandas DataFrame
+    inds_to_keep: None or list of strs, optional
+        Index levels to preserve.
+    kwargs: dict, optional
+        Keyword arguments to pass to summary_df.
     """
     if inds_to_keep is None:
         inds_to_keep = list(multi_in.index.names)[:-1]
-    # Need to pop include true values and add seperately at the end as
+    # Need to pop include true values and add separately at the end as
     # otherwise we get multiple true values added
     include_true_values = kwargs.pop('include_true_values', False)
     true_values = kwargs.get('true_values', None)
@@ -107,12 +117,15 @@ def summary_df(df_in, **kwargs):
 
     Parameters
     ----------
-    df_in: data frame
+    df_in: pandas DataFrame
     true_values: array
-        analytical values if known for comparison with mean. Used to
+        Analytical values if known for comparison with mean. Used to
         calculate root mean squared errors (RMSE).
     include_true_values: bool, optional
+        Whether or not to include true values in the output DataFrame.
     include_rmse: bool, optional
+        Whether or not to include root-mean-squared-errors in the output
+        DataFrame.
 
 
     Returns
@@ -166,7 +179,7 @@ def summary_df(df_in, **kwargs):
         df.loc[('rmse', 'uncertainty'), :] = rmse_unc
     # Ensure correct row order by sorting
     df.sort_index(inplace=True)
-    # Cast calclulation type index back from categorical to string to allow
+    # Cast calculation type index back from categorical to string to allow
     # adding new calculation types
     df.set_index(
         [df.index.get_level_values('calculation type').astype(str),
@@ -180,6 +193,9 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     Calculated data frame showing
 
     efficiency gain ~ [(st dev standard) / (st dev new method)] ** 2
+
+    See the dynamic nested sampling paper (Higson et al. 2017) for more
+    details.
 
     The standard method on which to base the gain is assumed to be the first
     method input.
@@ -198,7 +214,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     Returns
     -------
     results: pandas data frame
-        results data frame.
+        Results data frame.
         Contains rows:
             mean [dynamic goal]: mean calculation result for standard nested
                 sampling and dynamic nested sampling with each input dynamic
@@ -234,7 +250,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
             if include_rmse:
                 stats.append('rmse')
             for stat in stats:
-                # Calculate efficiency gain vs standard ns
+                # Calculate efficiency gain vs standard nested sampling
                 ratio = (df_dict[method_names[0]].loc[(stat, 'value')]
                          / df.loc[(stat, 'value')])
                 ratio_unc = array_ratio_std(
@@ -246,7 +262,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
                 df.loc[(key, 'value'), :] = ratio ** 2
                 df.loc[(key, 'uncertainty'), :] = 2 * ratio * ratio_unc
                 if adjust_nsamp is not None:
-                    # Efficiency gain meansures performance per number of
+                    # Efficiency gain measures performance per number of
                     # samples (proportional to computational work). If the
                     # number of samples is not the same we can adjust this.
                     adjust = (adjust_nsamp[0] / adjust_nsamp[i])
@@ -278,7 +294,16 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
 def paper_format_efficiency_gain_df(eff_gain_df):
     """
     Transform efficiency gain data frames output by nestcheck into the format
-    used in the dns paper.
+    shown in the dynamic nested sampling paper (Higson et al. 2017).
+
+    Parameters
+    ----------
+    eff_gain_df: pandas DataFrame
+        DataFrame of the from produced by efficiency_gain_df.
+
+    Returns
+    -------
+    paper_df: pandas DataFrame
     """
     paper_df = copy.deepcopy(
         eff_gain_df.loc[pd.IndexSlice[['std', 'std efficiency gain'], :, :], :])
@@ -306,9 +331,35 @@ def paper_format_efficiency_gain_df(eff_gain_df):
     return paper_df
 
 
+# Helper functions
+# ----------------
+
+
 def rmse_and_unc(values_array, true_values):
     """
     Calculate the root meet squared error and its numerical uncertainty.
+
+    With a reasonably large number of values in values_list the uncertainty
+    on sq_errors should be approximately normal (from the central limit
+    theorem).
+    Uncertainties are calculated via error propagation: if sigma is the error
+    on X then the error on X^0.5
+    is (X^0.5 / X) * 0.5 * sigma = 0.5 * (X^-0.5) * sigma
+
+    Parameters
+    ----------
+    values_array: 2d numpy array
+        Array of results: each row corresponds to a different estimate of the
+        quantities considered.
+    true_values: 1d numpy array
+        Correct values for the quantities considered.
+
+    Returns
+    -------
+    rmse: 1d numpy array
+        Root-mean-squared-error for each quantity.
+    rmse_unc: 1d numpy array
+        Numerical uncertainties on each element of rmse.
     """
     assert true_values.shape == (values_array.shape[1],)
     errors = values_array - true_values[np.newaxis, :]
@@ -316,11 +367,6 @@ def rmse_and_unc(values_array, true_values):
     sq_errors_mean = np.mean(sq_errors, axis=0)
     sq_errors_mean_unc = (np.std(sq_errors, axis=0, ddof=1) /
                           np.sqrt(sq_errors.shape[0]))
-    # With a reasonably large number of values in values_list the uncertainty
-    # on sq_errors should be approximately normal (from the central limit
-    # theorem).
-    # Use error propogation: if sigma is the error on X then the error on X^0.5
-    # is (X^0.5 / X) * 0.5 * sigma = 0.5 * (X^-0.5) * sigma
     rmse = np.sqrt(sq_errors_mean)
     rmse_unc = 0.5 * (1 / rmse) * sq_errors_mean_unc
     return rmse, rmse_unc
@@ -333,5 +379,6 @@ def array_ratio_std(values_n, sigmas_n, values_d, sigmas_d):
     This assumes covariance = 0. _n and _d denote the numerator and
     denominator.
     """
-    return (values_n / values_d) * (((sigmas_n / values_n) ** 2 +
-                                     (sigmas_d / values_d) ** 2)) ** 0.5
+    std = np.sqrt((sigmas_n / values_n) ** 2 + (sigmas_d / values_d) ** 2)
+    std *= (values_n / values_d)
+    return std

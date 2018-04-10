@@ -4,11 +4,11 @@ Contains helper functions for saving, loading and input/output.
 """
 
 
-import time
-import warnings
-import pickle
 import functools
 import os.path
+import pickle
+import time
+import warnings
 
 
 def timing_decorator(func):
@@ -51,20 +51,20 @@ def save_load_result(func):
         Parameters
         ----------
         save_name: str, optional
-            file name including directory and excluding extension.
+            File name including directory and excluding extension.
         save: bool, optional
-            whether or not to save
+            Whether or not to save.
         load: bool, optional
-            whether or not to load
+            Whether or not to load.
         overwrite existing: bool, optional
             When the save path already contains file: if True, file will be
             overwritten, if False the data will be saved with the system time
-            appended to the file name
+            appended to the file name.
 
         Returns
         -------
-        result:
-            func output
+        Result
+            func output.
         """
         save_name = kwargs.pop('save_name', None)
         save = kwargs.pop('save', save_name is not None)
@@ -101,15 +101,15 @@ def pickle_save(data, name, **kwargs):
     Parameters
     ----------
     data: anything picklable
-        object to save
+        Object to save.
     name: str
-        path to save to (includes dir, excludes extension).
+        Path to save to (includes dir, excludes extension).
     extension: str, optional
-        file extension.
+        File extension.
     overwrite existing: bool, optional
         When the save path already contains file: if True, file will be
         overwritten, if False the data will be saved with the system time
-        appended to the file name
+        appended to the file name.
     """
     extension = kwargs.pop('extension', '.pkl')
     overwrite_existing = kwargs.pop('overwrite_existing', True)
@@ -141,13 +141,13 @@ def pickle_load(name, extension='.pkl'):
     Parameters
     ----------
     name: str
-        path to save to (includes dir, excludes extension).
+        Path to save to (includes dir, excludes extension).
     extension: str, optional
-        file extension.
+        File extension.
 
     Returns
     -------
-    contents of file path
+    Contents of file path.
     """
     filename = name + extension
     infile = open(filename, 'rb')

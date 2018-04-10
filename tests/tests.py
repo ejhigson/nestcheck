@@ -2,25 +2,25 @@
 """
 Test the nestcheck module.
 """
+import functools
 import os
 import sys
 import shutil
 import unittest
-import functools
+import matplotlib
 import numpy as np
 import numpy.testing
 import pandas as pd
 import pandas.testing
-import matplotlib
 import scipy.special
-import nestcheck.parallel_utils
-import nestcheck.io_utils
-import nestcheck.estimators as e
-import nestcheck.ns_run_utils
-import nestcheck.error_analysis
-import nestcheck.plots
 import nestcheck.data_processing
 import nestcheck.diagnostics_tables
+import nestcheck.error_analysis
+import nestcheck.estimators as e
+import nestcheck.io_utils
+import nestcheck.ns_run_utils
+import nestcheck.parallel_utils
+import nestcheck.plots
 
 
 TEST_CACHE_DIR = 'cache_tests'

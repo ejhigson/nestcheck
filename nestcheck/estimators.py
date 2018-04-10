@@ -21,6 +21,17 @@ def get_latex_name(func_in, **kwargs):
     """
     Produce a latex formatted name for each function for use in labelling
     results.
+
+    Parameters
+    ----------
+    func_in: function
+    kwargs: dict, optional
+        Kwargs for function.
+
+    Returns
+    -------
+    latex_name: str
+        Latex formatted name for the function.
     """
     if isinstance(func_in, functools.partial):
         func = func_in.func
@@ -146,16 +157,21 @@ def r_cred(ns_run, logw=None, simulate=False, probability=0.5):
 
 def weighted_quantile(probability, values, weights):
     """
-    Get quantile estimate for input probability given weighted samples.
+    Get quantile estimate for input probability given weighted samples using
+    linear interpolation.
 
     Parameters
     ----------
     probability: float
         Quantile to estimate - must be in open interval (0, 1).
     values: 1d numpy array
-        Sample values
+        Sample values.
     weights: 1d numpy array
-        Corresponding sample weights (same shape as values)
+        Corresponding sample weights (same shape as values).
+
+    Returns
+    -------
+    quantile: float
     """
     assert 1 > probability > 0, (
         'credible interval prob= ' + str(probability) + ' not in (0, 1)')
