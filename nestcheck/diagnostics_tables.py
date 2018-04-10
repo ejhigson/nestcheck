@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-Diagnostic tests for nested sampling runs.
+Functions for getting diagnostic test results for batches of nested sampling
+runs.
 """
 
 import numpy as np
@@ -26,13 +27,13 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     Parameters
     ----------
     run_list: list of dicts
-        list of nested sampling runs
+        List of nested sampling run dicts.
     estimator_list: list of functions
-        Estimators to apply to runs
+        Estimators to apply to runs.
     estimator_names: list of strs
-        must be same length as estimator_list
+        Name of each func in estimator_list.
     n_simulate: int, optional
-        number of bootstrap replications to use on each run
+        Number of bootstrap replications to use on each run.
     thread_pvalue: bool, optional
         Whether or not to compute KS test diaganostic for correlations between
         threads within a run.
@@ -40,19 +41,20 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
         Whether or not to compute statistical distance between bootstrap error
         distributions diaganostic.
     parallel: bool, optional
-        whether or not to parallelise - see parallel_utils.parallel_apply
+        Whether or not to parallelise - see parallel_utils.parallel_apply.
     save_name: str or None, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
     save: bool, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
     load: bool, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
     overwrite_existing: bool, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
 
     Returns
     -------
     df: pandas DataFrame
+        Results table.
     """
     thread_pvalue = kwargs.pop('thread_pvalue', False)
     bs_stat_dist = kwargs.pop('bs_stat_dist', False)
@@ -126,9 +128,15 @@ def error_values_summary(error_values, **summary_df_kwargs):
     Parameters
     ----------
     error_values: pandas DataFrame
-        Of format output by run_list_error_values (look at it for more details)
+        Of format output by run_list_error_values (look at it for more
+        details).
     summary_df_kwargs: dict, optional
         See pandas_functions.summary_df docstring for more details.
+
+    Returns
+    -------
+    df: pandas DataFrame
+        Table of results.
     """
     df = pf.summary_df_from_multi(error_values, **summary_df_kwargs)
     # get implementation stds
@@ -160,7 +168,7 @@ def run_list_error_summary(run_list, estimator_list, estimator_names,
     """
     Wrapper which runs run_list_error_values then applies error_values summary
     to the resulting dataframe. See the docstrings for those two funcions for
-    more details.
+    more details and for descriptions of parameters and output.
     """
     true_values = kwargs.pop('true_values', None)
     include_true_values = kwargs.pop('include_true_values', False)
@@ -177,12 +185,25 @@ def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
     """
     Computes a data frame of bootstrap resampled values.
 
+    Parameters
+    ----------
+    run_list: list of dicts
+        List of nested sampling run dicts.
+    estimator_list: list of functions
+        Estimators to apply to runs.
+    estimator_names: list of strs
+        Name of each func in estimator_list.
+    n_simulate: int
+        Number of bootstrap replications to use on each run.
+    kwargs:
+        Kwargs to pass to parallel_apply.
+
     Returns
     -------
     bs_values_df: pandas data frame
-        columns represent estimators and rows represent runs.
-        each list element is an array of bootstrap resampled values of that
-        estimator applied to that run.
+        Columns represent estimators and rows represent runs.
+        Each cell contains a 1d array of bootstrap resampled values for the run
+        and estimator.
     """
     tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'desc': 'bs values'})
     assert len(estimator_list) == len(estimator_names), (
@@ -197,15 +218,36 @@ def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
         df[name] = [arr[i, :] for arr in bs_values_list]
     # Check there are the correct number of bootstrap replications in each cell
     for vals_shape in df.loc[0].apply(lambda x: x.shape).values:
-        assert vals_shape == (n_simulate,), \
-            ('Should be n_simulate=' + str(n_simulate) + ' values in ' +
-             'each cell. The cell contains array with shape ' +
-             str(vals_shape))
+        assert vals_shape == (n_simulate,), (
+            'Should be n_simulate=' + str(n_simulate) + ' values in ' +
+            'each cell. The cell contains array with shape ' +
+            str(vals_shape))
     return df
 
 
 def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
-    """Returns df containing estimator values for individual threads."""
+    """
+    Calculates estimator values for the constituent threads of the input runs.
+
+    Parameters
+    ----------
+    run_list: list of dicts
+        List of nested sampling run dicts.
+    estimator_list: list of functions
+        Estimators to apply to runs.
+    estimator_names: list of strs
+        Name of each func in estimator_list.
+    kwargs:
+        Kwargs to pass to parallel_apply.
+
+    Returns
+    -------
+    df: pandas data frame
+        Columns represent estimators and rows represent runs.
+        Each cell contains a 1d numpy array with length equal to the number
+        of threads in the run, containing the results from evaluating the
+        estimator on each thread.
+    """
     tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'desc': 'thread values'})
     assert len(estimator_list) == len(estimator_names), (
         'len(estimator_list) = {0} != len(estimator_names = {1}'

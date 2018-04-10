@@ -1,6 +1,31 @@
 #!/usr/bin/env python
 """
 Functions for processing nested sampling software output.
+
+Nested sampling runs are stored in a standard format as python dictionaries.
+For a run with nsamp samples, the keys are:
+
+    logl: 1d numpy array
+        Log-likelihood values (floats) for each sample.
+        Shape is (nsamp,).
+    thread_labels: 1d numpy array
+        Int representing which thread each point belongs to.
+        For some thread label k, the thread's start (birth) log-likelihood and
+        end log-likelihood are given by thread_min_max[k, :]
+        Shape is (nsamp,).
+    thread_min_max: 2d numpy array
+        Shape is (# threads, 2).
+        Each row k contains min logl (birth contour) and max logl for thread with
+        thread label i.
+    theta: 2d numpy array
+        Parameter values for samples - each row represents a sample.
+        Shape is (nsamp, d) where d is number of dimensions.
+    nlive_array: 1d numpy array
+        Number of live points present between the previous point and this point.
+    output: dict (optional)
+        Dict containing extra information about the run.
+
+Samples are arranged in ascending order of logl.
 """
 
 import warnings
@@ -19,7 +44,7 @@ def batch_process_data(file_roots, **kwargs):
     Process output from many nested sampling runs in parallel with optional error
     handling and caching.
 
-    Can cache result with 'save_name', 'save' and 'load' kwargs (by
+    The result can be cached usin the 'save_name', 'save' and 'load' kwargs (by
     default this is not done). See save_load_result docstring for more details.
 
     Remaining kwargs passed to parallel_utils.parallel_apply (see its
@@ -34,21 +59,24 @@ def batch_process_data(file_roots, **kwargs):
     process_func: function, optional
         function to use to process the data.
     func_kwargs: dict, optional
-        additional keyword arguments for process_func
+        additional keyword arguments for process_func.
     errors_to_handle: error or tuple of errors, optional
-        which errors to catch when they occur in processing rather than raising
+        which errors to catch when they occur in processing rather than
+        raising.
     save_name: str or None, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
     save: bool, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
     load: bool, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
     overwrite_existing: bool, optional
-        See nestcheck.io_utils.save_load_result
+        See nestcheck.io_utils.save_load_result.
 
     Returns
     -------
     list of ns_run dicts
+        List of nested sampling runs in dict format (see module docstring for
+        more details).
     """
     base_dir = kwargs.pop('base_dir', 'chains')
     process_func = kwargs.pop('process_func', process_polychord_run)
@@ -89,7 +117,27 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
 
     OSError: if you are not sure if all the files exist
     AssertionError: if some of the many assertions fail for known reasons - e.g.
-        there is an occasional non-unique logl due to limited numerical precision.
+        there is an occasional non-unique logl due to limited numerical
+        precision.
+
+    Parameters
+    ----------
+    root: str
+        File root.
+    base_dir: str
+        Directory containing file.
+    process_func: func
+        Function for processing file.
+    errors_to_handle: error type or tuple of error types
+        Errors to catch without throwing an exception.
+    func_kwargs: dict
+        Kwargs to pass to process_func.
+
+    Returns
+    -------
+    run: dict
+        Nested sampling run dict (see module docstring for more details) or, if
+        an error occured, a dict containing its type and the file root.
     """
     try:
         return process_func(root, base_dir, **func_kwargs)
@@ -118,7 +166,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     Returns
     -------
     ns_run: dict
-        nested sampling run
+        Nested sampling run dict (see module docstring for more details).
     """
     dead_points = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
     ns_run = process_polychord_dead_points(dead_points)
@@ -154,7 +202,9 @@ def process_polychord_dead_points(dead_points, init_birth=-1e+30):
     Returns
     -------
     ns_run: dict
-        nested sampling run
+        Nested sampling run dict (see module docstring for more details). Only
+        contains information in dead_points (not additional optional output
+        key).
     """
     dead_points = dead_points[np.argsort(dead_points[:, -2])]
     ns_run = {}
@@ -277,17 +327,8 @@ def threads_given_birth_contours(logl, birth_logl, init_birth=-1e+30):
 
 def check_ns_run(run, logl_warn_only=False):
     """
-    Checks a nestcheck format nested sampling run has the expected properties.
-
-    It should be a dictionary with keys:
-        logl: 1d numpy array of logl values (floats)
-        thread_labels: 1d numpy array of which thread each point refers to.
-        thread_min_max: 2d numpy array with shape (# threads, 2). Each row i
-            contains min logl (birth contour) and max logl for thread with
-            thread label i.
-        theta: 2d numpy array of samples. Each row represents a sample.
-        nlive_array: 1d numpy array of number of live points at each step.
-        output: (optional) dict containing extra info about run.
+    Checks a nestcheck format nested sampling run dictionary has the expected
+    properties (see the module docstring for more details).
 
     Parameters
     ----------
@@ -392,12 +433,12 @@ def check_ns_run_threads(run):
     Parameters
     ----------
     run: dict
-        nested sampling run to check.
+        Nested sampling run to check.
 
     Raises
     ------
     AssertionError
-        if run does not have expected properties.
+        If run does not have expected properties.
     """
     assert run['thread_labels'].dtype == int
     uniq_th = np.unique(run['thread_labels'])

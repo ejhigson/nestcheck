@@ -1,6 +1,31 @@
 #!/usr/bin/env python
 """
-Functions for analysing nested sampling runs and calculating results.
+Functions for performing operations nested sampling runs.
+
+Nested sampling runs are stored in a standard format as python dictionaries.
+For a run with nsamp samples, the keys are:
+
+    logl: 1d numpy array
+        Log-likelihood values (floats) for each sample.
+        Shape is (nsamp,).
+    thread_labels: 1d numpy array
+        Int representing which thread each point belongs to.
+        For some thread label k, the thread's start (birth) log-likelihood and
+        end log-likelihood are given by thread_min_max[k, :]
+        Shape is (nsamp,).
+    thread_min_max: 2d numpy array
+        Shape is (# threads, 2).
+        Each row k contains min logl (birth contour) and max logl for thread with
+        thread label i.
+    theta: 2d numpy array
+        Parameter values for samples - each row represents a sample.
+        Shape is (nsamp, d) where d is number of dimensions.
+    nlive_array: 1d numpy array
+        Number of live points present between the previous point and this point.
+    output: dict (optional)
+        Dict containing extra information about the run.
+
+Samples are arranged in ascending order of logl.
 """
 
 import copy
@@ -17,11 +42,12 @@ def run_estimators(ns_run, estimator_list, simulate=False):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dictionary.
+        Nested sampling run dict (see module docstring for more details).
     estimator_list: list of functions for estimating quantities from nested
         sampling runs. Example functions can be found in estimators.py. Each
-        should have arguments: func(ns_run, logw=None)
+        should have arguments: func(ns_run, logw=None).
     simulate: bool, optional
+        See get_logw docstring.
 
     Returns
     -------
@@ -44,12 +70,12 @@ def array_given_run(ns_run):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dictionary.
+        Nested sampling run dict (see module docstring for more details).
 
     Returns
     -------
-    samples: numpy array
-        Numpy array containing columns
+    samples: 2d numpy array
+        Array containing columns
         [logl, thread label, change in nlive at sample, (thetas)]
         with each row representing a single sample.
     """
@@ -66,7 +92,12 @@ def array_given_run(ns_run):
 def dict_given_run_array(samples, thread_min_max):
     """
     Converts an array of information about samples back into a nested sampling
-    run dictionary.
+    run dictionary (see module docstring for more details).
+
+    N.B. the output dict only keys: 'logl', 'thread_label', 'nlive_array',
+    'theta'. Any other keys giving additional information about the run
+    output cannot be reproduced from the function arguments and are
+    therefore ommitted.
 
     Parameters
     ----------
@@ -82,28 +113,24 @@ def dict_given_run_array(samples, thread_min_max):
     Returns
     -------
     ns_run: dict
-        Nested sampling run dictionary corresponding to the samples array.
-        Contains keys: 'logl', 'thread_label', 'nlive_array',
-        'theta'
-        N.B. this does not contain any other keys giving additional information
-        about the run output.
+        Nested sampling run dict (see module docstring for more details).
     """
     ns_run = {'logl': samples[:, 0],
               'thread_labels': samples[:, 1].astype(int),
               'thread_min_max': thread_min_max,
               'theta': samples[:, 3:]}
-    assert np.array_equal(samples[:, 1], ns_run['thread_labels']), \
-        ('Casting thread labels from samples array to int has changed ' +
-         'their values!')
+    assert np.array_equal(samples[:, 1], ns_run['thread_labels']), (
+        'Casting thread labels from samples array to int has changed ' +
+        'their values!')
     nlive_0 = (thread_min_max[:, 0] < ns_run['logl'].min()).sum()
     nlive_array = np.zeros(samples.shape[0]) + nlive_0
     nlive_array[1:] += np.cumsum(samples[:-1, 2])
-    assert nlive_array.min() > 0, \
-        ('nlive contains 0s or negative values.' +
-         '\nnlive_array = ' + str(nlive_array) +
-         '\nthread_min_max=' + str(thread_min_max))
-    assert nlive_array[-1] == 1, 'final point in nlive_array != 1.' \
-        '\nnlive_array = ' + str(nlive_array)
+    assert nlive_array.min() > 0, (
+        'nlive contains 0s or negative values.' +
+        '\nnlive_array = ' + str(nlive_array) +
+        '\nthread_min_max=' + str(thread_min_max))
+    assert nlive_array[-1] == 1, (
+        'final point in nlive_array != 1.\nnlive_array = ' + str(nlive_array))
     ns_run['nlive_array'] = nlive_array
     return ns_run
 
@@ -115,8 +142,7 @@ def get_run_threads(ns_run):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dictionary.
-        Contains keys: 'logl', 'thread_label', 'nlive_array', 'theta'
+        Nested sampling run dict (see module docstring for more details).
 
     Returns
     -------
@@ -137,26 +163,31 @@ def get_run_threads(ns_run):
         thread_array[:, 2] = 0
         thread_array[-1, 2] = -1
         min_max = np.reshape(ns_run['thread_min_max'][i, :], (1, 2))
-        assert min_max[0, 1] == thread_array[-1, 0], \
-            'thread max logl should equal logl of its final point!'
+        assert min_max[0, 1] == thread_array[-1, 0], (
+            'thread max logl should equal logl of its final point!')
         threads.append(dict_given_run_array(thread_array, min_max))
     return threads
 
 
 def combine_ns_runs(run_list_in, logl_warn_only=True):
     """
-    Combine a list of complete ns runs (each without any repeated threads)
-    into a single ns run.
+    Combine a list of complete nested sampling run dictionaries into a single
+    ns run.
+
+    Input runs must contain any repeated threads.
 
     Parameters
     ----------
-    run_list_in: list of nested sampling run dicts
+    run_list_in: list of dicts
+        List of nested sampling runs in dict format (see module docstring
+        for more details).
     logl_warn_only: bool, optional
-        Passed to check_ns_run (see its docs for more details)
+        See check_ns_run docstring for more details.
 
     Returns
     -------
-    run: nested sampling run dict
+    run: dict
+        Nested sampling run dict (see module docstring for more details).
     """
     run_list = copy.deepcopy(run_list_in)
     nthread_tot = 0
@@ -187,7 +218,8 @@ def combine_threads(threads, assert_birth_point=False):
 
     Parameters
     ----------
-    threads: list of thread dicts
+    threads: list of dicts
+        List of nested sampling run dicts, each representing a single thread.
     assert_birth_point: bool, optional
         Whether or not to assert there is exactly one point present in the run with
         the log-likelihood at which each point was born. This is not true for
@@ -196,7 +228,8 @@ def combine_threads(threads, assert_birth_point=False):
 
     Returns
     -------
-    run: nested sampling run dict
+    run: dict
+        Nested sampling run dict (see module docstring for more details).
     """
     thread_min_max = np.vstack([td['thread_min_max'] for td in threads])
     assert len(threads) == thread_min_max.shape[0]
@@ -250,7 +283,7 @@ def get_logw(ns_run, simulate=False):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dictionary containing keys:
+        Nested sampling run dict (see module docstring for more details).
         logl: 1d numpy array
             Ordered loglikelihood values of points.
         nlive_array: 1d numpy array
@@ -258,12 +291,12 @@ def get_logw(ns_run, simulate=False):
             iso-likelihood contour.
     simulate: bool, optional
         Should log prior volumes logx be simulated from their distribution (if
-        false their expected values are used)
+        false their expected values are used).
 
     Returns
     -------
     logw: 1d numpy array
-        Log posterior masses of points
+        Log posterior masses of points.
     """
     try:
         # find logX value for each point
@@ -312,12 +345,12 @@ def get_logx(nlive, simulate=False):
         iso-likelihood contour.
     simulate: bool, optional
         Should log prior volumes logx be simulated from their distribution (if
-        False their expected values are used)
+        False their expected values are used).
 
     Returns
     -------
-    logw: 1d numpy array
-        Log posterior masses of points
+    logx: 1d numpy array
+        Log(X) values for points.
     """
     assert nlive.min() > 0, (
         'nlive contains zeros or negative values! nlive = ' + str(nlive))
@@ -339,7 +372,7 @@ def log_subtract(loga, logb):
     ----------
     loga: float
     logb: float
-        must be less than loga
+        Must be less than loga.
 
     Returns
     -------

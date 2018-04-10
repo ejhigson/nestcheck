@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Diagnostic tests for nested sampling runs.
+Sampling error estimates and diagnostic tests for nested sampling runs.
 """
 
 import warnings
