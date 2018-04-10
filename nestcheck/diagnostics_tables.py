@@ -17,7 +17,7 @@ import nestcheck.pandas_functions as pf
 def run_list_error_values(run_list, estimator_list, estimator_names,
                           n_simulate=100, **kwargs):
     """
-    Gets a data frame with calculation values and error estimates for each run
+    Gets a data frame with calculation values and error diagnostics for each run
     in the input run list.
 
     NB when parallelised the results will not be produced in order (so results
@@ -54,7 +54,10 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     Returns
     -------
     df: pandas DataFrame
-        Results table.
+        Results table showing calculation values and diagnostics. Rows
+        show different runs (or pairs of runs for pairwise comparisons). Columns
+        have titles given by estimator_names and show results for the different
+        functions in estimators_list.
     """
     thread_pvalue = kwargs.pop('thread_pvalue', False)
     bs_stat_dist = kwargs.pop('bs_stat_dist', False)
@@ -136,7 +139,9 @@ def error_values_summary(error_values, **summary_df_kwargs):
     Returns
     -------
     df: pandas DataFrame
-        Table of results.
+        Table showing means and standard deviations of results and diagnostics
+        for the different runs. Also contains estimated numerical uncertainties
+        on results.
     """
     df = pf.summary_df_from_multi(error_values, **summary_df_kwargs)
     # get implementation stds
