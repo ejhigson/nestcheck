@@ -21,6 +21,7 @@ import nestcheck.io_utils
 import nestcheck.ns_run_utils
 import nestcheck.parallel_utils
 import nestcheck.plots
+matplotlib.use('Agg')
 
 
 TEST_CACHE_DIR = 'cache_tests'
