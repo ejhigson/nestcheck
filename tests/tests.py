@@ -302,11 +302,6 @@ class TestAnalyseRun(unittest.TestCase):
         with self.assertWarns(UserWarning):
             resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
 
-    def test_rel_posterior_mass(self):
-        self.assertTrue(np.array_equal(
-            ar.rel_posterior_mass(np.asarray([0, 1]), np.asarray([1, 0])),
-            np.asarray([1, 1])))
-
     def test_run_std_bootstrap(self):
         """Check bootstrap std is zero when the run only contains one
         thread."""
@@ -581,6 +576,12 @@ class TestPlots(unittest.TestCase):
         ans = nestcheck.plots.alternate_helper(
             x, alt_samps, func=temp_func)
         self.assertEqual(ans, sum((x, alt_samps[0], alt_samps[1])))
+
+    def test_rel_posterior_mass(self):
+        self.assertTrue(np.array_equal(
+            nestcheck.plots.rel_posterior_mass(
+                np.asarray([0, 1]), np.asarray([1, 0])),
+            np.asarray([1, 1])))
 
     def test_plot_run_nlive(self):
         fig = nestcheck.plots.plot_run_nlive(
