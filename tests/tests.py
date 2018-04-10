@@ -61,7 +61,8 @@ class TestDataProcessing(unittest.TestCase):
             nestcheck.data_processing.check_ns_run_logls(repeat_logl_run,
                                                          warn_only=True)
 
-    def test_batch_process_data_not_present(self):
+    def test_batch_process_data(self):
+        """Test processing some dummy data."""
         file_root = 'dummy_run'
         dead, run = get_dummy_dead_points()
         nestcheck.data_processing.check_ns_run(run)
@@ -90,11 +91,11 @@ class TestIOUtils(unittest.TestCase):
         self.test_data = np.random.random(10)
 
         @nestcheck.io_utils.save_load_result
-        def save_load_func(data):
+        def io_func(data):
             """Helper for testing save and load functions via the
             io_utils.save_load_result decorator."""
             return data
-        self.save_load_func = save_load_func
+        self.io_func = io_func
 
     def tearDown(self):
         """Remove any caches saved by the tests."""
@@ -107,16 +108,16 @@ class TestIOUtils(unittest.TestCase):
         """Try saving and loading some test data and check it dosnt change."""
         # Without save_name (will neither save nor load)
         with self.assertWarns(UserWarning):
-            data_out = self.save_load_func(self.test_data, save=True, load=True)
+            data_out = self.io_func(self.test_data, save=True, load=True)
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # Before any data saved (will save but not load)
         with self.assertWarns(UserWarning):
-            data_out = self.save_load_func(self.test_data, save=True, load=True,
-                                           save_name=TEST_CACHE_DIR + '/io_test')
+            data_out = self.io_func(self.test_data, save=True, load=True,
+                                    save_name=TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # After data saved (will load)
-        data_out = self.save_load_func(self.test_data, save=True, load=True,
-                                       save_name=TEST_CACHE_DIR + '/io_test')
+        data_out = self.io_func(self.test_data, save=True, load=True,
+                                save_name=TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # Check handling of permission and memory errors when saving
         with self.assertWarns(UserWarning):
@@ -503,14 +504,20 @@ class TestParallelUtils(unittest.TestCase):
     def test_parallel_map_parallelised(self):
         """Check parallel_map with parallel=True."""
         func_pre_args = self.func_args
-        results_list = nestcheck.parallel_utils.parallel_map(
-            self.func, self.x, func_pre_args=func_pre_args,
-            func_kwargs=self.func_kwargs, parallel=True)
-        res_arr = np.vstack(results_list)
-        self.assertTrue(np.all(res_arr[:, 0] == func_pre_args[0]))
-        self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
-        # Don't need to sort as will be in order for map
-        self.assertTrue(np.array_equal(res_arr[:, 1], np.asarray(self.x)))
+        try:
+            results_list = nestcheck.parallel_utils.parallel_map(
+                self.func, self.x, func_pre_args=func_pre_args,
+                func_kwargs=self.func_kwargs, parallel=True)
+            res_arr = np.vstack(results_list)
+            self.assertTrue(np.all(res_arr[:, 0] == func_pre_args[0]))
+            self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
+            # Don't need to sort as will be in order for map
+            self.assertTrue(np.array_equal(res_arr[:, 1], np.asarray(self.x)))
+        except TypeError:
+            # Chunksize argument only added to concurrent.futures.Executor map
+            # function in python 3.5 so only raise if sys.version is >= 3.5
+            if tuple(sys.version_info) >= (3, 5):
+                raise
 
     def test_parallel_map_unexpected_kwargs(self):
         """Unexpected kwarg should throw exception."""
