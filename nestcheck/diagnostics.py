@@ -28,7 +28,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     run_list: list of dicts
         list of nested sampling runs
     estimator_list: list of functions
-        estimators to apply to runs
+        Estimators to apply to runs
     estimator_names: list of strs
         must be same length as estimator_list
     n_simulate: int, optional
@@ -122,7 +122,7 @@ def error_values_summary(error_values, **summary_df_kwargs):
     """
     Get summary statistics about calculation errors, including estimated
     implementation errors.
-    
+
     Parameters
     ----------
     error_values: pandas DataFrame
@@ -231,13 +231,13 @@ def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
 
 def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u):
     """
-    Estimates implementation errors from the standard
-    deviations of results and of bootstrap values.
+    Estimates implementation errors from the standard deviations of results
+    and of bootstrap values. See "Diagnostic tests for nested sampling
+    calculations" (Higson et al. 2018) for more details.
 
     Simulate errors dirstributions using the fact that (from central limit
     theorem) our uncertainties on vals_std and bs_std are normal
     distributions
-
     """
     # if the implementation errors are uncorrelated with the
     # sampling errrors: var results = var imp + var sampling

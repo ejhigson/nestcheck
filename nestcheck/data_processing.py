@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Functions for processing nested sampling data.
+Functions for processing nested sampling software output.
 """
 
 import warnings
@@ -113,6 +113,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     logl_warn_only: bool, optional
         Whether only a warning should be given (rather than an assertion error)
         should be given if there are non-unique logls in the file.
+        Passed to check_ns_run (see its docs for more details).
 
     Returns
     -------
@@ -173,7 +174,7 @@ def process_polychord_dead_points(dead_points, init_birth=-1e+30):
     # birth contours
     thread_min_max = np.zeros((unique_threads.shape[0], 2))
     # NB delta_nlive indexes are offset from points' indexes by 1 as we need an
-    # element to repesent the initial sampling of live points before any dead
+    # element to represent the initial sampling of live points before any dead
     # points are created.
     # I.E. birth on step 1 corresponds to replacing dead point zero
     delta_nlive = np.zeros(dead_points.shape[0] + 1)

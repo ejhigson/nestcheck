@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """
-Functions used to analyse nested sampling runs, perform calculations and
-estimate sampling errors.
+Functions for analysing nested sampling runs and calculating results.
 """
 
 import copy
@@ -11,43 +10,18 @@ import scipy.special
 import nestcheck.data_processing as dp
 
 
-def rel_posterior_mass(logx, logl):
-    """
-    Calculate the relative poterior mass for some array of logx values
-    given the likelihood, prior and number of dimensions.
-    The posterior mass at each logX value is proportional to L(X)X, where L(X)
-    is the likelihood.
-    The weight is returned normalized so that the integral of the weight with
-    respect to logX is 1.
-
-    Parameters
-    ----------
-    logx: 1d numpy array
-        logx values at which to calculate posterior mass.
-    logl: 1d numpy array
-        logl values corresponding to each logx (same shape as logx).
-
-    Returns
-    -------
-    w_rel: 1d numpy array
-        Relative posterior mass at each input logx value
-    """
-    logw = logx + logl
-    w_rel = np.exp(logw - logw.max())
-    w_rel /= np.abs(np.trapz(w_rel, x=logx))
-    return w_rel
-
-
 def run_estimators(ns_run, estimator_list, simulate=False):
     """
-    Calculates values of list of estimators for a single nested sampling run.
+    Calculates values of list of quantities (such as the Bayesian evidence or
+    mean of parameters) for a single nested sampling run.
 
     Parameters
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-    estimator_list: list of estimator classes, each containing class method
-        estimator(self, logw, ns_run)
+    estimator_list: list of functions for estimating quantities from nested
+        sampling runs. Example functions can be found in estimators.py. Each
+        should have arguments: func(ns_run, logw=None)
     simulate: bool, optional
 
     Returns
@@ -72,7 +46,6 @@ def array_given_run(ns_run):
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-        Contains keys: 'logl', 'thread_label', 'nlive_array', 'theta'
 
     Returns
     -------
@@ -93,7 +66,8 @@ def array_given_run(ns_run):
 
 def dict_given_run_array(samples, thread_min_max):
     """
-    Converts an array of information about samples back into a dictionary.
+    Converts an array of information about samples back into a nested sampling
+    run dictionary.
 
     Parameters
     ----------
@@ -112,7 +86,8 @@ def dict_given_run_array(samples, thread_min_max):
         Nested sampling run dictionary corresponding to the samples array.
         Contains keys: 'logl', 'thread_label', 'nlive_array',
         'theta'
-        N.B. this does not contain a record of the run's settings.
+        N.B. this does not contain any other keys giving additional information
+        about the run output.
     """
     ns_run = {'logl': samples[:, 0],
               'thread_labels': samples[:, 1].astype(int),
@@ -136,28 +111,22 @@ def dict_given_run_array(samples, thread_min_max):
 
 def get_run_threads(ns_run):
     """
-    Get the individual threads for a nested sampling run.
+    Get the individual threads from a nested sampling run.
 
     Parameters
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-        Contains keys: 'logl', 'r', 'logx', 'thread_label', 'nlive_array',
-        'theta'
+        Contains keys: 'logl', 'thread_label', 'nlive_array', 'theta'
 
     Returns
     -------
     threads: list of numpy array
         Each thread (list element) is a samples array containing columns
-        [logl, r, logx, thread label, change in nlive at sample, (thetas)]
+        [logl, thread label, change in nlive at sample, (thetas)]
         with each row representing a single sample.
     """
     samples = array_given_run(ns_run)
-    # assert np.array_equal(
-    #     np.asarray(range(ns_run['thread_labels'].min(),
-    #                      ns_run['thread_labels'].max() + 1)),
-    #     np.unique(ns_run['thread_labels'])), \
-    #     str(np.unique(ns_run['thread_labels']))
     unique_threads = np.unique(ns_run['thread_labels'])
     assert ns_run['thread_min_max'].shape[0] == unique_threads.shape[0], \
         ('some threads have no points! ' + str(unique_threads.shape[0]) +
@@ -175,8 +144,31 @@ def get_run_threads(ns_run):
     return threads
 
 
-# Functions for estimating sampling errors
-# ----------------------------------------
+def rel_posterior_mass(logx, logl):
+    """
+    Calculate the relative posterior mass for some array of logx values
+    given the likelihood, prior and number of dimensions.
+    The posterior mass at each logX value is proportional to L(X)X, where L(X)
+    is the likelihood.
+    The weight is returned normalized so that the integral of the weight with
+    respect to logX is 1.
+
+    Parameters
+    ----------
+    logx: 1d numpy array
+        logx values at which to calculate posterior mass.
+    logl: 1d numpy array
+        logl values corresponding to each logx (same shape as logx).
+
+    Returns
+    -------
+    w_rel: 1d numpy array
+        Relative posterior mass at each input logx value
+    """
+    logw = logx + logl
+    w_rel = np.exp(logw - logw.max())
+    w_rel /= np.abs(np.trapz(w_rel, x=logx))
+    return w_rel
 
 
 def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
@@ -194,7 +186,7 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
     threads: None or list of numpy arrays, optional
     ninit_sep: bool
         For dynamic runs: resample initial threads and dynamically added
-        threads seperately. Useful when there are only a few threads which
+        threads separately. Useful when there are only a few threads which
         start by sampling the whole prior, as errors occur if none of these are
         included in the bootstrap resample.
     random_seed: None, bool or int, optional
@@ -210,7 +202,7 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
         Nested sampling run dictionary.
     """
     if random_seed is not False:
-        # save the random state so we dont edit it for other funcs
+        # save the random state so we don't affect other bits of the code
         state = np.random.get_state()
         np.random.seed(random_seed)
     if threads is None:
@@ -227,7 +219,7 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
             inds = np.append(inds, np.random.randint(ninit, n_threads,
                                                      n_threads - ninit))
         except KeyError:
-            warnings.warn(('bootrap_resample_run has kwarg ninit_sep=True but '
+            warnings.warn(('bootstrap_resample_run has kwarg ninit_sep=True but '
                            'ns_run["settings"]["ninit"] does not exist. '
                            'Doing bootstrap with ninit_sep=False'),
                           UserWarning)
@@ -250,6 +242,16 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
     """
     Combine a list of complete ns runs (each without any repeated threads)
     into a single ns run.
+
+    Parameters
+    ----------
+    run_list_in: list of nested sampling run dicts
+    logl_warn_only: bool, optional
+        Passed to check_ns_run (see its docs for more details)
+
+    Returns
+    -------
+    run: nested sampling run dict
     """
     run_list = copy.deepcopy(run_list_in)
     nthread_tot = 0
@@ -271,12 +273,25 @@ def combine_threads(threads, assert_birth_point=False):
     """
     Combine list of threads into a single ns run.
     This is different to combining runs as repeated threads are allowed, and as
-    some threads can start from loglikelihood contours on which no dead
+    some threads can start from log-likelihood contours on which no dead
     point in the run is present.
 
     Note that if all the thread labels are not unique and in ascending order,
     the output will fail check_ns_run. However provided the thread labels are
     not used it will work ok for calculations based on nlive, logl and theta.
+
+    Parameters
+    ----------
+    threads: list of thread dicts
+    assert_birth_point: bool, optional
+        Whether or not to assert there is exactly one point present in the run with
+        the log-likelihood at which each point was born. This is not true for
+        bootstrap resamples of runs, where birth points may be repeated or not
+        present at all.
+
+    Returns
+    -------
+    run: nested sampling run dict
     """
     thread_min_max = np.vstack([td['thread_min_max'] for td in threads])
     assert len(threads) == thread_min_max.shape[0]
@@ -333,8 +348,10 @@ def run_std_bootstrap(ns_run, estimator_list, **kwargs):
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-    estimator_list: list of estimator classes, each containing class method
-        estimator(self, logw, ns_run)
+    estimator_list: list of functions for estimating quantities (such as the
+        Bayesian evidence or mean of parameters) from nested sampling runs.
+        Example functions can be found in estimators.py. Each should have
+        arguments: func(ns_run, logw=None)
     kwargs: dict
         kwargs for run_bootstrap_values
 
@@ -365,12 +382,14 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-    estimator_list: list of estimator classes, each containing class method
-        estimator(self, logw, ns_run)
+    estimator_list: list of functions for estimating quantities (such as the
+        Bayesian evidence or mean of parameters) from nested sampling runs.
+        Example functions can be found in estimators.py. Each should have
+        arguments: func(ns_run, logw=None)
     n_simulate: int
     ninit_sep: bool, optional
         For dynamic runs: resample initial threads and dynamically added
-        threads seperately. Useful when there are only a few threads which
+        threads separately. Useful when there are only a few threads which
         start by sampling the whole prior, as errors occur if none of these are
         included in the bootstrap resample.
     flip_skew: bool, optional
@@ -382,7 +401,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
         mean. This leaves the mean and standard deviation unchanged.
     random_seeds: list, optional
         list of random_seed arguments for bootstrap_resample_run.
-        Defaults to range(n_simulate) in order to give reproducable results.
+        Defaults to range(n_simulate) in order to give reproducible results.
 
     Returns
     -------
@@ -400,9 +419,9 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
     threads = get_run_threads(ns_run)
     bs_values = np.zeros((len(estimator_list), n_simulate))
     for i, random_seed in enumerate(random_seeds):
-        ns_run_temp = bootstrap_resample_run(ns_run, threads=threads,
-                                             ninit_sep=ninit_sep,
-                                             random_seed=random_seed)
+        ns_run_temp = bootstrap_resample_run(
+            ns_run, threads=threads, ninit_sep=ninit_sep,
+            random_seed=random_seed)
         bs_values[:, i] = run_estimators(ns_run_temp, estimator_list)
         del ns_run_temp
     if flip_skew:
@@ -426,8 +445,10 @@ def run_ci_bootstrap(ns_run, estimator_list, **kwargs):
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-    estimator_list: list of estimator classes, each containing class method
-        estimator(self, logw, ns_run)
+    estimator_list: list of functions for estimating quantities (such as the
+        Bayesian evidence or mean of parameters) from nested sampling runs.
+        Example functions can be found in estimators.py. Each should have
+        arguments: func(ns_run, logw=None)
     cred_int: float
     n_simulate: int
     ninit_sep: bool, optional
@@ -448,8 +469,8 @@ def run_ci_bootstrap(ns_run, estimator_list, **kwargs):
            bs_values.shape[1])
     ci_output = expected_estimators * 2
     for i, _ in enumerate(ci_output):
-        ci_output[i] -= np.interp(1. - cred_int, cdf,
-                                  np.sort(bs_values[i, :]))
+        ci_output[i] -= np.interp(
+            1. - cred_int, cdf, np.sort(bs_values[i, :]))
     return ci_output
 
 
@@ -470,8 +491,10 @@ def run_std_simulate(ns_run, estimator_list, n_simulate=None):
     ----------
     ns_run: dict
         Nested sampling run dictionary.
-    estimator_list: list of estimator classes, each containing class method
-        estimator(self, logw, ns_run)
+    estimator_list: list of functions for estimating quantities (such as the
+        bayesian evidence or mean of parameters) from nested sampling runs.
+        Example functions can be found in estimators.py. Each should have
+        arguments: func(ns_run, logw=None)
     n_simulate: int
 
     Returns
@@ -564,7 +587,7 @@ def get_logx(nlive, simulate=False):
     ----------
     nlive_array: 1d numpy array
         Ordered local number of live points present at each point's
-        isolikelihood contour.
+        iso-likelihood contour.
     simulate: bool, optional
         Should log prior volumes logx be simulated from their distribution (if
         False their expected values are used)
