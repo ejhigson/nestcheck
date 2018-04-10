@@ -16,10 +16,11 @@ import scipy.special
 import nestcheck.parallel_utils
 import nestcheck.io_utils
 import nestcheck.estimators as e
-import nestcheck.analyse_run as ar
+import nestcheck.ns_run_utils
+import nestcheck.error_analysis
 import nestcheck.plots
 import nestcheck.data_processing
-import nestcheck.diagnostics
+import nestcheck.diagnostics_tables
 
 
 TEST_CACHE_DIR = 'cache_tests'
@@ -243,7 +244,7 @@ class TestPandasFunctions(unittest.TestCase):
             df.loc[pd.IndexSlice[['std', 'std efficiency gain'], :, :], cols].values)
 
 
-class TestAnalyseRun(unittest.TestCase):
+class TestNSRunUtils(unittest.TestCase):
 
     def test_combine_threads(self):
         """Check combining threads when birth contours are not present or are
@@ -263,36 +264,45 @@ class TestAnalyseRun(unittest.TestCase):
                                            logl_start=t2['logl'][-1] + 1000)
         # combining with t1 should throw an assertion error as nlive drops to
         # zero in between the threads
-        self.assertRaises(AssertionError, ar.combine_threads, [t1, t_no_overlap],
-                          assert_birth_point=False)
+        self.assertRaises(AssertionError, nestcheck.ns_run_utils.combine_threads,
+                          [t1, t_no_overlap], assert_birth_point=False)
         # Get another thread starting on the last point of t1 so it overlaps
         # with t2
         t3 = get_dummy_ns_thread(nsamples, ndim, seed=False,
                                  logl_start=t1['logl'][-1])
         # When birth point not in run:
         # Should raise assertion error only if assert_birth_point = True
-        ar.combine_threads([t2, t3])
-        self.assertRaises(AssertionError, ar.combine_threads, [t2, t3],
-                          assert_birth_point=True)
+        nestcheck.ns_run_utils.combine_threads([t2, t3])
+        self.assertRaises(AssertionError, nestcheck.ns_run_utils.combine_threads,
+                          [t2, t3], assert_birth_point=True)
         # When birth point in run once:
         # should work with assert_birth_point = True
-        ar.combine_threads([t1, t2, t3], assert_birth_point=True)
+        nestcheck.ns_run_utils.combine_threads([t1, t2, t3], assert_birth_point=True)
         # When birth point in run twice:
         # Should raise assertion error only if assert_birth_point = True
-        ar.combine_threads([t1, t1, t2, t3])
-        self.assertRaises(AssertionError, ar.combine_threads, [t1, t1, t2, t3],
-                          assert_birth_point=True)
+        nestcheck.ns_run_utils.combine_threads([t1, t1, t2, t3])
+        self.assertRaises(AssertionError, nestcheck.ns_run_utils.combine_threads,
+                          [t1, t1, t2, t3], assert_birth_point=True)
+
+    def test_get_logw(self):
+        """Check IndexError raising"""
+        self.assertRaises(IndexError, nestcheck.ns_run_utils.get_logw,
+                          {'nlive_array': np.asarray(1.),
+                           'logl': np.asarray([])})
+
+
+class TestErrorAnalysis(unittest.TestCase):
 
     def test_bootstrap_resample_run(self):
         run = get_dummy_ns_run(2, 1, 2)
         run['settings'] = {'ninit': 1}
         # With only 2 threads and ninit=1, separating initial threads means
         # that the resampled run can only contain each thread once
-        resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
+        resamp = nestcheck.error_analysis.bootstrap_resample_run(run, ninit_sep=True)
         self.assertTrue(np.array_equal(run['theta'], resamp['theta']))
         # With random_seed=1 and 2 threads each with a single points,
         # bootstrap_resample_run selects the second thread twice.
-        resamp = ar.bootstrap_resample_run(run, random_seed=0)
+        resamp = nestcheck.error_analysis.bootstrap_resample_run(run, random_seed=0)
         numpy.testing.assert_allclose(
             run['theta'][0, :], resamp['theta'][0, :])
         numpy.testing.assert_allclose(
@@ -300,37 +310,31 @@ class TestAnalyseRun(unittest.TestCase):
         # Check error handeled if no ninit
         del run['settings']
         with self.assertWarns(UserWarning):
-            resamp = ar.bootstrap_resample_run(run, ninit_sep=True)
+            resamp = nestcheck.error_analysis.bootstrap_resample_run(run, ninit_sep=True)
 
     def test_run_std_bootstrap(self):
         """Check bootstrap std is zero when the run only contains one
         thread."""
         run = get_dummy_ns_run(1, 10, 2)
-        stds = ar.run_std_bootstrap(run, [e.param_mean], n_simulate=10)
+        stds = nestcheck.error_analysis.run_std_bootstrap(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
-        self.assertRaises(TypeError, ar.run_std_bootstrap, run,
+        self.assertRaises(TypeError, nestcheck.error_analysis.run_std_bootstrap, run,
                           [e.param_mean], n_simulate=10, unexpected=1)
 
     def test_run_ci_bootstrap(self):
         """Check bootstrap ci equals estimator expected value when the
         run only contains one thread."""
         run = get_dummy_ns_run(1, 10, 2)
-        ci = ar.run_ci_bootstrap(run, [e.param_mean], n_simulate=10,
-                                 cred_int=0.5)
+        ci = nestcheck.error_analysis.run_ci_bootstrap(
+            run, [e.param_mean], n_simulate=10, cred_int=0.5)
         self.assertAlmostEqual(ci[0], e.param_mean(run), places=12)
 
     def test_run_std_simulate(self):
         """Check simulate std is zero when the run only contains one
         point."""
         run = get_dummy_ns_run(1, 1, 2)
-        stds = ar.run_std_simulate(run, [e.param_mean], n_simulate=10)
+        stds = nestcheck.error_analysis.run_std_simulate(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
-
-    def test_get_logw(self):
-        """Check IndexError raising"""
-        self.assertRaises(IndexError, ar.get_logw,
-                          {'nlive_array': np.asarray(1.),
-                           'logl': np.asarray([])})
 
 
 class TestEstimators(unittest.TestCase):
@@ -338,7 +342,7 @@ class TestEstimators(unittest.TestCase):
     def setUp(self):
         self.nsamples = 10
         self.ns_run = get_dummy_ns_run(1, self.nsamples, 2)
-        self.logw = ar.get_logw(self.ns_run)
+        self.logw = nestcheck.ns_run_utils.get_logw(self.ns_run)
         self.w_rel = np.exp(self.logw - self.logw.max())
         self.w_rel /= np.sum(self.w_rel)
 
@@ -347,8 +351,8 @@ class TestEstimators(unittest.TestCase):
         self.assertEqual(e.count_samples(self.ns_run), self.nsamples)
 
     def test_run_estimators(self):
-        """Check ar.run_estimators wrapper is working."""
-        out = ar.run_estimators(self.ns_run, [e.count_samples])
+        """Check nestcheck.ns_run_utils.run_estimators wrapper is working."""
+        out = nestcheck.ns_run_utils.run_estimators(self.ns_run, [e.count_samples])
         self.assertEqual(out.shape, (1,))  # out should be np array
         self.assertEqual(out[0], self.nsamples)
 
@@ -514,7 +518,7 @@ class TestParallelUtils(unittest.TestCase):
                           self.func, self.x, unexpected=1)
 
 
-class TestDiagnostics(unittest.TestCase):
+class TestDiagnosticsTables(unittest.TestCase):
 
     def test_run_list_error_summary(self):
         """Test error df summary using numpy seeds."""
@@ -522,7 +526,7 @@ class TestDiagnostics(unittest.TestCase):
         for i in range(5):
             run_list.append(get_dummy_ns_run(5, 10, 2, seed=i))
         with self.assertWarns(UserWarning):
-            df = nestcheck.diagnostics.run_list_error_summary(
+            df = nestcheck.diagnostics_tables.run_list_error_summary(
                 run_list, [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
                 bs_stat_dist=True, parallel=False)
         self.assertTrue(np.all(~np.isnan(df.values)))
@@ -549,7 +553,7 @@ class TestDiagnostics(unittest.TestCase):
 
     def test_run_list_error_values_unexpected_kwarg(self):
         self.assertRaises(
-            TypeError, nestcheck.diagnostics.run_list_error_values,
+            TypeError, nestcheck.diagnostics_tables.run_list_error_values,
             [], [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
             bs_stat_dist=True, unexpected=1)
 
@@ -686,7 +690,7 @@ def get_dummy_ns_run(nlive, nsamples, ndim, seed=False):
         np.random.seed(seed)
     for _ in range(nlive):
         threads.append(get_dummy_ns_thread(nsamples, ndim, seed=False))
-    return ar.combine_ns_runs(threads)
+    return nestcheck.ns_run_utils.combine_ns_runs(threads)
 
 
 def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
@@ -734,7 +738,7 @@ def get_dummy_dead_points(ndims=2, nsamples=10):
         dead_arrs.append(dead)
     dead = np.vstack(dead_arrs)
     dead = dead[np.argsort(dead[:, ndims]), :]
-    run = ar.combine_threads(threads)
+    run = nestcheck.ns_run_utils.combine_threads(threads)
     return dead, run
 
 
@@ -746,6 +750,6 @@ else:
     import cProfile
     import pstats
     cProfile.run('unittest.main()', 'restats')
-    p = pstats.Stats('restats')
+    pst = pstats.Stats('restats')
     os.remove('restats')
-    p.strip_dirs().sort_stats('cumtime').print_stats('tests.py', 20)
+    pst.strip_dirs().sort_stats('cumtime').print_stats('tests.py', 20)

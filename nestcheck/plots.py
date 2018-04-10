@@ -12,7 +12,8 @@ import scipy.stats
 import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1
-import nestcheck.analyse_run as ar
+import nestcheck.ns_run_utils
+import nestcheck.error_analysis
 import fgivenx.plot
 import fgivenx
 
@@ -91,7 +92,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
             elif logx_given_logl is not None:
                 logx = logx_given_logl(run['logl'])
             else:
-                logx = ar.get_logx(run['nlive_array'], simulate=False)
+                logx = nestcheck.ns_run_utils.get_logx(run['nlive_array'], simulate=False)
             logx_min_list.append(logx[-1])
             logx[0] = 0  # to make lines extend all the way to the end
             if nr == 0:
@@ -467,7 +468,7 @@ def param_logx_diagram(run_list, **kwargs):
         ax_weight.set_ylabel('posterior\nmass')
         samples = np.zeros((n_simulate, run['nlive_array'].shape[0] * 2))
         for i in range(n_simulate):
-            logx_temp = ar.get_logx(run['nlive_array'], simulate=True)[::-1]
+            logx_temp = nestcheck.ns_run_utils.get_logx(run['nlive_array'], simulate=True)[::-1]
             logw_rel = logx_temp + run['logl'][::-1]
             w_rel = np.exp(logw_rel - logw_rel.max())
             w_rel /= np.trapz(w_rel, x=logx_temp)
@@ -503,7 +504,7 @@ def param_logx_diagram(run_list, **kwargs):
                 [r'$1\sigma$', r'$2\sigma$', r'$3\sigma$'])
         # samples plot
         # ------------
-        logx = ar.get_logx(run['nlive_array'], simulate=False)
+        logx = nestcheck.ns_run_utils.get_logx(run['nlive_array'], simulate=False)
         for nf, ftheta in enumerate(fthetas):
             ax_samples = axes[1 + nf, 1]
             ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
@@ -531,7 +532,7 @@ def param_logx_diagram(run_list, **kwargs):
         # Plot means onto scatter plot
         # ----------------------------
         if plot_means:
-            logw_expected = ar.get_logw(run, simulate=False)
+            logw_expected = nestcheck.ns_run_utils.get_logw(run, simulate=False)
             w_rel = np.exp(logw_expected - logw_expected.max())
             w_rel /= np.sum(w_rel)
             means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]
@@ -623,12 +624,13 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         'There should be the same number of axes and functions to plot'
     assert len(fthetas) == len(ftheta_lims), \
         'There should be the same number of axes and functions to plot'
-    threads = ar.get_run_threads(run)
+    threads = nestcheck.ns_run_utils.get_run_threads(run)
     # get a list of evenly weighted theta samples from bootstrap resampling
     bs_samps = []
     for i in range(n_simulate):
-        run_temp = ar.bootstrap_resample_run(run, threads=threads)
-        logw_temp = ar.get_logw(run_temp, simulate=False)
+        run_temp = nestcheck.error_analysis.bootstrap_resample_run(
+            run, threads=threads)
+        logw_temp = nestcheck.ns_run_utils.get_logw(run_temp, simulate=False)
         w_temp = np.exp(logw_temp - logw_temp.max())
         bs_samps.append((run_temp['theta'], w_temp))
     for nf, ftheta in enumerate(fthetas):
@@ -662,7 +664,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     # Plot means
     # ----------
     if mean_color is not None:
-        logw_expected = ar.get_logw(run, simulate=False)
+        logw_expected = nestcheck.ns_run_utils.get_logw(run, simulate=False)
         w_rel = np.exp(logw_expected - logw_expected.max())
         w_rel /= np.sum(w_rel)
         means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]

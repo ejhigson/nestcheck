@@ -5,10 +5,10 @@ Diagnostic tests for nested sampling runs.
 
 import numpy as np
 import pandas as pd
-import scipy.stats
-import nestcheck.analyse_run as ar
+import nestcheck.ns_run_utils
 import nestcheck.parallel_utils as pu
 import nestcheck.pandas_functions as pf
+import nestcheck.error_analysis
 import nestcheck.io_utils
 
 
@@ -65,8 +65,8 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     # Calculation results
     # -------------------
     values_list = pu.parallel_apply(
-        ar.run_estimators, run_list, func_args=(estimator_list,),
-        parallel=parallel)
+        nestcheck.ns_run_utils.run_estimators, run_list,
+        func_args=(estimator_list,), parallel=parallel)
     df = pd.DataFrame(np.stack(values_list, axis=0))
     df.index = df.index.map(str)
     df.columns = estimator_names
@@ -92,7 +92,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     if thread_pvalue:
         t_vals_df = thread_values_df(
             run_list, estimator_list, estimator_names, parallel=parallel)
-        t_d_df = pairwise_distances_on_cols(
+        t_d_df = nestcheck.error_analysis.pairwise_distances_on_cols(
             t_vals_df, earth_mover_dist=False, energy_dist=False)
         # Keep only the p value not the distance measures
         t_d_df = t_d_df.xs('ks pvalue', level='calculation type',
@@ -104,7 +104,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     # Pairwise distances on BS distributions
     # --------------------------------------
     if bs_stat_dist:
-        b_d_df = pairwise_distances_on_cols(bs_vals_df)
+        b_d_df = nestcheck.error_analysis.pairwise_distances_on_cols(bs_vals_df)
         # Select only statistical distances - not KS pvalue as this is not
         # useful for the bootstrap resample distributions (see Higson 2018 for more
         # details).
@@ -132,11 +132,12 @@ def error_values_summary(error_values, **summary_df_kwargs):
     """
     df = pf.summary_df_from_multi(error_values, **summary_df_kwargs)
     # get implementation stds
-    imp_std, imp_std_unc, imp_frac, imp_frac_unc = implementation_std(
-        df.loc[('values std', 'value')],
-        df.loc[('values std', 'uncertainty')],
-        df.loc[('bootstrap std mean', 'value')],
-        df.loc[('bootstrap std mean', 'uncertainty')])
+    imp_std, imp_std_unc, imp_frac, imp_frac_unc = \
+        nestcheck.error_analysis.implementation_std(
+            df.loc[('values std', 'value')],
+            df.loc[('values std', 'uncertainty')],
+            df.loc[('bootstrap std mean', 'value')],
+            df.loc[('bootstrap std mean', 'uncertainty')])
     df.loc[('implementation std', 'value'), df.columns] = imp_std
     df.loc[('implementation std', 'uncertainty'), df.columns] = imp_std_unc
     df.loc[('implementation std frac', 'value'), :] = imp_frac
@@ -187,10 +188,10 @@ def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
     assert len(estimator_list) == len(estimator_names), (
         'len(estimator_list) = {0} != len(estimator_names = {1}'
         .format(len(estimator_list), len(estimator_names)))
-    bs_values_list = pu.parallel_apply(ar.run_bootstrap_values, run_list,
-                                       func_args=(estimator_list,),
-                                       func_kwargs={'n_simulate': n_simulate},
-                                       tqdm_kwargs=tqdm_kwargs, **kwargs)
+    bs_values_list = pu.parallel_apply(
+        nestcheck.error_analysis.run_bootstrap_values, run_list,
+        func_args=(estimator_list,), func_kwargs={'n_simulate': n_simulate},
+        tqdm_kwargs=tqdm_kwargs, **kwargs)
     df = pd.DataFrame()
     for i, name in enumerate(estimator_names):
         df[name] = [arr[i, :] for arr in bs_values_list]
@@ -210,9 +211,9 @@ def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
         'len(estimator_list) = {0} != len(estimator_names = {1}'
         .format(len(estimator_list), len(estimator_names)))
     # get thread results
-    thread_vals_arrays = pu.parallel_apply(run_thread_values, run_list,
-                                           func_args=(estimator_list,),
-                                           tqdm_kwargs=tqdm_kwargs, **kwargs)
+    thread_vals_arrays = pu.parallel_apply(
+        nestcheck.error_analysis.run_thread_values, run_list,
+        func_args=(estimator_list,), tqdm_kwargs=tqdm_kwargs, **kwargs)
     df = pd.DataFrame()
     for i, name in enumerate(estimator_names):
         df[name] = [arr[i, :] for arr in thread_vals_arrays]
@@ -223,110 +224,3 @@ def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
              ' values in each cell. The cell contains array with shape ' +
              str(vals_shape))
     return df
-
-
-# Helper functions
-# ----------------
-
-
-def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u):
-    """
-    Estimates implementation errors from the standard deviations of results
-    and of bootstrap values. See "Diagnostic tests for nested sampling
-    calculations" (Higson et al. 2018) for more details.
-
-    Simulate errors dirstributions using the fact that (from central limit
-    theorem) our uncertainties on vals_std and bs_std are normal
-    distributions
-    """
-    # if the implementation errors are uncorrelated with the
-    # sampling errrors: var results = var imp + var sampling
-    # so std imp = sqrt(var results - var sampling)
-    imp_var = (vals_std ** 2) - (bs_std ** 2)
-    imp_std = np.sqrt(np.abs(imp_var)) * np.sign(imp_var)
-    ind = np.where(imp_std <= 0)[0]
-    imp_std[ind] = 0
-    imp_std_u = np.zeros(imp_std.shape)
-    imp_frac = imp_std / vals_std
-    imp_frac_u = np.zeros(imp_frac.shape)
-    # Simulate errors distributions
-    size = 10 ** 6
-    for i, _ in enumerate(imp_std_u):
-        sim_vals_std = np.random.normal(vals_std[i], vals_std_u[i], size=size)
-        sim_bs_std = np.random.normal(bs_std[i], bs_std_u[i], size=size)
-        sim_imp_var = (sim_vals_std ** 2) - (sim_bs_std ** 2)
-        sim_imp_std = np.sqrt(np.abs(sim_imp_var)) * np.sign(sim_imp_var)
-        imp_std_u[i] = np.std(sim_imp_std, ddof=1)
-        imp_frac_u[i] = np.std((sim_imp_std / sim_vals_std), ddof=1)
-    return imp_std, imp_std_u, imp_frac, imp_frac_u
-
-
-def run_thread_values(run, estimator_list):
-    """Helper function for parallelising thread_values_df."""
-    threads = ar.get_run_threads(run)
-    vals_list = [ar.run_estimators(th, estimator_list) for th in threads]
-    vals_array = np.stack(vals_list, axis=1)
-    return vals_array
-
-
-def pairwise_distances_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
-    """
-    Computes pairwise statistical distance measures.
-
-    parameters
-    ----------
-    df_in: pandas data frame
-        Columns represent estimators and rows represent runs.
-        Each data frane element is an array of values which are used as samples
-        in the distance measures.
-
-    returns
-    -------
-    df: pandas data frame with kl values for each pair.
-    """
-    df = pd.DataFrame()
-    for col in df_in.columns:
-        df[col] = pairwise_distances(df_in[col].values,
-                                     earth_mover_dist=earth_mover_dist,
-                                     energy_dist=energy_dist)
-    return df
-
-
-def pairwise_distances(dist_list, earth_mover_dist=True, energy_dist=True):
-    """
-    Applies statistical_distances to each unique pair of distributions in
-    dist_list.
-    """
-    out = []
-    index = []
-    for i, samp_i in enumerate(dist_list):
-        for j, samp_j in enumerate(dist_list):
-            if j < i:
-                index.append(str((i, j)))
-                out.append(statistical_distances(
-                    samp_i, samp_j, earth_mover_dist=earth_mover_dist,
-                    energy_dist=energy_dist))
-    columns = ['ks pvalue', 'ks distance']
-    if earth_mover_dist:
-        columns.append('earth mover distance')
-    if energy_dist:
-        columns.append('energy distance')
-    ser = pd.DataFrame(out, index=index, columns=columns).unstack()
-    ser.index.names = ['calculation type', 'run']
-    return ser
-
-
-def statistical_distances(samples1, samples2, earth_mover_dist=True,
-                          energy_dist=True):
-    """
-    Gets 4 measures of the statistical distance between samples.
-    """
-    out = []
-    temp = scipy.stats.ks_2samp(samples1, samples2)
-    out.append(temp.pvalue)
-    out.append(temp.statistic)
-    if earth_mover_dist:
-        out.append(scipy.stats.wasserstein_distance(samples1, samples2))
-    if energy_dist:
-        out.append(scipy.stats.energy_distance(samples1, samples2))
-    return np.asarray(out)

@@ -14,7 +14,7 @@ the run if required.
 import functools
 import numpy as np
 import scipy
-import nestcheck.analyse_run as ar
+import nestcheck.ns_run_utils
 
 
 def get_latex_name(func_in, **kwargs):
@@ -75,14 +75,14 @@ def count_samples(ns_run, logw=None, simulate=False):
 def logz(ns_run, logw=None, simulate=False):
     """Natural log of Bayesian evidence."""
     if logw is None:
-        logw = ar.get_logw(ns_run, simulate=simulate)
+        logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     return scipy.special.logsumexp(logw)
 
 
 def evidence(ns_run, logw=None, simulate=False):
     """Bayesian evidence."""
     if logw is None:
-        logw = ar.get_logw(ns_run, simulate=simulate)
+        logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     return np.exp(scipy.special.logsumexp(logw))
 
 
@@ -91,7 +91,7 @@ def param_mean(ns_run, logw=None, simulate=False, param_ind=0):
     Mean of a single parameter (single component of theta).
     """
     if logw is None:
-        logw = ar.get_logw(ns_run, simulate=simulate)
+        logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())
     return ((np.sum(w_relative * ns_run['theta'][:, param_ind])
              / np.sum(w_relative)))
@@ -104,7 +104,7 @@ def param_cred(ns_run, logw=None, simulate=False, probability=0.5,
     of theta).
     """
     if logw is None:
-        logw = ar.get_logw(ns_run, simulate=simulate)
+        logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())  # protect against overflow
     return weighted_quantile(probability, ns_run['theta'][:, param_ind],
                              w_relative)
@@ -116,7 +116,7 @@ def param_squared_mean(ns_run, logw=None, simulate=False, param_ind=0):
     distribution).
     """
     if logw is None:
-        logw = ar.get_logw(ns_run, simulate=simulate)
+        logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())  # protect against overflow
     w_relative /= np.sum(w_relative)
     return np.sum(w_relative * (ns_run['theta'][:, param_ind] ** 2))
@@ -125,7 +125,7 @@ def param_squared_mean(ns_run, logw=None, simulate=False, param_ind=0):
 def r_mean(ns_run, logw=None, simulate=False):
     """Mean of |theta| (the radial distance from the centre)."""
     if logw is None:
-        logw = ar.get_logw(ns_run, simulate=simulate)
+        logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())
     r = np.sqrt(np.sum(ns_run['theta'] ** 2, axis=1))
     return np.sum(w_relative * r) / np.sum(w_relative)
@@ -134,7 +134,7 @@ def r_mean(ns_run, logw=None, simulate=False):
 def r_cred(ns_run, logw=None, simulate=False, probability=0.5):
     """One-tailed credible interval on the value of |theta|."""
     if logw is None:
-        logw = ar.get_logw(ns_run, simulate=simulate)
+        logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())  # protect against overflow
     r = np.sqrt(np.sum(ns_run['theta'] ** 2, axis=1))
     return weighted_quantile(probability, r, w_relative)
