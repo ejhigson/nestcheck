@@ -1,6 +1,9 @@
 # Swap files
 *.sw*
 
+# Pickle files (default extension for cached nestcheck outputs)
+*.pkl
+
 # Github default python .gitignore
 # --------------------------------
 
