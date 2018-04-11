@@ -3,6 +3,13 @@ nestcheck
 
 Diagnostic tests and error estimates for nested sampling calculations.
 
+.. image:: https://travis-ci.org/ejhigson/nestcheck.svg?branch=master
+    :target: https://travis-ci.org/ejhigson/nestcheck
+.. image:: https://coveralls.io/repos/github/ejhigson/nestcheck/badge.svg?branch=master
+	:target: https://coveralls.io/github/ejhigson/nestcheck?branch=master
+.. image:: https://readthedocs.org/projects/nestcheck/badge/?version=latest
+	:target: http://nestcheck.readthedocs.io/en/latest/?badge=latest
+
 Doccumentation
 --------------
 
@@ -35,13 +42,3 @@ Authors & License
 -----------------
 
 (TBC)
-
-..
-    
-    Commented out stuff:
-    Indices and tables
-    ==================
-    
-    * :ref:`genindex`
-    * :ref:`modindex`
-    * :ref:`search`

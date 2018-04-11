@@ -28,5 +28,5 @@ setuptools.setup(name='nestcheck',
                                    'tqdm>=4.11'],
                  test_suite='nose.collector',
                  tests_require=['nose', 'coverage'],
-                 extras_require={'docs': ['numpydoc']},
+                 extras_require={'docs': ['numpydoc', 'sphinx-rtd-theme']},
                  packages=['nestcheck'])
