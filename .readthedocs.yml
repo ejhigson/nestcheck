@@ -3,6 +3,3 @@ python:
     pip_install: true
     extra_requirements:
         - docs
-before_script:
- - pip install git+https://github.com/williamjameshandley/fgivenx
-
