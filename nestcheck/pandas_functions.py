@@ -120,9 +120,10 @@ def summary_df(df_in, **kwargs):
     This is similar to pandas.DataFrame.describe but also includes estimates of
     the numerical uncertainties.
 
-    The output DataFrame has multiindex levels ['calculation type', 'result type']
-    holding mean and standard deviations of the data and statistical uncertainties
-    on each.
+    The output DataFrame has multiindex levels:
+
+    'calculation type':  mean and standard deviations of the data.
+    'result type': value and uncertainty for each quantity.
 
     calculation type    result type        column_1     column_2      ...
     mean                value
