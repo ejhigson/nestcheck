@@ -1,20 +1,47 @@
-.. nestcheck documentation master file, created by
-   sphinx-quickstart on Wed Apr 11 11:23:15 2018.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+nestcheck
+=========
 
-Welcome to nestcheck's documentation!
-=====================================
+Diagnostic tests and error estimates for nested sampling calculations.
+
+Doccumentation
+--------------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+
+   install
+   quickstart
+   api
+
+Attribution
+-----------
+
+If this code is useful for your research, please cite `the sampling errors paper
+<https://doi.org/10.1214/17-BA1075>`_:
+
+.. code-block:: tex
+
+    @article{higson2018,
+    author = {Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
+    doi = {doi:10.1214/17-BA1075},
+    journal = {Bayesian Analysis},
+    title = {Sampling Errors in Nested Sampling Parameter Estimation},
+    url = "={https://doi.org/10.1214/17-BA1075},
+    year = 2018
+    }
 
 
+Authors & License
+-----------------
 
-Indices and tables
-==================
+(TBC)
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+..
+    
+    Commented out stuff:
+    Indices and tables
+    ==================
+    
+    * :ref:`genindex`
+    * :ref:`modindex`
+    * :ref:`search`
