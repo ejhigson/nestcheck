@@ -10,18 +10,19 @@ For a run with nsamp samples, the keys are:
         Shape is (nsamp,).
     thread_labels: 1d numpy array
         Int representing which thread each point belongs to.
-        For some thread label k, the thread's start (birth) log-likelihood and
-        end log-likelihood are given by thread_min_max[k, :]
+        For some thread label k, the thread's start (birth) log-likelihood
+        and end log-likelihood are given by thread_min_max[k, :].
         Shape is (nsamp,).
     thread_min_max: 2d numpy array
         Shape is (# threads, 2).
-        Each row k contains min logl (birth contour) and max logl for thread with
-        thread label i.
+        Each row k contains min logl (birth contour) and max logl for
+        thread with thread label i.
     theta: 2d numpy array
         Parameter values for samples - each row represents a sample.
         Shape is (nsamp, d) where d is number of dimensions.
     nlive_array: 1d numpy array
-        Number of live points present between the previous point and this point.
+        Number of live points present between the previous point and
+        this point.
     output: dict (optional)
         Dict containing extra information about the run.
 
@@ -41,8 +42,8 @@ except ImportError:
 @nestcheck.io_utils.save_load_result
 def batch_process_data(file_roots, **kwargs):
     """
-    Process output from many nested sampling runs in parallel with optional error
-    handling and caching.
+    Process output from many nested sampling runs in parallel with optional
+    error handling and caching.
 
     The result can be cached usin the 'save_name', 'save' and 'load' kwargs (by
     default this is not done). See save_load_result docstring for more details.
@@ -116,9 +117,9 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
     Useful errors to handle include:
 
     OSError: if you are not sure if all the files exist
-    AssertionError: if some of the many assertions fail for known reasons - e.g.
-        there is an occasional non-unique logl due to limited numerical
-        precision.
+    AssertionError: if some of the many assertions fail for known reasons;
+    for example is there is an occasional non-unique logl due to limited
+    numerical precision.
 
     Parameters
     ----------
@@ -171,10 +172,11 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     dead_points = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
     ns_run = process_polychord_dead_points(dead_points)
     try:
-        ns_run['output'] = (PyPolyChord.output.PolyChordOutput(base_dir, file_root)
-                            .__dict__)
+        ns_run['output'] = PyPolyChord.output.PolyChordOutput(
+            base_dir, file_root).__dict__
     except (FileNotFoundError, NameError) as err:
-        wtype = ImportWarning if type(err).__name__ == 'NameError' else UserWarning
+        wtype = (ImportWarning if type(err).__name__ == 'NameError'
+                 else UserWarning)
         warnings.warn((type(err).__name__ + ' processing .stats file with '
                        'PyPolyChord.output.PolyChordOutput'), wtype)
         ns_run['output'] = {}

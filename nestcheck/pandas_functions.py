@@ -106,8 +106,8 @@ def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
         df = df.reorder_levels(order)
     if include_true_values:
         assert true_values is not None
-        tv_ind = ['true values' if name == 'calculation type' else '' for name in
-                  df.index.names[:-1]] + ['value']
+        tv_ind = ['true values' if name == 'calculation type' else '' for
+                  name in df.index.names[:-1]] + ['value']
         df.loc[tuple(tv_ind), :] = true_values
     return df
 
@@ -119,6 +119,16 @@ def summary_df(df_in, **kwargs):
 
     This is similar to pandas.DataFrame.describe but also includes estimates of
     the numerical uncertainties.
+
+    The output DataFrame has multiindex levels ['calculation type', 'result type']
+    holding mean and standard deviations of the data and statistical uncertainties
+    on each.
+
+    calculation type    result type        column_1     column_2      ...
+    mean                value
+    mean                uncertainty
+    std                 value
+    std                 uncertainty
 
     Parameters
     ----------
@@ -136,15 +146,6 @@ def summary_df(df_in, **kwargs):
     Returns
     -------
     df: MultiIndex DataFrame
-        data frame with multiindex ['calculation type', 'result type'] holding
-        mean and standard deviations of the data and statistical uncertainties
-        on each.
-                                            [names]
-    calculation type    result type
-    mean                value
-    mean                uncertainty
-    std                 value
-    std                 uncertainty
     """
     true_values = kwargs.pop('true_values', None)
     include_true_values = kwargs.pop('include_true_values', False)
@@ -205,6 +206,19 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     The standard method on which to base the gain is assumed to be the first
     method input.
 
+    The output DataFrame will contain rows:
+        mean [dynamic goal]: mean calculation result for standard nested
+            sampling and dynamic nested sampling with each input dynamic
+            goal.
+        std [dynamic goal]: standard deviation of results for standard
+            nested sampling and dynamic nested sampling with each input
+            dynamic goal.
+        gain [dynamic goal]: the efficiency gain (computational speedup)
+            from dynamic nested sampling compared to standard nested
+            sampling. This equals (variance of standard results) /
+            (variance of dynamic results); see the dynamic nested
+            sampling paper for more details.
+
     Parameters
     ----------
     method names: list of strs
@@ -220,18 +234,6 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     -------
     results: pandas data frame
         Results data frame.
-        Contains rows:
-            mean [dynamic goal]: mean calculation result for standard nested
-                sampling and dynamic nested sampling with each input dynamic
-                goal.
-            std [dynamic goal]: standard deviation of results for standard
-                nested sampling and dynamic nested sampling with each input
-                dynamic goal.
-            gain [dynamic goal]: the efficiency gain (computational speedup)
-                from dynamic nested sampling compared to standard nested
-                sampling. This equals (variance of standard results) /
-                (variance of dynamic results); see the dynamic nested
-                sampling paper for more details.
     """
     true_values = kwargs.pop('true_values', None)
     include_true_values = kwargs.pop('include_true_values', False)
@@ -310,8 +312,8 @@ def paper_format_efficiency_gain_df(eff_gain_df):
     -------
     paper_df: pandas DataFrame
     """
-    paper_df = copy.deepcopy(
-        eff_gain_df.loc[pd.IndexSlice[['std', 'std efficiency gain'], :, :], :])
+    idxs = pd.IndexSlice[['std', 'std efficiency gain'], :, :]
+    paper_df = copy.deepcopy(eff_gain_df.loc[idxs, :])
     # Show mean number of samples and likelihood calls instead of st dev
     means = (eff_gain_df.xs('mean', level='calculation type')
              .xs('value', level='result type'))

@@ -10,7 +10,7 @@ Doccumentation
    :maxdepth: 2
 
    install
-   quickstart
+   demo
    api
 
 Attribution

@@ -18,7 +18,7 @@ def parallel_map(func, *arg_iterable, **kwargs):
 
     Roughly equivalent to
 
-    [func(*func_pre_args, x, **func_kwargs) for x in arg_iterable]
+    >>> [func(*func_pre_args, x, **func_kwargs) for x in arg_iterable]
 
     Parameters
     ----------
@@ -68,7 +68,8 @@ def parallel_apply(func, arg_iterable, **kwargs):
 
     Roughly equivalent to
 
-    [func(*func_pre_args, x, *func_args, **func_kwargs) for x in arg_iterable]
+    >>> [func(*func_pre_args, x, *func_args, **func_kwargs) for x in
+         arg_iterable]
 
     but will *not* return results in input order.
 
@@ -121,14 +122,15 @@ def parallel_apply(func, arg_iterable, **kwargs):
     if not parallel:
         warnings.warn(('parallel_apply has parallel=False - turn on '
                        'parallelisation for faster processing'), UserWarning)
-        return [func(*(func_pre_args + (x,) + func_args), **func_kwargs) for x in
-                progress(arg_iterable, **tqdm_kwargs)]
+        return [func(*(func_pre_args + (x,) + func_args), **func_kwargs) for
+                x in progress(arg_iterable, **tqdm_kwargs)]
     else:
         pool = concurrent.futures.ProcessPoolExecutor(max_workers=max_workers)
         futures = []
         for element in arg_iterable:
             futures.append(pool.submit(
-                func, *(func_pre_args + (element,) + func_args), **func_kwargs))
+                func, *(func_pre_args + (element,) + func_args),
+                **func_kwargs))
         results = []
         for fut in progress(concurrent.futures.as_completed(futures),
                             total=len(arg_iterable), **tqdm_kwargs):

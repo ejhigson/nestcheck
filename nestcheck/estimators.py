@@ -134,7 +134,7 @@ def param_squared_mean(ns_run, logw=None, simulate=False, param_ind=0):
 
 
 def r_mean(ns_run, logw=None, simulate=False):
-    """Mean of |theta| (the radial distance from the centre)."""
+    """Mean of the radial coordinate (magnitude of theta vector)."""
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())
@@ -143,7 +143,8 @@ def r_mean(ns_run, logw=None, simulate=False):
 
 
 def r_cred(ns_run, logw=None, simulate=False, probability=0.5):
-    """One-tailed credible interval on the value of |theta|."""
+    """One-tailed credible interval on the value of the radial coordinate
+    (magnitude of theta vector)."""
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())  # protect against overflow

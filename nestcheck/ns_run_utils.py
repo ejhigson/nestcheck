@@ -15,13 +15,14 @@ For a run with nsamp samples, the keys are:
         Shape is (nsamp,).
     thread_min_max: 2d numpy array
         Shape is (# threads, 2).
-        Each row k contains min logl (birth contour) and max logl for thread with
-        thread label i.
+        Each row k contains min logl (birth contour) and max logl for thread
+        with thread label i.
     theta: 2d numpy array
         Parameter values for samples - each row represents a sample.
         Shape is (nsamp, d) where d is number of dimensions.
     nlive_array: 1d numpy array
-        Number of live points present between the previous point and this point.
+        Number of live points present between the previous point and this
+        point.
     output: dict (optional)
         Dict containing extra information about the run.
 
@@ -278,17 +279,13 @@ def get_logw(ns_run, simulate=False):
     avoid overflow errors with very large or small values).
 
     Uses the trapezium rule such that the weight of point i is
-    w_i = l_i (X_{i-1} - X_{i+1}) / 2
+
+    .. math:: w_i = \mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
 
     Parameters
     ----------
     ns_run: dict
         Nested sampling run dict (see module docstring for more details).
-        logl: 1d numpy array
-            Ordered loglikelihood values of points.
-        nlive_array: 1d numpy array
-            Ordered local number of live points present at each point's
-            iso-likelihood contour.
     simulate: bool, optional
         Should log prior volumes logx be simulated from their distribution (if
         false their expected values are used).
@@ -330,13 +327,17 @@ def get_logx(nlive, simulate=False):
     points.
 
     The shrinkage factor between two points
-        t_i = X_{i-1} / X_{i}
-    is distributed as the largest of n_i uniform random variables between 1 and
-    0, where n_i is the local number of live points.
+
+    .. math:: t_i = X_{i-1} / X_{i}
+
+    is distributed as the largest of :math:`n_i` uniform random variables
+    between 1 and 0, where :math:`n_i` is the local number of live points.
 
     We are interested in
-        log(t_i) = logX_{i-1} - logX_{i}
-    which has expected value -1/n_i.
+
+    .. math:: \log(t_i) = \log X_{i-1} - logX_{i}
+
+    which has expected value :math:`-1/n_i`.
 
     Parameters
     ----------
@@ -350,7 +351,7 @@ def get_logx(nlive, simulate=False):
     Returns
     -------
     logx: 1d numpy array
-        Log(X) values for points.
+        log X values for points.
     """
     assert nlive.min() > 0, (
         'nlive contains zeros or negative values! nlive = ' + str(nlive))
