@@ -76,6 +76,11 @@ def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
         Index levels to preserve.
     kwargs: dict, optional
         Keyword arguments to pass to summary_df.
+
+    Returns
+    -------
+    df: MultiIndex DataFrame
+        See summary_df docstring for more details.
     """
     if inds_to_keep is None:
         inds_to_keep = list(multi_in.index.names)[:-1]
