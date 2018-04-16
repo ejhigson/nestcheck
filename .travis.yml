@@ -1,9 +1,10 @@
 language: python
 python:
+ - '3.4'
  - '3.5'
  - '3.6'
 install:
- - pip install git+https://github.com/williamjameshandley/fgivenx
+# pip install git+https://github.com/williamjameshandley/fgivenx
  - pip install .
  - pip install coveralls
 before_script: # configure a headless display to test plot generation
