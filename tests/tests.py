@@ -61,10 +61,11 @@ class TestDataProcessing(unittest.TestCase):
             nestcheck.data_processing.check_ns_run_logls(repeat_logl_run,
                                                          warn_only=True)
 
-    def test_batch_process_data(self):
-        """Test processing some dummy data."""
+    def test_process_polychord_data_batch(self):
+        """Test processing some dummy PolyChord data using
+        batch_process_data."""
         file_root = 'dummy_run'
-        dead, run = get_dummy_dead_points()
+        dead, run = get_dummy_dead_points(dynamic=True)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
         np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
@@ -72,6 +73,31 @@ class TestDataProcessing(unittest.TestCase):
             processed_run = nestcheck.data_processing.batch_process_data(
                 [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
                 parallel=False, errors_to_handle=OSError)[0]
+        nestcheck.data_processing.check_ns_run(processed_run)
+        for key, value in processed_run.items():
+            if key not in ['output']:
+                numpy.testing.assert_array_equal(
+                    value, run[key], err_msg=key + ' not the same')
+        self.assertEqual(processed_run['output']['file_root'], file_root)
+        self.assertEqual(processed_run['output']['base_dir'], TEST_CACHE_DIR)
+
+    def test_process_multinest_data(self):
+        """Check processing some dummy MultiNest data."""
+        file_root = 'dummy_run'
+        samples, run = get_dummy_dead_points(dynamic=False)
+        nestcheck.data_processing.check_ns_run(run)
+        os.makedirs(TEST_CACHE_DIR)
+        # Replicate multinest's dead and live points files, including their
+        # extra columns
+        dead = samples[:-2, :]
+        live = samples[-2:, :]
+        dead = np.hstack((dead, np.zeros((dead.shape[0], 2))))
+        live = np.hstack((live, np.zeros((live.shape[0], 1))))
+        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '-dead-birth.txt', dead)
+        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '-phys_live-birth.txt',
+                   live)
+        processed_run = nestcheck.data_processing.process_multinest_run(
+            file_root, TEST_CACHE_DIR)
         nestcheck.data_processing.check_ns_run(processed_run)
         for key, value in processed_run.items():
             if key not in ['output']:
@@ -715,23 +741,32 @@ def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
     return thread
 
 
-def get_dummy_dead_points(ndims=2, nsamples=10):
+def get_dummy_dead_points(ndims=2, nsamples=10, dynamic=True):
     """
-    Make a dead points array of the type produced by PolyChord. Also returns
-    the same nested sampling run as a dictionary in the standard nestcheck
-    format for checking.
+    Make a dead points array of the type produced by PolyChord and MultiNest.
+    Also returns the same nested sampling run as a dictionary in the standard
+    nestcheck format for checking.
     """
     threads = [get_dummy_ns_thread(nsamples, ndims, seed=False,
                                    logl_start=-np.inf)]
-    threads.append(get_dummy_ns_thread(nsamples, ndims, seed=False,
-                                       logl_start=threads[0]['logl'][0]))
+    if dynamic:
+        threads.append(get_dummy_ns_thread(nsamples, ndims, seed=False,
+                                           logl_start=threads[0]['logl'][0]))
+        # to make sure thread labels derived from the dead points match the
+        # order in threads, we need to make sure the first point after the
+        # contour where 2 points are born (threads[0]['logl'][0]) is in
+        # threads[0] not threads[-1]. Hence add to threads[-1]['logl']
+        threads[-1]['logl'] += 1
+        threads[-1]['thread_min_max'][0, 1] += 1
+    else:
+        threads.append(get_dummy_ns_thread(nsamples, ndims, seed=False,
+                                           logl_start=-np.inf))
+        # Make threads are in order such that combine_runs will assign same
+        # thread labels as data processing. I.e. we need the first thread
+        # (which will be labeled 0) to also have the dead point with the lowest
+        # likelihood (which starts the zeroth thread in data procesing funcs).
+        threads = sorted(threads, key=lambda th: th['logl'][0])
     threads[-1]['thread_labels'] += 1
-    # to make sure thread labels derived from the dead points match the
-    # order in threads, we need to make sure the first point after the
-    # contour where 2 points are born (threads[0]['logl'][0]) is in
-    # threads[0] not threads[-1]. Hence add to threads[-1]['logl']
-    threads[-1]['logl'] += 1
-    threads[-1]['thread_min_max'][0, 1] += 1
     dead_arrs = []
     for th in threads:
         dead = np.zeros((nsamples, ndims + 2))

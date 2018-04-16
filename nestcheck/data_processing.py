@@ -150,8 +150,13 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
 
 def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     """
-    Loads data from PolyChord run into the nestcheck dictionary format for
+    Loads data from a PolyChord run into the nestcheck dictionary format for
     analysis.
+
+    N.B. producing required output file containing information about the
+    iso-likelihood contours within which points were sampled (where they were
+    "born") requies PolyChord version v1.13 or later and the setting
+    write_dead=True.
 
     Parameters
     ----------
@@ -169,8 +174,10 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     ns_run: dict
         Nested sampling run dict (see module docstring for more details).
     """
-    dead_points = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
-    ns_run = process_polychord_dead_points(dead_points)
+    # PolyChord's dead points file also contains remaining live points at
+    # termination
+    samples = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
+    ns_run = process_samples_array(samples)
     try:
         ns_run['output'] = PyPolyChord.output.PolyChordOutput(
             base_dir, file_root).__dict__
@@ -186,39 +193,84 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     return ns_run
 
 
-def process_polychord_dead_points(dead_points, init_birth=-1e+30):
+def process_multinest_run(file_root, base_dir, logl_warn_only=False):
     """
-    Convert a PolyChord nested sampling dead points file into a nestcheck
-    nested sampling run dictionary.
+    Loads data from a MultiNest run into the nestcheck dictionary format for
+    analysis.
+
+    N.B. producing required output file containing information about the
+    iso-likelihood contours within which points were sampled (where they were
+    "born") requies MultiNest version 3.11 or later.
 
     Parameters
     ----------
-    dead_points: 2d numpy array
-        Contents of PolyChord [root]_dead-birth.txt output file. Contains
-        columns: [parameters], logl, birth logl
-    init_birth: float or int, optional
-        The value used to represent the birth logl of the inital live points
-        sampled from the whole prior (i.e. to represent -inf).
-        PolyChord uses -1e+30.
+    file_root: str
+        Root name for output files. When running MultiNest, this is determined
+        by the nest_root parameter.
+    base_dir: str
+        Directory containing output files. When running MultiNest, this is
+        determined by the nest_root parameter.
+    logl_warn_only: bool, optional
+        Whether only a warning should be given (rather than an assertion error)
+        should be given if there are non-unique logls in the file.
+        Passed to check_ns_run (see its docs for more details).
+
+    Returns
+    -------
+    ns_run: dict
+        Nested sampling run dict (see module docstring for more details).
+    """
+    # Load dead and live points
+    dead = np.loadtxt(base_dir + '/' + file_root + '-dead-birth.txt')
+    live = np.loadtxt(base_dir + '/' + file_root + '-phys_live-birth.txt')
+    # Remove unnessesary final columns
+    dead = dead[:, :-2]
+    live = live[:, :-1]
+    assert dead[:, -2].max() < live[:, -2].min(), (
+        'final live points should have greater logls than any dead point!',
+        dead, live)
+    ns_run = process_samples_array(np.vstack((dead, live)))
+    assert np.all(ns_run['thread_min_max'][:, 0] == -np.inf), (
+        'As MultiNest does not currently perform dynamic nested sampling, all '
+        'threads should start by sampling the whole prior.')
+    ns_run['output'] = {}
+    ns_run['output']['file_root'] = file_root
+    ns_run['output']['base_dir'] = base_dir
+    check_ns_run(ns_run, logl_warn_only=logl_warn_only)
+    return ns_run
+
+
+def process_samples_array(samples):
+    """
+    Convert an array of nested sampling dead and live points of the type
+    produced by PolyChord and MultiNest into a nestcheck nested sampling run
+    dictionary.
+
+    Parameters
+    ----------
+    samples: 2d numpy array
+        Array of dead points and any remaining live points at termination.
+        Has #parameters + 2 columns:
+        param_1, param_2, ... , logl, birth_logl
 
     Returns
     -------
     ns_run: dict
         Nested sampling run dict (see module docstring for more details). Only
-        contains information in dead_points (not additional optional output
+        contains information in samples (not additional optional output
         key).
     """
-    dead_points = dead_points[np.argsort(dead_points[:, -2])]
+    samples = samples[np.argsort(samples[:, -2])]
     ns_run = {}
-    ns_run['logl'] = dead_points[:, -2]
+    ns_run['logl'] = samples[:, -2]
     repeat_logls = (ns_run['logl'].shape[0] -
                     np.unique(ns_run['logl']).shape[0])
-    assert repeat_logls == 0, \
-        '# unique logl values is ' + str(repeat_logls) + ' less than #point'
-    ns_run['theta'] = dead_points[:, :-2]
-    birth_contours = dead_points[:, -1]
+    assert repeat_logls == 0, (
+        '# unique logl values is ' + str(repeat_logls) + ' less than #point')
+    ns_run['theta'] = samples[:, :-2]
+    birth_contours = samples[:, -1]
     ns_run['thread_labels'] = threads_given_birth_contours(
-        ns_run['logl'], birth_contours, init_birth=init_birth)
+        ns_run['logl'], birth_contours)
     unique_threads = np.unique(ns_run['thread_labels'])
     assert np.array_equal(unique_threads,
                           np.asarray(range(unique_threads.shape[0])))
@@ -229,7 +281,7 @@ def process_polychord_dead_points(dead_points, init_birth=-1e+30):
     # element to represent the initial sampling of live points before any dead
     # points are created.
     # I.E. birth on step 1 corresponds to replacing dead point zero
-    delta_nlive = np.zeros(dead_points.shape[0] + 1)
+    delta_nlive = np.zeros(samples.shape[0] + 1)
     for label in unique_threads:
         inds = np.where(ns_run['thread_labels'] == label)[0]
         # Max is final logl in thread
@@ -238,7 +290,7 @@ def process_polychord_dead_points(dead_points, init_birth=-1e+30):
         # delta nlive indexes are +1 from logl indexes to allow for initial
         # nlive (before first dead point)
         delta_nlive[inds[-1] + 1] -= 1
-        if birth_logl == init_birth:
+        if birth_logl == birth_contours[0]:
             # thread minimum is -inf as it starts by sampling from whole prior
             thread_min_max[label, 0] = -np.inf
             delta_nlive[0] += 1
@@ -252,11 +304,19 @@ def process_polychord_dead_points(dead_points, init_birth=-1e+30):
     return ns_run
 
 
-def threads_given_birth_contours(logl, birth_logl, init_birth=-1e+30):
+def threads_given_birth_contours(logl, birth_logl):
     """
     Divides a nested sampling run into threads, using info on the contours at
     which points were sampled. See "Sampling errors in nested sampling
     parameter estimation" (Higson et al. 2017) for more information.
+
+    MultiNest and PolyChord use different values to identify the inital live
+    points which were sampled from the whole prior (PolyChord uses -1e+30
+    and MultiNest -0.179769313486231571E+309). However in each case the first
+    dead point must have been sampled from the whole prior, so for either
+    package we can use
+
+    init_birth = birth_logl[0]
 
     Parameters
     ----------
@@ -265,19 +325,16 @@ def threads_given_birth_contours(logl, birth_logl, init_birth=-1e+30):
     birth_logl: 1d numpy array
         logl values of the iso-likelihood contour from within each point was
         sampled (on which it was born).
-    init_birth: float or int, optional
-        the value used in birth_logl to represent the inital live points
-        sampled from the whole prior. PolyChord uses -1e+30
 
     Returns
     -------
     thread_labels: 1d numpy array of ints
         labels of the thread each point belongs to.
     """
+    init_birth = birth_logl[0]
     for i, birth in enumerate(birth_logl):
         assert birth < logl[i], str(birth) + ' ' + str(logl[i])
         assert birth == init_birth or np.where(logl == birth)[0].shape == (1,)
-    assert birth_logl[0] == init_birth, str(birth_logl)
     unique, counts = np.unique(birth_logl[np.where(birth_logl != init_birth)],
                                return_counts=True)
     thread_start_logls = np.concatenate((np.asarray([init_birth]),
