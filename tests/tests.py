@@ -363,6 +363,13 @@ class TestErrorAnalysis(unittest.TestCase):
         stds = nestcheck.error_analysis.run_std_simulate(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
 
+    def test_pairwise_distances(self):
+        """Check that when two sets of samples are the same, the KS pvalue is 1
+        and the statistical distances are zero."""
+        a = np.random.random(10)
+        df = nestcheck.error_analysis.pairwise_distances([a, a])
+        self.assertTrue(np.array_equal(df.values, np.asarray([1, 0, 0, 0])))
+
 
 class TestEstimators(unittest.TestCase):
 

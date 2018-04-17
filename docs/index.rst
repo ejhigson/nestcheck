@@ -14,7 +14,7 @@ Diagnostic tests and error estimates for nested sampling calculations.
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://github.com/ejhigson/nestcheck/LICENSE
 
-Doccumentation
+Documentation
 --------------
 
 .. toctree::
@@ -39,7 +39,8 @@ If this code is useful for your research, please cite the two papers on which it
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
     journal={arXiv preprint arXiv:TBC},
     url={TBC},
-    year={2018}}
+    year={2018}
+    }
 
     @article{higson2018a,
     title={Sampling Errors in Nested Sampling Parameter Estimation},

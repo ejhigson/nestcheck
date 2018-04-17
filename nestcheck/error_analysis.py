@@ -308,29 +308,6 @@ def run_thread_values(run, estimator_list):
     return vals_array
 
 
-def pairwise_dists_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
-    """
-    Computes pairwise statistical distance measures.
-
-    parameters
-    ----------
-    df_in: pandas data frame
-        Columns represent estimators and rows represent runs.
-        Each data frane element is an array of values which are used as samples
-        in the distance measures.
-
-    returns
-    -------
-    df: pandas data frame with kl values for each pair.
-    """
-    df = pd.DataFrame()
-    for col in df_in.columns:
-        df[col] = pairwise_distances(df_in[col].values,
-                                     earth_mover_dist=earth_mover_dist,
-                                     energy_dist=energy_dist)
-    return df
-
-
 def pairwise_distances(dist_list, earth_mover_dist=True, energy_dist=True):
     """
     Applies statistical_distances to each unique pair of distributions in

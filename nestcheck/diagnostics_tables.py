@@ -93,8 +93,8 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     if thread_pvalue:
         t_vals_df = thread_values_df(
             run_list, estimator_list, estimator_names, parallel=parallel)
-        t_d_df = nestcheck.error_analysis.pairwise_dists_on_cols(
-            t_vals_df, earth_mover_dist=False, energy_dist=False)
+        t_d_df = pairwise_dists_on_cols(t_vals_df, earth_mover_dist=False,
+                                        energy_dist=False)
         # Keep only the p value not the distance measures
         t_d_df = t_d_df.xs('ks pvalue', level='calculation type',
                            drop_level=False)
@@ -105,14 +105,15 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     # Pairwise distances on BS distributions
     # --------------------------------------
     if bs_stat_dist:
-        b_d_df = nestcheck.error_analysis.pairwise_dists_on_cols(bs_vals_df)
+        b_d_df = pairwise_dists_on_cols(bs_vals_df)
         # Select only statistical distances - not KS pvalue as this is not
-        # useful for the bootstrap resample distributions (see Higson 2018 for more
-        # details).
+        # useful for the bootstrap resample distributions (see Higson 2018 for
+        # more details).
         dists = ['ks distance', 'earth mover distance', 'energy distance']
         b_d_df = b_d_df.loc[pd.IndexSlice[dists, :], :]
         # Append 'bootstrap ' to caclulcation type
-        new_ind = ['bootstrap ' + b_d_df.index.get_level_values('calculation type'),
+        new_ind = ['bootstrap ' +
+                   b_d_df.index.get_level_values('calculation type'),
                    b_d_df.index.get_level_values('run')]
         b_d_df.set_index(new_ind, inplace=True)
         df = pd.concat([df, b_d_df])
@@ -316,4 +317,27 @@ def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
             ('Should be nlive=' + str(run_list[0]['thread_min_max'].shape[0]) +
              ' values in each cell. The cell contains array with shape ' +
              str(vals_shape))
+    return df
+
+
+def pairwise_dists_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
+    """
+    Computes pairwise statistical distance measures.
+
+    parameters
+    ----------
+    df_in: pandas data frame
+        Columns represent estimators and rows represent runs.
+        Each data frane element is an array of values which are used as samples
+        in the distance measures.
+
+    returns
+    -------
+    df: pandas data frame with kl values for each pair.
+    """
+    df = pd.DataFrame()
+    for col in df_in.columns:
+        df[col] = nestcheck.error_analysis.pairwise_distances(
+            df_in[col].values, earth_mover_dist=earth_mover_dist,
+            energy_dist=energy_dist)
     return df

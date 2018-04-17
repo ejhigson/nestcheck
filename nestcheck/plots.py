@@ -398,6 +398,9 @@ def param_logx_diagram(run_list, **kwargs):
         fgivenx parallel option.
     rasterize_contours: bool, optional
         fgivenx rasterize_contours option.
+    tqdm_kwargs: dict, optional
+        Keyword arguments to pass to the tqdm progress bar when it is used in
+        fgivenx while plotting contours.
 
     Returns
     -------
@@ -422,6 +425,7 @@ def param_logx_diagram(run_list, **kwargs):
     parallel = kwargs.pop('parallel', True)
     rasterize_contours = kwargs.pop('rasterize_contours', True)
     npoints = kwargs.pop('npoints', 100)
+    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'leave': False})
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     if not isinstance(run_list, list):
@@ -479,7 +483,7 @@ def param_logx_diagram(run_list, **kwargs):
         interp_alt = functools.partial(alternate_helper, func=np.interp)
         y, pmf = fgivenx.compute_pmf(interp_alt, logx_sup, samples,
                                      cache=cache, ny=npoints, parallel=parallel,
-                                     tqdm_kwargs={'leave': False})
+                                     tqdm_kwargs=tqdm_kwargs)
         cbar = fgivenx.plot.plot(logx_sup, y, pmf, ax_weight,
                                  rasterize_contours=rasterize_contours,
                                  colors=plt.get_cmap(colormaps[nrun]))
@@ -523,7 +527,7 @@ def param_logx_diagram(run_list, **kwargs):
                           cache=cache_in, nx=npoints, ny=ny_posterior,
                           colormap=colormaps[nrun],
                           mean_color=mean_colors[nrun],
-                          parallel=parallel)
+                          parallel=parallel, tqdm_kwargs=tqdm_kwargs)
         # Plot means onto scatter plot
         # ----------------------------
         if plot_means:
@@ -598,6 +602,9 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     flip_axes: bool, optional
         Whether or not plot should be rotated 90 degrees anticlockwise onto its
         side.
+    tqdm_kwargs: dict, optional
+        Keyword arguments to pass to the tqdm progress bar when it is used in
+        fgivenx while plotting contours.
 
     Returns
     -------
@@ -615,6 +622,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     rasterize_contours = kwargs.pop('rasterize_contours', True)
     smooth = kwargs.pop('smooth', False)
     flip_axes = kwargs.pop('flip_axes', False)
+    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'leave': False})
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     assert len(fthetas) == len(axes), \
@@ -648,7 +656,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
                                      func=weighted_1d_gaussian_kde)
         y, pmf = fgivenx.compute_pmf(samp_kde, ftheta_vals, samples_array, ny=ny,
                                      cache=cache, parallel=parallel,
-                                     tqdm_kwargs={'leave': False})
+                                     tqdm_kwargs=tqdm_kwargs)
         if flip_axes:
             cbar = fgivenx.plot.plot(y, ftheta_vals, np.swapaxes(pmf, 0, 1),
                                      axes[nf], colors=colormap,
