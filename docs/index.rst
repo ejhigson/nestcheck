@@ -1,10 +1,6 @@
 nestcheck
 =========
 
-Diagnostic tests and error estimates for nested sampling calculations.
-
-`nestcheck` provides nested sampling utilites 
-
 .. image:: https://travis-ci.org/ejhigson/nestcheck.svg?branch=master
     :target: https://travis-ci.org/ejhigson/nestcheck
 .. image:: https://coveralls.io/repos/github/ejhigson/nestcheck/badge.svg?branch=master
@@ -14,8 +10,16 @@ Diagnostic tests and error estimates for nested sampling calculations.
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://github.com/ejhigson/nestcheck/LICENSE
 
+``nestcheck`` provides python utilities for analysing nested sampling runs and estimating numerical uncertainties. This includes implementations of the diagnostic tests and plots described in "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al. 2018
+<https://arxiv.org/abs/TBC>`_) and
+"Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al. 2017
+<https://doi.org/10.1214/17-BA1075>`_). For more information read the papers and see the documentation.
+
+So far ``nestcheck`` contains functions to process output from ``MultiNest``, ``PolyChord`` and ``perfectns`` (more nested sampling software can be added). ``nestcheck`` is fully compatible with `dynamic nested sampling
+<https://arxiv.org/abs/1704.03459>`_.
+
 Documentation
---------------
+-------------
 
 .. toctree::
    :maxdepth: 2
@@ -24,22 +28,14 @@ Documentation
    demo
    api
 
-Contributions
--------------
-
-Contributions are welcome! Please use numpy-style docstrings, and make sure the tests pass and  before issuing a pull request.
-
 Attribution
 -----------
 
-If this code is useful for your research, please cite the two papers on which it is based: `Diagnostic Tests for Nested Sampling Calculations
-<https://arxiv.org/abs/TBC>`_ and
-`Sampling Errors in Nested Sampling Parameter Estimation
-<https://doi.org/10.1214/17-BA1075>`_. The bibtex is:
+If this code is useful for your research, please cite the two papers on which it is based - the bibtex is:
 
 .. code-block:: tex
 
-    @article{higson2018b,
+    @article{higson2018a,
     title={Diagnostic Tests for Nested Sampling Calculations},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
     journal={arXiv preprint arXiv:TBC},
@@ -47,7 +43,7 @@ If this code is useful for your research, please cite the two papers on which it
     year={2018}
     }
 
-    @article{higson2018a,
+    @article{higson2017a,
     title={Sampling Errors in Nested Sampling Parameter Estimation},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
     doi={doi:10.1214/17-BA1075},
@@ -56,6 +52,11 @@ If this code is useful for your research, please cite the two papers on which it
     year={2018}
     }
 
+
+Contributions
+-------------
+
+Contributions are welcome! Please use numpy-style docstrings, and make sure the tests pass and  before issuing a pull request.
 
 Authors & License
 -----------------

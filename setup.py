@@ -7,8 +7,8 @@ setuptools.setup(name='nestcheck',
                  version='0.0.0',
                  author='Edward Higson',
                  author_email='ejhigson@gmail.com',
-                 description=('Diagnostic tests for nested sampling '
-                              'calculations'),
+                 description=('Error analysis, diagnostic tests and plots for '
+                              'nested sampling calculations'),
                  url='https://github.com/ejhigson/nestcheck',
                  install_requires=['numpy>=1.13',
                                    'scipy>=1.0.0',

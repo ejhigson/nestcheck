@@ -2,7 +2,7 @@
 Detailed API documentation
 ===========================
 
-This page doccuments the different modules and functions in the ``nestcheck`` package.
+This page documents the different modules and functions in the ``nestcheck`` package.
 
 data_processing
 ===============
