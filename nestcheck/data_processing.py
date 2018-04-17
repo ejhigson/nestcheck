@@ -161,9 +161,9 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     Parameters
     ----------
     file_root: str
-        PolyChord file_root setting.
+        Root for run output file names (PolyChord file_root setting).
     base_dir: str
-        PolyChord base_dir setting.
+        Directory containing data (PolyChord base_dir setting).
     logl_warn_only: bool, optional
         Whether only a warning should be given (rather than an assertion error)
         should be given if there are non-unique logls in the file.

@@ -62,10 +62,10 @@ def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
             inds = np.append(inds, np.random.randint(ninit, n_threads,
                                                      n_threads - ninit))
         except KeyError:
-            warnings.warn(('bootstrap_resample_run has kwarg ninit_sep=True but '
-                           'ns_run["settings"]["ninit"] does not exist. '
-                           'Doing bootstrap with ninit_sep=False'),
-                          UserWarning)
+            warnings.warn((
+                'bootstrap_resample_run has kwarg ninit_sep=True but '
+                'ns_run["settings"]["ninit"] does not exist. Doing bootstrap '
+                'with ninit_sep=False'), UserWarning)
             ninit_sep = False
     if not ninit_sep:
         inds = np.random.randint(0, n_threads, n_threads)
@@ -308,7 +308,7 @@ def run_thread_values(run, estimator_list):
     return vals_array
 
 
-def pairwise_distances_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
+def pairwise_dists_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
     """
     Computes pairwise statistical distance measures.
 

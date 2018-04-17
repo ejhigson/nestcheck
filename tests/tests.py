@@ -590,6 +590,11 @@ class TestDiagnosticsTables(unittest.TestCase):
             [], [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
             bs_stat_dist=True, unexpected=1)
 
+    def test_estimator_values_df_unexpected_kwarg(self):
+        self.assertRaises(
+            TypeError, nestcheck.diagnostics_tables.estimator_values_df,
+            [], [e.param_mean], unexpected=1)
+
 
 class TestPlots(unittest.TestCase):
 
@@ -635,7 +640,8 @@ class TestPlots(unittest.TestCase):
             logx_given_logl=lambda x: x,
             logl_given_logx=lambda x: x,
             cum_post_mass_norm='str', post_mass_norm='str')
-        # Using logx from run as (as in perfectns) should raise type error
+        # Using logx from run should raise type error (expects no logx key or
+        # else a perfectns-style logx numpy array)
         self.ns_run['logx'] = None
         self.assertRaises(
             TypeError, nestcheck.plots.plot_run_nlive,

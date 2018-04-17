@@ -2,31 +2,8 @@
 """
 Functions for performing operations nested sampling runs.
 
-Nested sampling runs are stored in a standard format as python dictionaries.
-For a run with nsamp samples, the keys are:
-
-    logl: 1d numpy array
-        Log-likelihood values (floats) for each sample.
-        Shape is (nsamp,).
-    thread_labels: 1d numpy array
-        Int representing which thread each point belongs to.
-        For some thread label k, the thread's start (birth) log-likelihood and
-        end log-likelihood are given by thread_min_max[k, :]
-        Shape is (nsamp,).
-    thread_min_max: 2d numpy array
-        Shape is (# threads, 2).
-        Each row k contains min logl (birth contour) and max logl for thread
-        with thread label i.
-    theta: 2d numpy array
-        Parameter values for samples - each row represents a sample.
-        Shape is (nsamp, d) where d is number of dimensions.
-    nlive_array: 1d numpy array
-        Number of live points present between the previous point and this
-        point.
-    output: dict (optional)
-        Dict containing extra information about the run.
-
-Samples are arranged in ascending order of logl.
+Nested sampling runs are stored in a standard format as python dictionaries
+(see data_processing module docstring for more details).
 """
 
 import copy
@@ -43,7 +20,8 @@ def run_estimators(ns_run, estimator_list, simulate=False):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see data_processing module docstring for more
+        details).
     estimator_list: list of functions for estimating quantities from nested
         sampling runs. Example functions can be found in estimators.py. Each
         should have arguments: func(ns_run, logw=None).
@@ -71,7 +49,8 @@ def array_given_run(ns_run):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see data_processing module docstring for more
+        details).
 
     Returns
     -------
@@ -93,7 +72,7 @@ def array_given_run(ns_run):
 def dict_given_run_array(samples, thread_min_max):
     """
     Converts an array of information about samples back into a nested sampling
-    run dictionary (see module docstring for more details).
+    run dictionary (see data_processing module docstring for more details).
 
     N.B. the output dict only keys: 'logl', 'thread_label', 'nlive_array',
     'theta'. Any other keys giving additional information about the run
@@ -114,7 +93,8 @@ def dict_given_run_array(samples, thread_min_max):
     Returns
     -------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see data_processing module docstring for more
+        details).
     """
     ns_run = {'logl': samples[:, 0],
               'thread_labels': samples[:, 1].astype(int),
@@ -143,7 +123,8 @@ def get_run_threads(ns_run):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see data_processing module docstring for more
+        details).
 
     Returns
     -------
@@ -180,15 +161,16 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
     Parameters
     ----------
     run_list_in: list of dicts
-        List of nested sampling runs in dict format (see module docstring
-        for more details).
+        List of nested sampling runs in dict format (see data_processing module
+        docstring for more details).
     logl_warn_only: bool, optional
         See check_ns_run docstring for more details.
 
     Returns
     -------
     run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see data_processing module docstring for more
+        details).
     """
     run_list = copy.deepcopy(run_list_in)
     nthread_tot = 0
@@ -222,15 +204,16 @@ def combine_threads(threads, assert_birth_point=False):
     threads: list of dicts
         List of nested sampling run dicts, each representing a single thread.
     assert_birth_point: bool, optional
-        Whether or not to assert there is exactly one point present in the run with
-        the log-likelihood at which each point was born. This is not true for
-        bootstrap resamples of runs, where birth points may be repeated or not
-        present at all.
+        Whether or not to assert there is exactly one point present in the run
+        with the log-likelihood at which each point was born. This is not true
+        for bootstrap resamples of runs, where birth points may be repeated or
+        not present at all.
 
     Returns
     -------
     run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see data_processing module docstring for more
+        details).
     """
     thread_min_max = np.vstack([td['thread_min_max'] for td in threads])
     assert len(threads) == thread_min_max.shape[0]
@@ -280,12 +263,13 @@ def get_logw(ns_run, simulate=False):
 
     Uses the trapezium rule such that the weight of point i is
 
-    .. math:: w_i = \mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
+    .. math:: w_i = \\mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
 
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see data_processing module docstring for more
+        details).
     simulate: bool, optional
         Should log prior volumes logx be simulated from their distribution (if
         false their expected values are used).
@@ -335,7 +319,7 @@ def get_logx(nlive, simulate=False):
 
     We are interested in
 
-    .. math:: \log(t_i) = \log X_{i-1} - logX_{i}
+    .. math:: \\log(t_i) = \\log X_{i-1} - \\logX_{i}
 
     which has expected value :math:`-1/n_i`.
 

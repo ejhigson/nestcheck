@@ -295,7 +295,7 @@ def bs_param_dists(run_list, **kwargs):
     ftheta_lims = kwargs.pop('ftheta_lims', [[-1, 1]] * len(fthetas))
     n_simulate = kwargs.pop('n_simulate', 100)
     random_seed = kwargs.pop('random_seed', 0)
-    figsize = kwargs.pop('figsize', (6.4, 3))
+    figsize = kwargs.pop('figsize', (6.4, 2))
     nx = kwargs.pop('nx', 100)
     ny = kwargs.pop('ny', nx)
     cache_in = kwargs.pop('cache', None)
