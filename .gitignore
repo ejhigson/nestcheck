@@ -4,6 +4,11 @@
 # Pickle files (default extension for cached nestcheck outputs)
 *.pkl
 
+# PolyChord output extensions
+*.stats
+*.resume
+*_dead-birth.txt
+
 # Github default python .gitignore
 # --------------------------------
 
