@@ -13,10 +13,14 @@ nestcheck
 ``nestcheck`` provides python utilities for analysing nested sampling runs and estimating numerical uncertainties. This includes implementations of the diagnostic tests and plots described in "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al. 2018
 <https://arxiv.org/abs/TBC>`_) and
 "Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al. 2017
-<https://doi.org/10.1214/17-BA1075>`_). For more information read the papers and see the documentation.
+<https://doi.org/10.1214/17-BA1075>`_). For more information read the papers and see the documentation. 
 
 So far ``nestcheck`` contains functions to process output from ``MultiNest``, ``PolyChord`` and ``perfectns`` (more nested sampling software can be added). ``nestcheck`` is fully compatible with `dynamic nested sampling
 <https://arxiv.org/abs/1704.03459>`_.
+
+IPython notebooks containing example usage of ``nestcheck`` can be found in the `examples folder
+<https://github.com/ejhigson/nestcheck/tree/master/examples>`_. This includes the code used to make the results in the diagnostics tests paper (`Higson et al. 2018
+<https://arxiv.org/abs/TBC>`_).
 
 Documentation
 -------------
@@ -49,7 +53,7 @@ If this code is useful for your research, please cite the two papers on which it
     doi={doi:10.1214/17-BA1075},
     journal={Bayesian Analysis},
     url={https://doi.org/10.1214/17-BA1075},
-    year={2018}
+    year={2017}
     }
 
 
