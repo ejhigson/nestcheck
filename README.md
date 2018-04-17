@@ -17,5 +17,5 @@ nestcheck
 [![Documentation Status](https://readthedocs.org/projects/nestcheck/badge/?version=latest)](http://nestcheck.readthedocs.io/en/latest/?badge=latest)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ejhigson/nestcheck/LICENSE)
 
-Read the documentation at [http://nestcheck.readthedocs.io](http://nestcheck.readthedocs.io).
+## Read the documentation at [http://nestcheck.readthedocs.io](http://nestcheck.readthedocs.io).
 <!-- ASCII art bird adapted from http://www.oocities.org/spunk1111/birds.htm#parrot --!>

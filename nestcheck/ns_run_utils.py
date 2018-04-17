@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-Functions for performing operations nested sampling runs.
+Functions for performing basic operations on nested sampling runs; such as
+working out point weights and splitting and combining runs.
 
 Nested sampling runs are stored in a standard format as python dictionaries
 (see data_processing module docstring for more details).

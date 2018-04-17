@@ -24,6 +24,11 @@ Documentation
    demo
    api
 
+Contributions
+-------------
+
+Contributions are welcome! Please use numpy-style docstrings, and make sure the tests pass and  before issuing a pull request.
+
 Attribution
 -----------
 

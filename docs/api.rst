@@ -1,86 +1,59 @@
-===
-API
-===
+===========================
+Detailed API documentation
+===========================
 
-This page details the methods and classes provided by the ``nestcheck`` module.
+This page doccuments the different modules and functions in the ``nestcheck`` package.
 
-Importing NS software output
-============================
+data_processing
+===============
 
 .. automodule:: nestcheck.data_processing
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
 
-Basic operations on nested sampling runs
-========================================
+ns_run_utils
+============
 
 .. automodule:: nestcheck.ns_run_utils
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
 
-Error analysis
+error_analysis
 ==============
 
 .. automodule:: nestcheck.error_analysis
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
 
-Results tables for batch error analysis
-=======================================
+diagnostics_tables
+==================
 
 .. automodule:: nestcheck.diagnostics_tables
     :members:
 
-Diagnostic Plots
-================
+plots
+=====
 
 .. automodule:: nestcheck.plots
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
 
-Estimator functions
-===================
+estimators
+==========
 
 .. automodule:: nestcheck.estimators
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
 
-Useful helper functions
-=======================
-
-Save/loading
-------------
+io_utils
+========
 
 .. automodule:: nestcheck.io_utils
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
 
-Parallelisation
----------------
+parallel_utils
+==============
 
 .. automodule:: nestcheck.parallel_utils
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:
 
-Pandas functions
-----------------
+pandas_functions
+================
 
 .. automodule:: nestcheck.pandas_functions
     :members:
-    :undoc-members:
-    :private-members:
-    :show-inheritance:

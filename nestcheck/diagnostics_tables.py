@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Functions for getting diagnostic test results for batches of nested sampling
-runs.
+High-level functions for calculating results of error analysis and diagnostic tests for
+batches of nested sampling runs.
 """
 
 import numpy as np

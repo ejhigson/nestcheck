@@ -1,9 +1,19 @@
 #!/usr/bin/env python
 """
-Functions for processing nested sampling software output.
+Functions for processing output files produced by nested sampling software.
+Currently compatable with MultiNest and PolyChord output.
 
-Nested sampling runs are stored in a standard format as python dictionaries.
-For a run with nsamp samples, the keys are:
+Nestcheck's diagnostics require infomation about the steps at which points were
+sampled in order to split nested sampling runs into their constituent threads
+(single live point runs). See "Sampling Errors In Nested Sampling Parameter
+Estimation (Higson et al. 2017) for more details. *Producing these requires
+MultiNest >= v3.11 and PolyChord >= v1.13.*
+
+
+**nestested sampling run format**
+
+nestcheck stored nested sampling runs in a standard format as python
+dictionaries. For a run with nsamp samples, the keys are:
 
     logl: 1d numpy array
         Log-likelihood values (floats) for each sample.
