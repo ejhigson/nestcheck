@@ -12,8 +12,7 @@ nestcheck
      /    ~~~~~  /   \    /   \ ~~~~~
      jgs   ~~~~~~~~~~~~~~~~~~~~~~~~~
               ~~~~~~~~~~~~~~~~~~~
-
-
+<!-- ASCII art bird adapted from http://www.oocities.org/spunk1111/birds.htm#parrot --!>
 [![Build Status](https://travis-ci.org/ejhigson/nestcheck.svg?branch=master)](https://travis-ci.org/ejhigson/nestcheck)
 [![Coverage Status](https://coveralls.io/repos/github/ejhigson/nestcheck/badge.svg?branch=master)](https://coveralls.io/github/ejhigson/nestcheck?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/nestcheck/badge/?version=latest)](http://nestcheck.readthedocs.io/en/latest/?badge=latest)
