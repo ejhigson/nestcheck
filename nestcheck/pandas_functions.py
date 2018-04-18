@@ -249,10 +249,9 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
     for i, method_name in enumerate(method_names):
         # Set include_true_values=False as we don't want them repeated for
         # every method
-        df = summary_df_from_list(method_values[i], est_names,
-                                  true_values=true_values,
-                                  include_true_values=False,
-                                  include_rmse=include_rmse)
+        df = summary_df_from_list(
+            method_values[i], est_names, true_values=true_values,
+            include_true_values=False, include_rmse=include_rmse)
         if i != 0:
             stats = ['std']
             if include_rmse:
@@ -264,8 +263,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
                 ratio_unc = array_ratio_std(
                     df_dict[method_names[0]].loc[(stat, 'value')],
                     df_dict[method_names[0]].loc[(stat, 'uncertainty')],
-                    df.loc[(stat, 'value')],
-                    df.loc[(stat, 'uncertainty')])
+                    df.loc[(stat, 'value')], df.loc[(stat, 'uncertainty')])
                 key = stat + ' efficiency gain'
                 df.loc[(key, 'value'), :] = ratio ** 2
                 df.loc[(key, 'uncertainty'), :] = 2 * ratio * ratio_unc
