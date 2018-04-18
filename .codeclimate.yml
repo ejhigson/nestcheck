@@ -28,7 +28,7 @@ checks:
   identical-code:
     config:
       # code 'mass' required for warning - see https://github.com/codeclimate/codeclimate-duplication
-      threshold: 25
+      threshold: 50  # default is 25
   similar-code:
     config:
       # code 'mass' required for warning - see https://github.com/codeclimate/codeclimate-duplication

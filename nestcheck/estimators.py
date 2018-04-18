@@ -46,33 +46,28 @@ def get_latex_name(func_in, **kwargs):
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     ind_str = r'{\hat{' + str(param_ind + 1) + '}}'
-    if func.__name__ == 'count_samples':
-        latex_name = r'samples'
-    elif func.__name__ == 'logz':
-        latex_name = r'$\mathrm{log} \mathcal{Z}$'
-    elif func.__name__ == 'evidence':
-        latex_name = r'$\mathcal{Z}$'
-    elif func.__name__ == 'r_mean':
-        latex_name = r'$\overline{|\theta|}$'
-    elif func.__name__ == 'param_mean':
-        latex_name = (r'$\overline{\theta_' + ind_str + '}$')
-    elif func.__name__ == 'param_squared_mean':
-        latex_name = (r'$\overline{\theta^2_' + ind_str + '}$')
-    elif func.__name__ == 'param_cred' or func.__name__ == 'r_cred':
-        if probability == 0.5:
-            latex_name = r'$\mathrm{median}('
-        else:
-            # format percent without trailing zeros
-            percent_str = ('%f' % (probability * 100)).rstrip('0').rstrip('.')
-            latex_name = r'$\mathrm{C.I.}_{' + percent_str + r'\%}('
-        if func.__name__ == 'param_cred':
-            latex_name += r'\theta_' + ind_str + ')$'
-        elif func.__name__ == 'r_cred':
-            latex_name += r'|\theta|)$'
+    latex_name_dict = {
+        'count_samples': r'samples',
+        'logz': r'$\mathrm{log} \mathcal{Z}$',
+        'evidence': r'$\mathcal{Z}$',
+        'r_mean': r'$\overline{|\theta|}$',
+        'param_mean': r'$\overline{\theta_' + ind_str + '}$',
+        'param_squared_mean': r'$\overline{\theta^2_' + ind_str + '}$'}
+    # Add credible interval names
+    if probability == 0.5:
+        cred_str = r'$\mathrm{median}('
     else:
-        raise AssertionError('get_latex_name not yet set up for ' +
-                             func.__name__)
-    return latex_name
+        # format percent without trailing zeros
+        percent_str = ('%f' % (probability * 100)).rstrip('0').rstrip('.')
+        cred_str = r'$\mathrm{C.I.}_{' + percent_str + r'\%}('
+    latex_name_dict['param_cred'] = cred_str + r'\theta_' + ind_str + ')$'
+    latex_name_dict['r_cred'] = cred_str + r'|\theta|)$'
+    try:
+        return latex_name_dict[func.__name__]
+    except KeyError as err:
+        err.args = err.args + ('get_latex_name not yet set up for ' +
+                               func.__name__,)
+        raise
 
 
 # Estimators

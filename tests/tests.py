@@ -478,7 +478,7 @@ class TestEstimatorLatexNames(unittest.TestCase):
         self.assertRaises(TypeError, e.get_latex_name, e.logz, unexpected=1)
 
     def test_latex_name_unknown_func(self):
-        self.assertRaises(AssertionError, e.get_latex_name, np.mean)
+        self.assertRaises(KeyError, e.get_latex_name, np.mean)
 
 
 class TestParallelUtils(unittest.TestCase):
