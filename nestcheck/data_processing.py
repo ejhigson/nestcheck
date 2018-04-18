@@ -191,7 +191,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     try:
         ns_run['output'] = PyPolyChord.output.PolyChordOutput(
             base_dir, file_root).__dict__
-    except (FileNotFoundError, NameError) as err:
+    except (OSError, NameError) as err:
         wtype = (ImportWarning if type(err).__name__ == 'NameError'
                  else UserWarning)
         warnings.warn((type(err).__name__ + ' processing .stats file with '

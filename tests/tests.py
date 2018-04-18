@@ -41,7 +41,7 @@ class TestDataProcessing(unittest.TestCase):
         """Remove any caches saved by the tests."""
         try:
             shutil.rmtree(TEST_CACHE_DIR)
-        except FileNotFoundError:
+        except OSError:
             pass
 
     def test_batch_process_data_unexpected_kwarg(self):
@@ -127,7 +127,7 @@ class TestIOUtils(unittest.TestCase):
         """Remove any caches saved by the tests."""
         try:
             shutil.rmtree(TEST_CACHE_DIR)
-        except FileNotFoundError:
+        except OSError:
             pass
 
     def test_save_load_wrapper(self):
@@ -150,8 +150,8 @@ class TestIOUtils(unittest.TestCase):
             nestcheck.io_utils.pickle_save(data_out, '//')
 
     def test_load_filenotfound(self):
-        """Test loading files which dont exist causes FileNotFoundError."""
-        self.assertRaises(FileNotFoundError, nestcheck.io_utils.pickle_load,
+        """Test loading files which dont exist causes OSError."""
+        self.assertRaises(OSError, nestcheck.io_utils.pickle_load,
                           TEST_CACHE_DIR + 'not_here')
 
     def test_no_overwrite(self):
