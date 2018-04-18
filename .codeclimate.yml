@@ -18,7 +18,7 @@ checks:
       threshold: 20
   method-lines:
     config:
-      threshold: 150  # default 25
+      threshold: 1  # default 25
   nested-control-flow:
     config:
       threshold: 4
@@ -28,11 +28,11 @@ checks:
   identical-code:
     config:
       # code 'mass' required for warning - see https://github.com/codeclimate/codeclimate-duplication
-      threshold: 75  # default is 25
+      threshold: 25  # default is 25
   similar-code:
     config:
       # code 'mass' required for warning - see https://github.com/codeclimate/codeclimate-duplication
-      threshold: 75
+      threshold: 50  # default is 50
 plugins:
   pep8:
     enabled: true
