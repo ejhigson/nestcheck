@@ -9,7 +9,8 @@ Installation
 
 ..    pip install nestcheck
 
-Install ``nestcheck`` and its dependencies by cloning `the git
+
+``nestcheck`` and its dependencies can be installed by cloning `the git
 repository <https://github.com/ejhigson/nestcheck>`_:
 
 .. code-block:: bash
@@ -19,10 +20,12 @@ repository <https://github.com/ejhigson/nestcheck>`_:
     python setup.py install
 
 
+It is compatible with python 2.7 and >=3.4.
+
 Dependencies
 ------------
 
-``nestcheck`` requires
+``nestcheck`` requires:
 
  - ``numpy`` >=1.13;
  - ``scipy`` >=1.0.0;
@@ -31,7 +34,7 @@ Dependencies
  - ``pandas`` >=0.21.0;
  - ``tqdm`` >=4.11.
 
-All of the dependencies are on `PiPy <https://pypi.org/>`_ and are automatically installed by ``pip``.
+All of the dependencies are on `PiPy <https://pypi.org/>`_ and are automatically installed by the above procedures.
 Note also that producing the birth contour output files needed for ``nestcheck`` analysis with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and the setting "write_dead"=True.*
 
 Tests

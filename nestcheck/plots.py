@@ -288,7 +288,7 @@ def bs_param_dists(run_list, **kwargs):
     cache_in = kwargs.pop('cache', None)
     parallel = kwargs.pop('parallel', True)
     rasterize_contours = kwargs.pop('rasterize_contours', True)
-    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'leave': False})
+    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'disable': True})
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     # Use random seed to make samples consistent and allow caching.
@@ -416,7 +416,7 @@ def param_logx_diagram(run_list, **kwargs):
     parallel = kwargs.pop('parallel', True)
     rasterize_contours = kwargs.pop('rasterize_contours', True)
     npoints = kwargs.pop('npoints', 100)
-    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'leave': False})
+    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'disable': True})
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     if not isinstance(run_list, list):
