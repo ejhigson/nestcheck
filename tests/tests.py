@@ -64,9 +64,8 @@ class TestDataProcessing(unittest.TestCase):
                 repeat_logl_run, warn_only=True)
             self.assertEqual(len(war), 1)
 
-    def test_process_polychord_data_batch(self):
-        """Test processing some dummy PolyChord data using
-        batch_process_data."""
+    def test_process_polychord_data(self):
+        """Check processing some dummy PolyChord data."""
         file_root = 'dummy_run'
         dead, run = get_dummy_dead_points(dynamic=True)
         nestcheck.data_processing.check_ns_run(run)
@@ -74,10 +73,9 @@ class TestDataProcessing(unittest.TestCase):
         np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
-            processed_run = nestcheck.data_processing.batch_process_data(
-                [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
-                parallel=False, errors_to_handle=(OSError, IOError))[0]
-            self.assertEqual(len(war), 2)
+            processed_run = nestcheck.data_processing.process_polychord_run(
+                file_root, TEST_CACHE_DIR)
+            self.assertEqual(len(war), 1)
         nestcheck.data_processing.check_ns_run(processed_run)
         for key, value in processed_run.items():
             if key not in ['output']:
@@ -110,6 +108,22 @@ class TestDataProcessing(unittest.TestCase):
                     value, run[key], err_msg=key + ' not the same')
         self.assertEqual(processed_run['output']['file_root'], file_root)
         self.assertEqual(processed_run['output']['base_dir'], TEST_CACHE_DIR)
+
+    def test_batch_process_data(self):
+        """Test processing some dummy PolyChord data using
+        batch_process_data."""
+        file_root = 'dummy_run'
+        dead, run = get_dummy_dead_points(dynamic=True)
+        nestcheck.data_processing.check_ns_run(run)
+        os.makedirs(TEST_CACHE_DIR)
+        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
+            run_list = nestcheck.data_processing.batch_process_data(
+                [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
+                parallel=False, errors_to_handle=(OSError, IOError))
+            self.assertEqual(len(war), 2)
+        self.assertEqual(len(run_list), 1)
 
 
 class TestIOUtils(unittest.TestCase):
