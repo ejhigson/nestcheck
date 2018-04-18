@@ -25,16 +25,25 @@ checks:
   return-statements:
     config:
       threshold: 4
+  identical-code:
+    config:
+      # code 'mass' required for warning - see https://github.com/codeclimate/codeclimate-duplication
+      threshold: 25
+  similar-code:
+    config:
+      # code 'mass' required for warning - see https://github.com/codeclimate/codeclimate-duplication
+      threshold: 50
 plugins:
   pep8:
     enabled: true
+    # The pep8 style guide has been changed to prefer line breaks before binary operator, so remove old style warning.
+    # Enforcing new style with W504=True not yet on climate's pep8 version.
     checks:
-      W504:
-        enabled: true
+      W503:
+        enabled: false
   sonar-python:
     enabled: true
     checks:
+      # disable complexity tests
       python:S3776:
         enabled: false
-  # markdownlint:
-  #   enabled: true
