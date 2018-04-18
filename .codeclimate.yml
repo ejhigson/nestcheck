@@ -29,9 +29,6 @@ plugins:
   pep8:
     enabled: true
     checks:
-      W503:
-        enabled: false
-    checks:
       W504:
         enabled: true
   sonar-python:
