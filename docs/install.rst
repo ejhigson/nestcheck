@@ -31,9 +31,8 @@ Dependencies
  - ``pandas`` >=0.21.0;
  - ``tqdm`` >=4.11.
 
-Currently, ``nestcheck`` can process MultiNest and PolyChord output files.
-These must include infomation about the steps at which points were sampled ("born") is required as it is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. 2017 <https://doi.org/10.1214/17-BA1075>`_ for more details.
-*Producing these requires MultiNest >= v3.11 and PolyChord >= v1.13.*
+All of the dependencies are on `PiPy <https://pypi.org/>`_ and are automatically installed by ``pip``.
+Note also that producing the birth contour output files needed for ``nestcheck`` analysis with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and the setting "write_dead"=True.*
 
 Tests
 -----
