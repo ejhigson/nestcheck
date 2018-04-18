@@ -33,7 +33,7 @@ Documentation
    :maxdepth: 2
 
    install
-   demo
+   examples/nestcheck_demo
    api
 
 Attribution
