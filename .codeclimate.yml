@@ -31,8 +31,9 @@ plugins:
     checks:
       W503:
         enabled: false
-      # W504:
-      #   enabled: true
+    checks:
+      W504:
+        enabled: true
   sonar-python:
     enabled: true
     checks:
