@@ -92,7 +92,8 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
             elif logx_given_logl is not None:
                 logx = logx_given_logl(run['logl'])
             else:
-                logx = nestcheck.ns_run_utils.get_logx(run['nlive_array'], simulate=False)
+                logx = nestcheck.ns_run_utils.get_logx(
+                    run['nlive_array'], simulate=False)
             logx_min_list.append(logx[-1])
             logx[0] = 0  # to make lines extend all the way to the end
             if nr == 0:
@@ -240,7 +241,8 @@ def kde_plot_df(df, xlims=None, **kwargs):
                 pass
         ax.set_xlabel(col)
         if num_xticks is not None:
-            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=num_xticks))
+            ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(
+                nbins=num_xticks))
     if legend:
         fig.legend(handles, labels, **legend_kwargs)
     return fig
@@ -270,7 +272,8 @@ def bs_param_dists(run_list, **kwargs):
         Number of bootstrap replications to be used for the fgivenx
         distributions.
     random_seed: int, optional
-        Seed to make sure results are consistent and fgivenx caching can be used.
+        Seed to make sure results are consistent and fgivenx caching can be
+        used.
     figsize: tuple, optional
         Matplotlib figsize in (inches).
     nx: int, optional
@@ -317,7 +320,8 @@ def bs_param_dists(run_list, **kwargs):
                                           'width_ratios': width_ratios},
                              figsize=figsize)
     colormaps = ['Reds_r', 'Blues_r', 'Greys_r', 'Greens_r', 'Oranges_r']
-    mean_colors = ['darkred', 'darkblue', 'darkgrey', 'darkgreen', 'darkorange']
+    mean_colors = ['darkred', 'darkblue', 'darkgrey', 'darkgreen',
+                   'darkorange']
     # plot in reverse order so reds are final plot and always on top
     for nrun, run in reversed(list(enumerate(run_list))):
         try:
@@ -380,7 +384,8 @@ def param_logx_diagram(run_list, **kwargs):
     n_simulate: int, optional
         Number of bootstrap replications to use for the fgivenx distributions.
     random_seed: int, optional
-        Seed to make sure results are consistent and fgivenx caching can be used.
+        Seed to make sure results are consistent and fgivenx caching can be
+        used.
     logx_min: float, optional
         Lower limit of logx axis.
     figsize: tuple, optional
@@ -467,7 +472,8 @@ def param_logx_diagram(run_list, **kwargs):
         ax_weight.set_ylabel('posterior\nmass')
         samples = np.zeros((n_simulate, run['nlive_array'].shape[0] * 2))
         for i in range(n_simulate):
-            logx_temp = nestcheck.ns_run_utils.get_logx(run['nlive_array'], simulate=True)[::-1]
+            logx_temp = nestcheck.ns_run_utils.get_logx(
+                run['nlive_array'], simulate=True)[::-1]
             logw_rel = logx_temp + run['logl'][::-1]
             w_rel = np.exp(logw_rel - logw_rel.max())
             w_rel /= np.trapz(w_rel, x=logx_temp)
@@ -482,7 +488,8 @@ def param_logx_diagram(run_list, **kwargs):
             cache = None
         interp_alt = functools.partial(alternate_helper, func=np.interp)
         y, pmf = fgivenx.compute_pmf(interp_alt, logx_sup, samples,
-                                     cache=cache, ny=npoints, parallel=parallel,
+                                     cache=cache, ny=npoints,
+                                     parallel=parallel,
                                      tqdm_kwargs=tqdm_kwargs)
         cbar = fgivenx.plot.plot(logx_sup, y, pmf, ax_weight,
                                  rasterize_contours=rasterize_contours,
@@ -503,7 +510,8 @@ def param_logx_diagram(run_list, **kwargs):
                 [r'$1\sigma$', r'$2\sigma$', r'$3\sigma$'])
         # samples plot
         # ------------
-        logx = nestcheck.ns_run_utils.get_logx(run['nlive_array'], simulate=False)
+        logx = nestcheck.ns_run_utils.get_logx(run['nlive_array'],
+                                               simulate=False)
         for nf, ftheta in enumerate(fthetas):
             ax_samples = axes[1 + nf, 1]
             ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
@@ -531,7 +539,8 @@ def param_logx_diagram(run_list, **kwargs):
         # Plot means onto scatter plot
         # ----------------------------
         if plot_means:
-            logw_expected = nestcheck.ns_run_utils.get_logw(run, simulate=False)
+            logw_expected = nestcheck.ns_run_utils.get_logw(
+                run, simulate=False)
             w_rel = np.exp(logw_expected - logw_expected.max())
             w_rel /= np.sum(w_rel)
             means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]
@@ -561,6 +570,7 @@ def param_logx_diagram(run_list, **kwargs):
 
 # Helper functions
 # ----------------
+
 
 def plot_bs_dists(run, fthetas, axes, **kwargs):
     """
@@ -654,8 +664,8 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
             cache = None
         samp_kde = functools.partial(alternate_helper,
                                      func=weighted_1d_gaussian_kde)
-        y, pmf = fgivenx.compute_pmf(samp_kde, ftheta_vals, samples_array, ny=ny,
-                                     cache=cache, parallel=parallel,
+        y, pmf = fgivenx.compute_pmf(samp_kde, ftheta_vals, samples_array,
+                                     ny=ny, cache=cache, parallel=parallel,
                                      tqdm_kwargs=tqdm_kwargs)
         if flip_axes:
             cbar = fgivenx.plot.plot(y, ftheta_vals, np.swapaxes(pmf, 0, 1),
@@ -675,15 +685,17 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
         means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]
         for nf, mean in enumerate(means):
             if flip_axes:
-                axes[nf].axhline(y=mean, lw=1, linestyle='--', color=mean_color)
+                axes[nf].axhline(y=mean, lw=1, linestyle='--',
+                                 color=mean_color)
             else:
-                axes[nf].axvline(x=mean, lw=1, linestyle='--', color=mean_color)
+                axes[nf].axvline(x=mean, lw=1, linestyle='--',
+                                 color=mean_color)
     return cbar
 
 
 def alternate_helper(x, alt_samps, func=None):
-    """Helper function for making fgivenx plots of functions with 2 array arguments
-    of variable lengths."""
+    """Helper function for making fgivenx plots of functions with 2 array
+    arguments of variable lengths."""
     alt_samps = alt_samps[~np.isnan(alt_samps)]
     arg1 = alt_samps[::2]
     arg2 = alt_samps[1::2]

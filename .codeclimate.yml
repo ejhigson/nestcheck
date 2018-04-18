@@ -2,7 +2,7 @@ version: "2"         # required to adjust maintainability checks
 checks:
   argument-count:
     config:
-      threshold: 4
+      threshold: 5  # default 4
   complex-logic:
     config:
       threshold: 4
@@ -10,6 +10,7 @@ checks:
     config:
       threshold: 750  # default 250
   method-complexity:
+    enabled: false
     config:
       threshold: 5
   method-count:
@@ -27,7 +28,7 @@ checks:
 plugins:
   pep8:
     enabled: true
-  markdownlint:
-    enabled: true
   sonar-python:
     enabled: true
+  # markdownlint:
+  #   enabled: true

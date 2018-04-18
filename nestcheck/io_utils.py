@@ -78,9 +78,10 @@ def save_load_result(func):
                 try:
                     return pickle_load(save_name)
                 except OSError:
-                    warnings.warn((func.__name__ + ' had OSError loading file ' +
-                                   save_name + '. Continuing without loading.'),
-                                  UserWarning)
+                    warnings.warn(
+                        (func.__name__ + ' had OSError loading file '
+                         + save_name + '. Continuing without loading.'),
+                        UserWarning)
         result = func(*args, **kwargs)
         if save:
             if save_name is None:
