@@ -128,16 +128,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
         # ones which we want to compare to it). If they are not available just
         # normalise it to the average area under all the runs (which should be
         # about the same if they have the same number of samples).
-        if post_mass_norm is None:
-            w_an *= np.mean(np.concatenate(list(integrals_dict.values())))
-        else:
-            try:
-                w_an *= np.mean(integrals_dict[post_mass_norm])
-            except KeyError:
-                print('method name "' + post_mass_norm + '" not found, so ' +
-                      'normalise area under the analytic relative posterior ' +
-                      'mass curve using the mean of all methods.')
-                w_an *= np.mean(np.concatenate(list(integrals_dict.values())))
+        w_an *= average_by_key(integrals_dict, post_mass_norm)
         ax.plot(logx_plot, w_an,
                 linewidth=2, label='relative posterior mass',
                 linestyle=':', color='k')
@@ -149,17 +140,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
         # ones which we want to compare to it). If they are not available just
         # normalise it to the average area under all the runs (which should be
         # about the same if they have the same number of samples).
-        if cum_post_mass_norm is None:
-            w_an_c *= np.mean(np.concatenate(list(integrals_dict.values())))
-        else:
-            try:
-                w_an_c *= np.mean(integrals_dict[cum_post_mass_norm])
-            except KeyError:
-                print('method name "' + cum_post_mass_norm + '" not found, ' +
-                      'so normalise area under the analytic posterior mass ' +
-                      'remaining curve using the mean of all methods.')
-                w_an_c *= np.mean(np.concatenate(
-                    list(integrals_dict.values())))
+        w_an_c *= average_by_key(integrals_dict, cum_post_mass_norm)
         ax.plot(logx_plot, w_an_c, linewidth=2, linestyle='--', dashes=(2, 3),
                 label='posterior mass remaining', color='darkblue')
     ax.set_ylabel('number of live points')
@@ -786,3 +767,32 @@ def rel_posterior_mass(logx, logl):
     w_rel = np.exp(logw - logw.max())
     w_rel /= np.abs(np.trapz(w_rel, x=logx))
     return w_rel
+
+
+def average_by_key(dict_in, key):
+    """
+    Helper function for plot_run_nlive.
+
+    Try returning the average of dict_in[key] and, if this does not work or if
+    key is None, return average of whole dict.
+
+    Parameters
+    ----------
+    dict_in: dict
+        Values should be arrays.
+    key: str
+
+    Returns
+    -------
+    average: float
+    """
+    if key is None:
+        return np.mean(np.concatenate(list(dict_in.values())))
+    else:
+        try:
+            return np.mean(dict_in[key])
+        except KeyError:
+            print('method name "' + key + '" not found, so ' +
+                  'normalise area under the analytic relative posterior ' +
+                  'mass curve using the mean of all methods.')
+            return np.mean(np.concatenate(list(dict_in.values())))

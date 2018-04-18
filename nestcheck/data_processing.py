@@ -520,11 +520,10 @@ def check_ns_run_threads(run):
         'whole prior')
     for th_lab in uniq_th:
         inds = np.where(run['thread_labels'] == th_lab)[0]
+        th_info = (str(th_lab) + ', ' + str(run['logl'][inds[0]]),
+                   str(run['thread_min_max'][th_lab, :]))
         assert run['thread_min_max'][th_lab, 0] < run['logl'][inds[0]], (
             'First point in thread has logl less than thread min logl! ' +
-            str(th_lab) + ', ' + str(run['logl'][inds[0]]),
-            str(run['thread_min_max'][th_lab, :]))
+            th_info)
         assert run['thread_min_max'][th_lab, 1] == run['logl'][inds[-1]], (
-            'Last point in thread logl != thread end logl! ' +
-            str(th_lab) + ', ' + str(run['logl'][inds[0]]),
-            str(run['thread_min_max'][th_lab, :]))
+            'Last point in thread logl != thread end logl! ' + th_info)
