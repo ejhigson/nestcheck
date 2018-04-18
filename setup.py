@@ -10,12 +10,15 @@ setuptools.setup(name='nestcheck',
                  description=('Error analysis, diagnostic tests and plots for '
                               'nested sampling calculations'),
                  url='https://github.com/ejhigson/nestcheck',
+                 # futures is in standard library for python >= 3.2, but
+                 # include it for backwards compatibility
                  install_requires=['numpy>=1.13',
                                    'scipy>=1.0.0',
                                    'matplotlib>=2.1.0',
                                    'fgivenx>=1.1.4',
                                    'pandas>=0.21.0',
-                                   'tqdm>=4.11'],
+                                   'tqdm>=4.11',
+                                   'futures'],
                  test_suite='nose.collector',
                  tests_require=['nose', 'coverage'],
                  extras_require={'docs': ['numpydoc', 'sphinx-rtd-theme',
