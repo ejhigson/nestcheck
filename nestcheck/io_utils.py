@@ -77,11 +77,11 @@ def save_load_result(func):
             else:
                 try:
                     return pickle_load(save_name)
-                except OSError:
+                except (OSError, IOError) as err:
                     warnings.warn(
-                        (func.__name__ + ' had OSError loading file '
-                         + save_name + '. Continuing without loading.'),
-                        UserWarning)
+                        (func.__name__ + ' had ' + type(err).__name__
+                         + ' loading file ' + save_name
+                         + '. Continuing without loading.'), UserWarning)
         result = func(*args, **kwargs)
         if save:
             if save_name is None:
@@ -125,6 +125,12 @@ def pickle_save(data, name, **kwargs):
         print(filename + ' already exists! Saving with time appended')
         filename = name + '_' + time.asctime().replace(' ', '_')
         filename += extension
+    # check if permission error is defined (was not before python 3.3) and otherwise
+    # use IOError
+    try:
+        PermissionError
+    except NameError:
+        PermissionError = IOError
     try:
         outfile = open(filename, 'wb')
         pickle.dump(data, outfile)

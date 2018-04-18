@@ -7,6 +7,7 @@ import os
 import sys
 import shutil
 import unittest
+import warnings
 import matplotlib
 import numpy as np
 import numpy.testing
@@ -57,9 +58,11 @@ class TestDataProcessing(unittest.TestCase):
         self.assertRaises(
             AssertionError, nestcheck.data_processing.check_ns_run_logls,
             repeat_logl_run, warn_only=False)
-        with self.assertWarns(UserWarning):
-            nestcheck.data_processing.check_ns_run_logls(repeat_logl_run,
-                                                         warn_only=True)
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
+            nestcheck.data_processing.check_ns_run_logls(
+                repeat_logl_run, warn_only=True)
+            self.assertEqual(len(war), 1)
 
     def test_process_polychord_data_batch(self):
         """Test processing some dummy PolyChord data using
@@ -69,10 +72,12 @@ class TestDataProcessing(unittest.TestCase):
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
         np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             processed_run = nestcheck.data_processing.batch_process_data(
                 [file_root, 'an_empty_path'], base_dir=TEST_CACHE_DIR,
-                parallel=False, errors_to_handle=OSError)[0]
+                parallel=False, errors_to_handle=(OSError, IOError))[0]
+            self.assertEqual(len(war), 2)
         nestcheck.data_processing.check_ns_run(processed_run)
         for key, value in processed_run.items():
             if key not in ['output']:
@@ -133,25 +138,35 @@ class TestIOUtils(unittest.TestCase):
     def test_save_load_wrapper(self):
         """Try saving and loading some test data and check it dosnt change."""
         # Without save_name (will neither save nor load)
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             data_out = self.io_func(self.test_data, save=True, load=True)
+            self.assertEqual(len(war), 2)
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # Before any data saved (will save but not load)
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             data_out = self.io_func(self.test_data, save=True, load=True,
                                     save_name=TEST_CACHE_DIR + '/io_test')
+            self.assertEqual(len(war), 1)
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # After data saved (will load)
         data_out = self.io_func(self.test_data, save=True, load=True,
                                 save_name=TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # Check handling of permission and memory errors when saving
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             nestcheck.io_utils.pickle_save(data_out, '//')
+            self.assertEqual(len(war), 1)
 
     def test_load_filenotfound(self):
-        """Test loading files which dont exist causes OSError."""
-        self.assertRaises(OSError, nestcheck.io_utils.pickle_load,
+        """Test loading files which dont exist causes FileNotFoundError."""
+        try:
+            FileNotFoundError
+        except NameError:
+            FileNotFoundError = IOError
+        self.assertRaises(FileNotFoundError, nestcheck.io_utils.pickle_load,
                           TEST_CACHE_DIR + 'not_here')
 
     def test_no_overwrite(self):
@@ -336,8 +351,10 @@ class TestErrorAnalysis(unittest.TestCase):
             run['theta'][1, :], resamp['theta'][1, :])
         # Check error handeled if no ninit
         del run['settings']
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             resamp = nestcheck.error_analysis.bootstrap_resample_run(run, ninit_sep=True)
+            self.assertEqual(len(war), 1)
 
     def test_run_std_bootstrap(self):
         """Check bootstrap std is zero when the run only contains one
@@ -504,10 +521,12 @@ class TestParallelUtils(unittest.TestCase):
 
     def test_parallel_apply_not_parallelised(self):
         """Check parallel_apply with parallel=False."""
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             results_list = nestcheck.parallel_utils.parallel_apply(
                 self.func, self.x, func_args=self.func_args,
                 func_kwargs=self.func_kwargs, parallel=False)
+            self.assertEqual(len(war), 1)
         res_arr = np.vstack(results_list)
         self.assertTrue(np.all(res_arr[:, 1] == self.func_args[0]))
         self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
@@ -524,10 +543,12 @@ class TestParallelUtils(unittest.TestCase):
     def test_parallel_map_not_parallelised(self):
         """Check parallel_map with parallel=False."""
         func_pre_args = self.func_args
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             results_list = nestcheck.parallel_utils.parallel_map(
                 self.func, self.x, func_pre_args=func_pre_args,
                 func_kwargs=self.func_kwargs, parallel=False)
+            self.assertEqual(len(war), 1)
         res_arr = np.vstack(results_list)
         self.assertTrue(np.all(res_arr[:, 0] == func_pre_args[0]))
         self.assertTrue(np.all(res_arr[:, 2] == self.func_kwargs['kwarg']))
@@ -565,10 +586,12 @@ class TestDiagnosticsTables(unittest.TestCase):
         run_list = []
         for i in range(5):
             run_list.append(get_dummy_ns_run(5, 10, 2, seed=i))
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
             df = nestcheck.diagnostics_tables.run_list_error_summary(
                 run_list, [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
                 bs_stat_dist=True, parallel=False)
+            self.assertEqual(len(war), 3)
         self.assertTrue(np.all(~np.isnan(df.values)))
         expected_vals = np.asarray([[5.09427108e-01],
                                     [5.09720232e-02],
@@ -588,8 +611,11 @@ class TestDiagnosticsTables(unittest.TestCase):
                                     [7.23108036e-02],
                                     [1.23162149e-01],
                                     [3.04057491e-02]])
-        numpy.testing.assert_allclose(df.values, expected_vals,
-                                      rtol=1e-6, atol=1e-6)
+        # Tricky getting seeding consistent in python2 so only test exact
+        # numbers in python3
+        if tuple(sys.version_info) >= (3, 0):
+            numpy.testing.assert_allclose(df.values, expected_vals,
+                                          rtol=1e-6, atol=1e-6)
 
     def test_run_list_error_values_unexpected_kwarg(self):
         self.assertRaises(
