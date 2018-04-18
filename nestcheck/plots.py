@@ -267,6 +267,9 @@ def bs_param_dists(run_list, **kwargs):
         fgivenx parallel option.
     rasterize_contours: bool, optional
         fgivenx rasterize_contours option.
+    tqdm_kwargs: dict, optional
+        Keyword arguments to pass to the tqdm progress bar when it is used in
+        fgivenx while plotting contours.
 
     Returns
     -------
@@ -285,6 +288,7 @@ def bs_param_dists(run_list, **kwargs):
     cache_in = kwargs.pop('cache', None)
     parallel = kwargs.pop('parallel', True)
     rasterize_contours = kwargs.pop('rasterize_contours', True)
+    tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'leave': False})
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     # Use random seed to make samples consistent and allow caching.
@@ -316,7 +320,8 @@ def bs_param_dists(run_list, **kwargs):
                              n_simulate=n_simulate, nx=nx, ny=ny,
                              rasterize_contours=rasterize_contours,
                              mean_color=mean_colors[nrun],
-                             colormap=colormaps[nrun])
+                             colormap=colormaps[nrun],
+                             tqdm_kwargs=tqdm_kwargs)
         # add colorbar
         colorbar_plot = plt.colorbar(cbar, cax=axes[len(fthetas) + nrun],
                                      ticks=[1, 2, 3])

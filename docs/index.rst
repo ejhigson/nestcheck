@@ -20,7 +20,7 @@ nestcheck
 ``nestcheck`` is fully compatible with `dynamic nested sampling
 <https://arxiv.org/abs/1704.03459>`_.
 
-Currently functions for processing output from ``MultiNest``, ``PolyChord`` and ``perfectns`` are available, and more nested sampling software packages can be added. ``nestcheck`` require information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. 2017 <https://doi.org/10.1214/17-BA1075>`_ for more details. *Producing birth contour output files with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and the setting "write_dead"=True.*
+Currently functions for processing output from ``MultiNest``, ``PolyChord`` and ``perfectns`` are available, and more nested sampling software packages can be added. ``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. 2017 <https://doi.org/10.1214/17-BA1075>`_ for more details. *Producing birth contour output files with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and the setting "write_dead"=True.*
 
 IPython notebooks containing example usage of ``nestcheck`` can be found in the `examples folder
 <https://github.com/ejhigson/nestcheck/tree/master/examples>`_. This includes the code used to make the results in the diagnostics tests paper (`Higson et al. 2018
@@ -33,7 +33,7 @@ Documentation
    :maxdepth: 2
 
    install
-   examples/nestcheck_demo
+   demos/quickstart_demo
    api
 
 Attribution
