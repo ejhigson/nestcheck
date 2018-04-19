@@ -21,7 +21,7 @@ setuptools.setup(name='nestcheck',
                  description=('Error analysis, diagnostic tests and plots for '
                               'nested sampling calculations.'),
                  long_description=get_long_description(),
-                 long_description_content_type='text/markdown',
+                 long_description_content_type='text/x-rst',
                  url='https://github.com/ejhigson/nestcheck',
                  author='Edward Higson',
                  author_email='ejhigson@gmail.com',
@@ -30,7 +30,6 @@ setuptools.setup(name='nestcheck',
                  classifiers=[  # Optional
                      'Development Status :: 4 - Beta',
                      'Intended Audience :: Science/Research',
-                     'Topic :: Software Development :: Build Tools',
                      'License :: OSI Approved :: MIT License',
                      'Programming Language :: Python :: 2',
                      'Programming Language :: Python :: 2.7',
@@ -60,5 +59,4 @@ setuptools.setup(name='nestcheck',
                  extras_require={'docs': ['sphinx<1.6', 'numpydoc',
                                           'sphinx-rtd-theme', 'nbsphinx']},
                  project_urls={  # Optional
-                     'Docs': 'http://nestcheck.readthedocs.io/en/latest/',
-                     'Source': 'https://github.com/ejhigson/nestcheck'})
+                     'Docs': 'http://nestcheck.readthedocs.io/en/latest/'})
