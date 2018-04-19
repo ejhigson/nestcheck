@@ -13,18 +13,19 @@ nestcheck
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://github.com/ejhigson/nestcheck/LICENSE
 
-``nestcheck`` provides python utilities for analysing nested sampling runs and estimating numerical uncertainties. This includes implementations of the diagnostic tests and plots described in "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al. 2018
-<https://arxiv.org/abs/TBC>`_) and
-"Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al. 2017
-<https://doi.org/10.1214/17-BA1075>`_). For more information see the papers and the documentation. 
-``nestcheck`` is fully compatible with `dynamic nested sampling
-<https://arxiv.org/abs/1704.03459>`_.
+``nestcheck`` provides python utilities for analysing nested sampling runs and estimating numerical uncertainties. This includes implementations of the diagnostic tests and plots described in:
 
-Currently functions for processing output from ``MultiNest``, ``PolyChord`` and ``perfectns`` are available, and more nested sampling software packages can be added. ``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. 2017 <https://doi.org/10.1214/17-BA1075>`_ for more details. *Producing birth contour output files with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and the setting "write_dead"=True.*
+- "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al., 2018 <https://arxiv.org/abs/1804.06406>`_);
+- "Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al., 2017 <https://doi.org/10.1214/17-BA1075>`_).
 
-IPython notebooks containing example usage of ``nestcheck`` can be found in the `examples folder
-<https://github.com/ejhigson/nestcheck/tree/master/examples>`_. This includes the code used to make the results in the diagnostics tests paper (`Higson et al. 2018
-<https://arxiv.org/abs/TBC>`_).
+For more information see the papers and the documentation.  ``nestcheck`` is fully compatible with `dynamic nested sampling <https://arxiv.org/abs/1704.03459>`_.
+
+Currently ``nestcheck`` loads output from `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_, `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_ and `perfectns <https://github.com/ejhigson/perfectns>`_, and you can easily add input functions for other nested sampling software packages.
+``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. (2017) <https://doi.org/10.1214/17-BA1075>`_ for more details. *Producing birth contour output files with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and the setting "write_dead"=True.*
+
+Jupyter notebooks containing example usage of ``nestcheck`` can be found in the `examples folder
+<https://github.com/ejhigson/nestcheck/tree/master/examples>`_. This includes the code used to make the results in the diagnostics tests paper (`Higson et al., 2018
+<https://arxiv.org/abs/1804.06406>`_).
 
 Documentation
 -------------
@@ -46,8 +47,8 @@ If this code is useful for your research, please cite the two papers on which it
     @article{higson2018a,
     title={Diagnostic Tests for Nested Sampling Calculations},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
-    journal={arXiv preprint arXiv:TBC},
-    url={TBC},
+    journal={arXiv preprint arXiv:1804.06406},
+    url={1804.06406},
     year={2018}
     }
 
