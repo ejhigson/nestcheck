@@ -9,15 +9,15 @@ import setuptools
 
 
 def get_long_description():
-    """Get the long description from the README file."""
+    """Get PyPI long description from the .rst file."""
     here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, 'README.md')) as readme_file:
+    with open(os.path.join(here, '.pypi_long_desc.rst')) as readme_file:
         long_description = readme_file.read()
     return long_description
 
 
 setuptools.setup(name='nestcheck',
-                 version='0.0.0',
+                 version='0.0.1',
                  description=('Error analysis, diagnostic tests and plots for '
                               'nested sampling calculations.'),
                  long_description=get_long_description(),

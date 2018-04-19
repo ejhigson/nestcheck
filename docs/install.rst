@@ -19,7 +19,7 @@ repository <https://github.com/ejhigson/nestcheck>`_:
     cd nestcheck
     python setup.py install
 
-Both of these methods automatically install any of ``nestcheck``'s dependencies which you don't already have as well.
+Both of these methods also automatically install any of ``nestcheck``'s dependencies which are not already satisfied by your system.
 
 
 Dependencies
