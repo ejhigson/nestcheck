@@ -35,7 +35,7 @@ Dependencies
  - ``tqdm`` >=4.11.
 
 
-Note also that producing the birth contour output files needed for ``nestcheck`` analysis using `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_ requires v3.11 or later, and using `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_ requires v1.13 or later and the setting "write_dead"=True.
+Note also that producing the birth contour output files needed for ``nestcheck`` analysis using `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_ requires v3.11 or later, and using `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_ requires v1.13 or later and the setting "write_dead"=True (its default value).
 
 
 Tests
