@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 """
-Test the nestcheck module.
+Test suite for the nestcheck package.
+
+Uses a temporary directory, TEST_CACHE_DIR, for tests which require
+input/output. This is deleted after the tests are finished. If it already
+exists an error is thrown to avoid accidentally deleting a directory which may
+be in use.
 """
 import functools
 import os
