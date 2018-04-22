@@ -39,14 +39,12 @@ dictionaries. For a run with nsamp samples, the keys are:
 Samples are arranged in ascending order of logl.
 """
 
+import os
+import re
 import warnings
 import numpy as np
 import nestcheck.io_utils
 import nestcheck.parallel_utils
-try:
-    import PyPolyChord.output
-except ImportError:
-    pass
 
 
 @nestcheck.io_utils.save_load_result
@@ -121,8 +119,8 @@ def batch_process_data(file_roots, **kwargs):
 def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
                          **func_kwargs):
     """
-    Wrapper which applies process_func and handles some common errors so
-    problems do not spoil the whole batch.
+    Wrapper which applies process_func and handles some common errors so one
+    bad run does not spoil the whole batch.
 
     Useful errors to handle include:
 
@@ -158,7 +156,8 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
         return run
 
 
-def process_polychord_run(file_root, base_dir, logl_warn_only=False):
+def process_polychord_run(file_root, base_dir, logl_warn_only=False,
+                          process_stats_file=True):
     """
     Loads data from a PolyChord run into the nestcheck dictionary format for
     analysis.
@@ -178,6 +177,10 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
         Whether only a warning should be given (rather than an assertion error)
         should be given if there are non-unique logls in the file.
         Passed to check_ns_run (see its docs for more details).
+    process_stats_file: bool, optional
+        Should PolyChord's <root>.stats file be processed? Set to False if you
+        don't have the <root>.stats file (such as if PolyChord was run with
+        write_stats=False).
 
     Returns
     -------
@@ -188,17 +191,15 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False):
     # termination
     samples = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
     ns_run = process_samples_array(samples)
-    try:
-        ns_run['output'] = PyPolyChord.output.PolyChordOutput(
-            base_dir, file_root).__dict__
-    except (OSError, IOError, NameError) as err:
-        wtype = (ImportWarning if type(err).__name__ == 'NameError'
-                 else UserWarning)
-        warnings.warn((type(err).__name__ + ' processing .stats file with '
-                       'PyPolyChord.output.PolyChordOutput'), wtype)
-        ns_run['output'] = {}
-    ns_run['output']['file_root'] = file_root
-    ns_run['output']['base_dir'] = base_dir
+    ns_run['output'] = {'base_dir': base_dir, 'file_root': file_root}
+    if process_stats_file:
+        try:
+            ns_run['output'] = process_polychord_stats(file_root, base_dir)
+        except (OSError, IOError) as err:
+            warnings.warn((
+                'process_polychord_stats raised ' + type(err).__name__
+                + ' processing ' + base_dir + '/' + file_root + '.stats file.'
+                + ' Proceeding without it.'), UserWarning)
     check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
 
@@ -248,6 +249,50 @@ def process_multinest_run(file_root, base_dir, logl_warn_only=False):
     ns_run['output']['base_dir'] = base_dir
     check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
+
+
+def process_polychord_stats(file_root, base_dir):
+    """
+    Reads a PolyChord <root>.stats output file and returns the information
+    contained in a dictionary.
+
+    Parameters
+    ----------
+    file_root: str
+        Root for run output file names (PolyChord file_root setting).
+    base_dir: str
+        Directory containing data (PolyChord base_dir setting).
+
+    Returns
+    -------
+    output: dict
+        See PolyChord documentation for more details.
+    """
+    filename = os.path.join(base_dir, file_root) + '.stats'
+    output = {'base_dir': base_dir,
+              'file_root': file_root}
+    with open(filename, 'r') as stats_file:
+        lines = stats_file.readlines()
+    output['logZ'] = float(lines[8].split()[2])
+    output['logZerr'] = float(lines[8].split()[4])
+    output['logZs'] = []
+    output['logZerrs'] = []
+    for line in lines[14:]:
+        if line[:5] != 'log(Z':
+            break
+        output['logZs'].append(float(
+            re.findall(r'=(.*)', line)[0].split()[0]))
+        output['logZerrs'].append(float(
+            re.findall(r'=(.*)', line)[0].split()[0]))
+    output['ncluster'] = len(output['logZs'])
+    output['nposterior'] = int(lines[-6].split()[1])
+    output['nequals'] = int(lines[-5].split()[1])
+    output['ndead'] = int(lines[-4].split()[1])
+    output['nlive'] = int(lines[-3].split()[1])
+    output['nlike'] = int(lines[-2].split()[1])
+    output['avnlike'] = float(lines[-1].split()[1])
+    output['avnlikeslice'] = float(lines[-1].split()[3])
+    return output
 
 
 def process_samples_array(samples):
