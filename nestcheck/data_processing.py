@@ -189,7 +189,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False,
     """
     # N.B. PolyChord dead points files also contains remaining live points at
     # termination
-    samples = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
+    samples = np.loadtxt(os.path.join(base_dir, file_root) + '_dead-birth.txt')
     ns_run = process_samples_array(samples)
     ns_run['output'] = {'base_dir': base_dir, 'file_root': file_root}
     if process_stats_file:
@@ -198,8 +198,8 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False,
         except (OSError, IOError) as err:
             warnings.warn((
                 'process_polychord_stats raised ' + type(err).__name__
-                + ' processing ' + base_dir + '/' + file_root + '.stats file.'
-                + ' Proceeding without it.'), UserWarning)
+                + ' processing ' + os.path.join(base_dir, file_root)
+                + '.stats file. Proceeding without it.'), UserWarning)
     check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
 
@@ -232,8 +232,9 @@ def process_multinest_run(file_root, base_dir, logl_warn_only=False):
         Nested sampling run dict (see module docstring for more details).
     """
     # Load dead and live points
-    dead = np.loadtxt(base_dir + '/' + file_root + '-dead-birth.txt')
-    live = np.loadtxt(base_dir + '/' + file_root + '-phys_live-birth.txt')
+    dead = np.loadtxt(os.path.join(base_dir, file_root) + '-dead-birth.txt')
+    live = np.loadtxt(os.path.join(base_dir, file_root)
+                      + '-phys_live-birth.txt')
     # Remove unnessesary final columns
     dead = dead[:, :-2]
     live = live[:, :-1]

@@ -76,7 +76,8 @@ class TestDataProcessing(unittest.TestCase):
         dead, run = nestcheck.testing.get_dummy_dead_points(dynamic=True)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
-        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
+        np.savetxt(os.path.join(
+            TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             processed_run = nestcheck.data_processing.process_polychord_run(
@@ -112,9 +113,10 @@ class TestDataProcessing(unittest.TestCase):
         live = samples[-2:, :]
         dead = np.hstack((dead, np.zeros((dead.shape[0], 2))))
         live = np.hstack((live, np.zeros((live.shape[0], 1))))
-        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '-dead-birth.txt', dead)
-        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '-phys_live-birth.txt',
-                   live)
+        np.savetxt(os.path.join(
+            TEST_CACHE_DIR, file_root + '-dead-birth.txt'), dead)
+        np.savetxt(os.path.join(
+            TEST_CACHE_DIR, file_root + '-phys_live-birth.txt'), live)
         processed_run = nestcheck.data_processing.process_multinest_run(
             file_root, TEST_CACHE_DIR)
         nestcheck.data_processing.check_ns_run(processed_run)
@@ -132,7 +134,7 @@ class TestDataProcessing(unittest.TestCase):
         dead, run = nestcheck.testing.get_dummy_dead_points(dynamic=True)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
-        np.savetxt(TEST_CACHE_DIR + '/' + file_root + '_dead-birth.txt', dead)
+        np.savetxt(os.path.join(TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             run_list = nestcheck.data_processing.batch_process_data(
