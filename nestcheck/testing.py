@@ -3,15 +3,84 @@
 Utilities for testing, including creating dummy nested sampling run data.
 """
 
-
+import os
 import numpy as np
 import nestcheck.ns_run_utils
 
 
-# def write_dummy_polychord_stats_file(file_root, base_dir, **kwargs):
-#     """Writes a PolyChord format .stats file to test functions for processing
-#     stats files."""
-#     return None
+def write_dummy_polychord_stats(file_root, base_dir):
+    """
+    Writes a dummy PolyChord format .stats file for tests functions for
+    processing stats files. This is written to:
+
+    base_dir/file_root.stats
+
+    Also returns the data in the file as a dict for comparison.
+
+    Parameters
+    ----------
+    file_root: str
+        Root for run output file names (PolyChord file_root setting).
+    base_dir: str
+        Directory containing data (PolyChord base_dir setting).
+
+    Returns
+    -------
+    output: dict
+        The expected output of
+        nestcheck.process_polychord_stats(file_root, base_dir)
+    """
+    output = {'file_root': file_root,
+              'base_dir': base_dir,
+              'logZ': -9.99,
+              'logZerr': 1.11,
+              'logZs': [-8.88, -7.77, -6.66, -5.55],
+              'logZerrs': [1.88, 1.77, 1.66, 1.55],
+              'nposterior': 0,
+              'nequals': 0,
+              'ndead': 1234,
+              'nlike': 123456,
+              'nlive': 0,
+              'avnlike': 100.0,
+              'avnlikeslice': 10.0}
+    output['ncluster'] = len(output['logZs'])
+    # Make a PolyChord format .stats file corresponding to output
+    file_lines = [
+        'Evidence estimates:',
+        '===================',
+        '  - The evidence Z is a log-normally distributed ...',
+        '  - We denote this as log(Z) = mu +/- sigma.',
+        '',
+        'Global evidence:',
+        '----------------',
+        '',
+        'log(Z)       =  {0} +/-   {1}'.format(
+            output['logZ'], output['logZerr']),
+        '',
+        '',
+        'Local evidences:',
+        '----------------',
+        '']
+    for i, (lz, lzerr) in enumerate(zip(output['logZs'], output['logZerrs'])):
+        file_lines.append('log(Z_ {0})  =  {1} +/-   {2}'.format(
+            str(i + 1).rjust(2), lz, lzerr))
+    file_lines += [
+        '',
+        '',
+        'Run-time information:',
+        '---------------------',
+        '',
+        ' ncluster:          0 /       1',
+        ' nposterior:        {0}'.format(output['nposterior']),
+        ' nequals:           {0}'.format(output['nequals']),
+        ' ndead:          {0}'.format(output['ndead']),
+        ' nlive:             {0}'.format(output['nlive']),
+        ' nlike:         {0}'.format(output['nlike']),
+        ' <nlike>:       {0}   (    {1} per slice )'.format(
+            output['avnlike'], output['avnlikeslice'])]
+    with open(os.path.join(base_dir, file_root) + '.stats', 'w') as stats_file:
+        stats_file.writelines('{}\n'.format(line) for line in file_lines)
+    return output
 
 
 def get_dummy_ns_run(nlive, nsamples, ndim, seed=False):

@@ -90,13 +90,23 @@ class TestDataProcessing(unittest.TestCase):
         self.assertEqual(processed_run['output']['file_root'], file_root)
         self.assertEqual(processed_run['output']['base_dir'], TEST_CACHE_DIR)
 
+    def test_process_polychord_stats_file(self):
+        """Check reading in PolyChord's <root>.stats file by making and saving
+        a dummy one."""
+        file_root = 'temp'
+        os.makedirs(TEST_CACHE_DIR)
+        output = nestcheck.testing.write_dummy_polychord_stats(
+            file_root, TEST_CACHE_DIR)
+        self.assertEqual(nestcheck.data_processing.process_polychord_stats(
+            file_root, TEST_CACHE_DIR), output)
+
     def test_process_multinest_data(self):
         """Check processing some dummy MultiNest data."""
         file_root = 'dummy_run'
         samples, run = nestcheck.testing.get_dummy_dead_points(dynamic=False)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
-        # Replicate multinest's dead and live points files, including their
+        # Replicate MultiNest's dead and live points files, including their
         # extra columns
         dead = samples[:-2, :]
         live = samples[-2:, :]

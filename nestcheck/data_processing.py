@@ -187,7 +187,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False,
     ns_run: dict
         Nested sampling run dict (see module docstring for more details).
     """
-    # PolyChord's dead points file also contains remaining live points at
+    # N.B. PolyChord dead points files also contains remaining live points at
     # termination
     samples = np.loadtxt(base_dir + '/' + file_root + '_dead-birth.txt')
     ns_run = process_samples_array(samples)
@@ -283,7 +283,7 @@ def process_polychord_stats(file_root, base_dir):
         output['logZs'].append(float(
             re.findall(r'=(.*)', line)[0].split()[0]))
         output['logZerrs'].append(float(
-            re.findall(r'=(.*)', line)[0].split()[0]))
+            re.findall(r'=(.*)', line)[0].split()[2]))
     output['ncluster'] = len(output['logZs'])
     output['nposterior'] = int(lines[-6].split()[1])
     output['nequals'] = int(lines[-5].split()[1])
