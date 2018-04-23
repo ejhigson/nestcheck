@@ -72,8 +72,9 @@ class TestDataProcessing(unittest.TestCase):
     def test_process_polychord_data(self):
         """Check processing some dummy PolyChord data."""
         file_root = 'dummy_run'
-        dead, run = nestcheck.dummy_data.get_dummy_dead_points(dynamic=True)
-        nestcheck.data_processing.check_ns_run(run)
+        run = nestcheck.dummy_data.get_dummy_dynamic_run(
+            10, 2, seed=False, nthread_init=2, nthread_dyn=3)
+        dead = nestcheck.dummy_data.run_dead_points_array(run)
         os.makedirs(TEST_CACHE_DIR)
         np.savetxt(os.path.join(
             TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
@@ -103,8 +104,8 @@ class TestDataProcessing(unittest.TestCase):
     def test_process_multinest_data(self):
         """Check processing some dummy MultiNest data."""
         file_root = 'dummy_run'
-        samples, run = nestcheck.dummy_data.get_dummy_dead_points(dynamic=False)
-        nestcheck.data_processing.check_ns_run(run)
+        run = nestcheck.dummy_data.get_dummy_run(5, 10, 2, seed=False)
+        samples = nestcheck.dummy_data.run_dead_points_array(run)
         os.makedirs(TEST_CACHE_DIR)
         # Replicate MultiNest's dead and live points files, including their
         # extra columns
@@ -130,10 +131,13 @@ class TestDataProcessing(unittest.TestCase):
         """Test processing some dummy PolyChord data using
         batch_process_data."""
         file_root = 'dummy_run'
-        dead, run = nestcheck.dummy_data.get_dummy_dead_points(dynamic=True)
+        run = nestcheck.dummy_data.get_dummy_dynamic_run(
+            10, 2, seed=False, nthread_init=2, nthread_dyn=3)
+        dead = nestcheck.dummy_data.run_dead_points_array(run)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
-        np.savetxt(os.path.join(TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
+        np.savetxt(os.path.join(
+            TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             run_list = nestcheck.data_processing.batch_process_data(
@@ -327,16 +331,17 @@ class TestNSRunUtils(unittest.TestCase):
         nsamples = 5
         ndim = 2
         # Get two threads
-        threads = [
-            nestcheck.dummy_data.get_dummy_ns_thread(nsamples, ndim, seed=False),
-            nestcheck.dummy_data.get_dummy_ns_thread(nsamples, ndim, seed=False)]
+        threads = [nestcheck.dummy_data.get_dummy_thread(nsamples, ndim,
+                                                         seed=0),  # test seed
+                   nestcheck.dummy_data.get_dummy_thread(nsamples, ndim,
+                                                         seed=False)]
         # Sort in order of final logl
         threads = sorted(threads, key=lambda run: run['logl'][-1])
         t1 = threads[0]
         t2 = threads[1]
         # Get another thread starting on the last point of t2 (meaning it will
         # not overlap with t1)
-        t_no_overlap = nestcheck.dummy_data.get_dummy_ns_thread(
+        t_no_overlap = nestcheck.dummy_data.get_dummy_thread(
             nsamples, ndim, seed=False, logl_start=t2['logl'][-1] + 1000)
         # combining with t1 should throw an assertion error as nlive drops to
         # zero in between the threads
@@ -345,7 +350,7 @@ class TestNSRunUtils(unittest.TestCase):
             [t1, t_no_overlap], assert_birth_point=False)
         # Get another thread starting on the last point of t1 so it overlaps
         # with t2
-        t3 = nestcheck.dummy_data.get_dummy_ns_thread(
+        t3 = nestcheck.dummy_data.get_dummy_thread(
             nsamples, ndim, seed=False, logl_start=t1['logl'][-1])
         # When birth point not in run:
         # Should raise assertion error only if assert_birth_point = True
@@ -363,6 +368,28 @@ class TestNSRunUtils(unittest.TestCase):
             AssertionError, nestcheck.ns_run_utils.combine_threads,
             [t1, t1, t2, t3], assert_birth_point=True)
 
+    def test_combine_runs(self):
+        """Check combining runs is consistent with combining threads."""
+        runs = [nestcheck.dummy_data.get_dummy_run(2, 10, 2),
+                nestcheck.dummy_data.get_dummy_run(2, 10, 2)]
+        comb = nestcheck.ns_run_utils.combine_ns_runs(runs)
+        # Check vs threads
+        all_threads = []
+        counter = 0
+        for run in runs:
+            threads = nestcheck.ns_run_utils.get_run_threads(run)
+            threads = sorted(threads, key=lambda th: th['logl'][0])
+            for i, _ in enumerate(threads):
+                threads[i]['thread_labels'] = np.full(
+                    threads[i]['thread_labels'].shape, counter)
+                counter += 1
+            all_threads += threads
+        comb_th = nestcheck.ns_run_utils.combine_threads(all_threads)
+        for key, value in comb.items():
+            if key not in ['output']:
+                numpy.testing.assert_array_equal(
+                    value, comb_th[key], err_msg=key + ' not the same')
+
     def test_get_logw(self):
         """Check IndexError raising"""
         self.assertRaises(IndexError, nestcheck.ns_run_utils.get_logw,
@@ -373,7 +400,7 @@ class TestNSRunUtils(unittest.TestCase):
 class TestErrorAnalysis(unittest.TestCase):
 
     def test_bootstrap_resample_run(self):
-        run = nestcheck.dummy_data.get_dummy_ns_run(2, 1, 2)
+        run = nestcheck.dummy_data.get_dummy_run(2, 1, 2)
         run['settings'] = {'ninit': 1}
         # With only 2 threads and ninit=1, separating initial threads means
         # that the resampled run can only contain each thread once
@@ -396,7 +423,7 @@ class TestErrorAnalysis(unittest.TestCase):
     def test_run_std_bootstrap(self):
         """Check bootstrap std is zero when the run only contains one
         thread."""
-        run = nestcheck.dummy_data.get_dummy_ns_run(1, 10, 2)
+        run = nestcheck.dummy_data.get_dummy_run(1, 10, 2)
         stds = nestcheck.error_analysis.run_std_bootstrap(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
         self.assertRaises(TypeError, nestcheck.error_analysis.run_std_bootstrap, run,
@@ -405,7 +432,7 @@ class TestErrorAnalysis(unittest.TestCase):
     def test_run_ci_bootstrap(self):
         """Check bootstrap ci equals estimator expected value when the
         run only contains one thread."""
-        run = nestcheck.dummy_data.get_dummy_ns_run(1, 10, 2)
+        run = nestcheck.dummy_data.get_dummy_run(1, 10, 2)
         ci = nestcheck.error_analysis.run_ci_bootstrap(
             run, [e.param_mean], n_simulate=10, cred_int=0.5)
         self.assertAlmostEqual(ci[0], e.param_mean(run), places=12)
@@ -413,7 +440,7 @@ class TestErrorAnalysis(unittest.TestCase):
     def test_run_std_simulate(self):
         """Check simulate std is zero when the run only contains one
         point."""
-        run = nestcheck.dummy_data.get_dummy_ns_run(1, 1, 2)
+        run = nestcheck.dummy_data.get_dummy_run(1, 1, 2)
         stds = nestcheck.error_analysis.run_std_simulate(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
 
@@ -429,7 +456,7 @@ class TestEstimators(unittest.TestCase):
 
     def setUp(self):
         self.nsamples = 10
-        self.ns_run = nestcheck.dummy_data.get_dummy_ns_run(1, self.nsamples, 2)
+        self.ns_run = nestcheck.dummy_data.get_dummy_run(1, self.nsamples, 2)
         self.logw = nestcheck.ns_run_utils.get_logw(self.ns_run)
         self.w_rel = np.exp(self.logw - self.logw.max())
         self.w_rel /= np.sum(self.w_rel)
@@ -622,7 +649,7 @@ class TestDiagnosticsTables(unittest.TestCase):
         """Test error df summary using numpy seeds."""
         run_list = []
         for i in range(5):
-            run_list.append(nestcheck.dummy_data.get_dummy_ns_run(
+            run_list.append(nestcheck.dummy_data.get_dummy_run(
                 5, 10, 2, seed=i))
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
@@ -635,22 +662,23 @@ class TestDiagnosticsTables(unittest.TestCase):
                                     [5.09720232e-02],
                                     [1.13976909e-01],
                                     [4.02969225e-02],
-                                    [4.99353118e-02],
-                                    [6.39955410e-03],
-                                    [1.02455846e-01],
-                                    [5.15595587e-02],
-                                    [8.98917570e-01],
-                                    [5.86991821e+01],
+                                    [6.29938278e-02],
+                                    [1.57592691e-02],
+                                    [9.49869116e-02],
+                                    [6.18085279e-02],
+                                    [8.33387330e-01],
+                                    [8.18241651e+01],
                                     [5.45196361e-01],
                                     [1.10751031e-01],
-                                    [6.90000000e-01],
-                                    [9.48097510e-02],
-                                    [3.44786867e-01],
-                                    [7.23108036e-02],
-                                    [1.23162149e-01],
-                                    [3.04057491e-02]])
+                                    [7.30000000e-01],
+                                    [7.31057073e-02],
+                                    [3.93198952e-01],
+                                    [6.35544039e-02],
+                                    [1.49018643e-01],
+                                    [2.81601546e-02]])
         # Tricky getting seeding consistent in python2 so only test exact
         # numbers in python3
+        print(df.values, expected_vals)
         if tuple(sys.version_info) >= (3, 0):
             numpy.testing.assert_allclose(df.values, expected_vals,
                                           rtol=1e-6, atol=1e-6)
@@ -673,7 +701,7 @@ class TestPlots(unittest.TestCase):
 
     def setUp(self):
         """Get some dummy data to plot."""
-        self.ns_run = nestcheck.dummy_data.get_dummy_ns_run(3, 10, 2)
+        self.ns_run = nestcheck.dummy_data.get_dummy_run(3, 10, 2)
         nestcheck.data_processing.check_ns_run(self.ns_run,
                                                logl_warn_only=True)
 

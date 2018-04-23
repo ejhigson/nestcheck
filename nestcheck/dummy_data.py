@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Utilities for testing, including creating dummy nested sampling run data.
+Create dummy nested sampling run data for testing.
 """
 
 import os
@@ -83,18 +83,48 @@ def write_dummy_polychord_stats(file_root, base_dir):
     return output
 
 
-def get_dummy_ns_run(nlive, nsamples, ndim, seed=False):
+def get_dummy_run(nthread, nsamples, ndim, seed=False, logl_start=-np.inf):
     """Generate template ns runs for quick testing without loading test
     data."""
     threads = []
     if seed is not False:
         np.random.seed(seed)
-    for _ in range(nlive):
-        threads.append(get_dummy_ns_thread(nsamples, ndim, seed=False))
-    return nestcheck.ns_run_utils.combine_ns_runs(threads)
+    threads = []
+    for _ in range(nthread):
+        threads.append(get_dummy_thread(nsamples, ndim, seed=False,
+                                        logl_start=logl_start))
+    # Sort threads in order of starting logl so labels match labels that would
+    # have been given processing a dead points array. N.B. this only works when
+    # all threads have same start_logl
+    threads = sorted(threads, key=lambda th: th['logl'][0])
+    for i, _ in enumerate(threads):
+        threads[i]['thread_labels'] = np.full(nsamples, i)
+    # Use combine_ns_runs rather than combine threads as this relabels the
+    # threads according to their order
+    return nestcheck.ns_run_utils.combine_threads(threads)
 
 
-def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
+def get_dummy_dynamic_run(nsamples, ndim, seed=False, nthread_init=2,
+                          nthread_dyn=3):
+    """Get a dummy dynamic run."""
+    init = get_dummy_run(nthread_init, nsamples, ndim, seed=seed,
+                         logl_start=-np.inf)
+    dyn_starts = list(np.random.choice(
+        init['logl'], nthread_dyn, replace=False))
+    threads = nestcheck.ns_run_utils.get_run_threads(init)
+    threads += [get_dummy_thread(nsamples, ndim, seed=False, logl_start=start)
+                for start in dyn_starts]
+    # make sure the threads have unique labels and combine them
+    for i, _ in enumerate(threads):
+        threads[i]['thread_labels'] = np.full(nsamples, i)
+    run = nestcheck.ns_run_utils.combine_threads(threads)
+    # To make sure the thread labelling is same way it would when
+    # processing a dead points file, tranform into dead points
+    samples = run_dead_points_array(run)
+    return nestcheck.data_processing.process_samples_array(samples)
+
+
+def get_dummy_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
     """Generate a single ns thread for quick testing without loading test
     data."""
     if seed is not False:
@@ -109,44 +139,25 @@ def get_dummy_ns_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
     return thread
 
 
-def get_dummy_dead_points(ndims=2, nsamples=10, dynamic=True):
+def run_dead_points_array(run):
     """
-    Make a dead points array of the type produced by PolyChord and MultiNest.
-    Also returns the same nested sampling run as a dictionary in the standard
-    nestcheck format for checking.
+    Makes a PolyChord-stype dead points array corresponding to the input
+    run.
     """
-    threads = [get_dummy_ns_thread(nsamples, ndims, seed=False,
-                                   logl_start=-np.inf)]
-    if dynamic:
-        threads.append(get_dummy_ns_thread(nsamples, ndims, seed=False,
-                                           logl_start=threads[0]['logl'][0]))
-        # to make sure thread labels derived from the dead points match the
-        # order in threads, we need to make sure the first point after the
-        # contour where 2 points are born (threads[0]['logl'][0]) is in
-        # threads[0] not threads[-1]. Hence add to threads[-1]['logl']
-        threads[-1]['logl'] += 1
-        threads[-1]['thread_min_max'][0, 1] += 1
-    else:
-        threads.append(get_dummy_ns_thread(nsamples, ndims, seed=False,
-                                           logl_start=-np.inf))
-        # Make threads are in order such that combine_runs will assign same
-        # thread labels as data processing. I.e. we need the first thread
-        # (which will be labeled 0) to also have the dead point with the lowest
-        # likelihood (which starts the zeroth thread in data procesing funcs).
-        threads = sorted(threads, key=lambda th: th['logl'][0])
-    threads[-1]['thread_labels'] += 1
+    nestcheck.data_processing.check_ns_run(run)
+    threads = nestcheck.ns_run_utils.get_run_threads(run)
     dead_arrs = []
+    ndim = run['theta'].shape[1]
     for th in threads:
-        dead = np.zeros((nsamples, ndims + 2))
-        dead[:, :ndims] = th['theta']
-        dead[:, ndims] = th['logl']
-        dead[1:, ndims + 1] = th['logl'][:-1]
+        dead = np.zeros((th['theta'].shape[0], ndim + 2))
+        dead[:, :ndim] = th['theta']
+        dead[:, ndim] = th['logl']
+        dead[1:, ndim + 1] = th['logl'][:-1]
         if th['thread_min_max'][0, 0] == -np.inf:
-            dead[0, ndims + 1] = -1e30
+            dead[0, ndim + 1] = -1e30
         else:
-            dead[0, ndims + 1] = th['thread_min_max'][0, 0]
+            dead[0, ndim + 1] = th['thread_min_max'][0, 0]
         dead_arrs.append(dead)
     dead = np.vstack(dead_arrs)
-    dead = dead[np.argsort(dead[:, ndims]), :]
-    run = nestcheck.ns_run_utils.combine_threads(threads)
-    return dead, run
+    dead = dead[np.argsort(dead[:, ndim]), :]
+    return dead
