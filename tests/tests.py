@@ -27,8 +27,7 @@ import nestcheck.io_utils
 import nestcheck.ns_run_utils
 import nestcheck.parallel_utils
 import nestcheck.plots
-import nestcheck.testing
-
+import nestcheck.dummy_data
 
 TEST_CACHE_DIR = 'cache_tests'
 TEST_DIR_EXISTS_MSG = ('Directory ' + TEST_CACHE_DIR + ' exists! Tests use '
@@ -73,7 +72,7 @@ class TestDataProcessing(unittest.TestCase):
     def test_process_polychord_data(self):
         """Check processing some dummy PolyChord data."""
         file_root = 'dummy_run'
-        dead, run = nestcheck.testing.get_dummy_dead_points(dynamic=True)
+        dead, run = nestcheck.dummy_data.get_dummy_dead_points(dynamic=True)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
         np.savetxt(os.path.join(
@@ -96,7 +95,7 @@ class TestDataProcessing(unittest.TestCase):
         a dummy one."""
         file_root = 'temp'
         os.makedirs(TEST_CACHE_DIR)
-        output = nestcheck.testing.write_dummy_polychord_stats(
+        output = nestcheck.dummy_data.write_dummy_polychord_stats(
             file_root, TEST_CACHE_DIR)
         self.assertEqual(nestcheck.data_processing.process_polychord_stats(
             file_root, TEST_CACHE_DIR), output)
@@ -104,7 +103,7 @@ class TestDataProcessing(unittest.TestCase):
     def test_process_multinest_data(self):
         """Check processing some dummy MultiNest data."""
         file_root = 'dummy_run'
-        samples, run = nestcheck.testing.get_dummy_dead_points(dynamic=False)
+        samples, run = nestcheck.dummy_data.get_dummy_dead_points(dynamic=False)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
         # Replicate MultiNest's dead and live points files, including their
@@ -131,7 +130,7 @@ class TestDataProcessing(unittest.TestCase):
         """Test processing some dummy PolyChord data using
         batch_process_data."""
         file_root = 'dummy_run'
-        dead, run = nestcheck.testing.get_dummy_dead_points(dynamic=True)
+        dead, run = nestcheck.dummy_data.get_dummy_dead_points(dynamic=True)
         nestcheck.data_processing.check_ns_run(run)
         os.makedirs(TEST_CACHE_DIR)
         np.savetxt(os.path.join(TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
@@ -329,15 +328,15 @@ class TestNSRunUtils(unittest.TestCase):
         ndim = 2
         # Get two threads
         threads = [
-            nestcheck.testing.get_dummy_ns_thread(nsamples, ndim, seed=False),
-            nestcheck.testing.get_dummy_ns_thread(nsamples, ndim, seed=False)]
+            nestcheck.dummy_data.get_dummy_ns_thread(nsamples, ndim, seed=False),
+            nestcheck.dummy_data.get_dummy_ns_thread(nsamples, ndim, seed=False)]
         # Sort in order of final logl
         threads = sorted(threads, key=lambda run: run['logl'][-1])
         t1 = threads[0]
         t2 = threads[1]
         # Get another thread starting on the last point of t2 (meaning it will
         # not overlap with t1)
-        t_no_overlap = nestcheck.testing.get_dummy_ns_thread(
+        t_no_overlap = nestcheck.dummy_data.get_dummy_ns_thread(
             nsamples, ndim, seed=False, logl_start=t2['logl'][-1] + 1000)
         # combining with t1 should throw an assertion error as nlive drops to
         # zero in between the threads
@@ -346,7 +345,7 @@ class TestNSRunUtils(unittest.TestCase):
             [t1, t_no_overlap], assert_birth_point=False)
         # Get another thread starting on the last point of t1 so it overlaps
         # with t2
-        t3 = nestcheck.testing.get_dummy_ns_thread(
+        t3 = nestcheck.dummy_data.get_dummy_ns_thread(
             nsamples, ndim, seed=False, logl_start=t1['logl'][-1])
         # When birth point not in run:
         # Should raise assertion error only if assert_birth_point = True
@@ -374,7 +373,7 @@ class TestNSRunUtils(unittest.TestCase):
 class TestErrorAnalysis(unittest.TestCase):
 
     def test_bootstrap_resample_run(self):
-        run = nestcheck.testing.get_dummy_ns_run(2, 1, 2)
+        run = nestcheck.dummy_data.get_dummy_ns_run(2, 1, 2)
         run['settings'] = {'ninit': 1}
         # With only 2 threads and ninit=1, separating initial threads means
         # that the resampled run can only contain each thread once
@@ -397,7 +396,7 @@ class TestErrorAnalysis(unittest.TestCase):
     def test_run_std_bootstrap(self):
         """Check bootstrap std is zero when the run only contains one
         thread."""
-        run = nestcheck.testing.get_dummy_ns_run(1, 10, 2)
+        run = nestcheck.dummy_data.get_dummy_ns_run(1, 10, 2)
         stds = nestcheck.error_analysis.run_std_bootstrap(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
         self.assertRaises(TypeError, nestcheck.error_analysis.run_std_bootstrap, run,
@@ -406,7 +405,7 @@ class TestErrorAnalysis(unittest.TestCase):
     def test_run_ci_bootstrap(self):
         """Check bootstrap ci equals estimator expected value when the
         run only contains one thread."""
-        run = nestcheck.testing.get_dummy_ns_run(1, 10, 2)
+        run = nestcheck.dummy_data.get_dummy_ns_run(1, 10, 2)
         ci = nestcheck.error_analysis.run_ci_bootstrap(
             run, [e.param_mean], n_simulate=10, cred_int=0.5)
         self.assertAlmostEqual(ci[0], e.param_mean(run), places=12)
@@ -414,7 +413,7 @@ class TestErrorAnalysis(unittest.TestCase):
     def test_run_std_simulate(self):
         """Check simulate std is zero when the run only contains one
         point."""
-        run = nestcheck.testing.get_dummy_ns_run(1, 1, 2)
+        run = nestcheck.dummy_data.get_dummy_ns_run(1, 1, 2)
         stds = nestcheck.error_analysis.run_std_simulate(run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
 
@@ -430,7 +429,7 @@ class TestEstimators(unittest.TestCase):
 
     def setUp(self):
         self.nsamples = 10
-        self.ns_run = nestcheck.testing.get_dummy_ns_run(1, self.nsamples, 2)
+        self.ns_run = nestcheck.dummy_data.get_dummy_ns_run(1, self.nsamples, 2)
         self.logw = nestcheck.ns_run_utils.get_logw(self.ns_run)
         self.w_rel = np.exp(self.logw - self.logw.max())
         self.w_rel /= np.sum(self.w_rel)
@@ -623,7 +622,7 @@ class TestDiagnosticsTables(unittest.TestCase):
         """Test error df summary using numpy seeds."""
         run_list = []
         for i in range(5):
-            run_list.append(nestcheck.testing.get_dummy_ns_run(
+            run_list.append(nestcheck.dummy_data.get_dummy_ns_run(
                 5, 10, 2, seed=i))
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
@@ -674,7 +673,7 @@ class TestPlots(unittest.TestCase):
 
     def setUp(self):
         """Get some dummy data to plot."""
-        self.ns_run = nestcheck.testing.get_dummy_ns_run(3, 10, 2)
+        self.ns_run = nestcheck.dummy_data.get_dummy_ns_run(3, 10, 2)
         nestcheck.data_processing.check_ns_run(self.ns_run,
                                                logl_warn_only=True)
 
