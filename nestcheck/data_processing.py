@@ -276,6 +276,7 @@ def process_polychord_stats(file_root, base_dir):
         lines = stats_file.readlines()
     output['logZ'] = float(lines[8].split()[2])
     output['logZerr'] = float(lines[8].split()[4])
+    # Cluster logZs and errors
     output['logZs'] = []
     output['logZerrs'] = []
     for line in lines[14:]:
@@ -285,14 +286,25 @@ def process_polychord_stats(file_root, base_dir):
             re.findall(r'=(.*)', line)[0].split()[0]))
         output['logZerrs'].append(float(
             re.findall(r'=(.*)', line)[0].split()[2]))
-    output['ncluster'] = len(output['logZs'])
-    output['nposterior'] = int(lines[-6].split()[1])
-    output['nequals'] = int(lines[-5].split()[1])
-    output['ndead'] = int(lines[-4].split()[1])
-    output['nlive'] = int(lines[-3].split()[1])
-    output['nlike'] = int(lines[-2].split()[1])
-    output['avnlike'] = float(lines[-1].split()[1])
-    output['avnlikeslice'] = float(lines[-1].split()[3])
+    # Other output info
+    nclust = len(output['logZs'])
+    output['ncluster'] = nclust
+    print(lines[19 + nclust])
+    output['nposterior'] = int(lines[20 + nclust].split()[1])
+    output['nequals'] = int(lines[21 + nclust].split()[1])
+    output['ndead'] = int(lines[22 + nclust].split()[1])
+    output['nlive'] = int(lines[23 + nclust].split()[1])
+    output['nlike'] = int(lines[24 + nclust].split()[1])
+    output['avnlike'] = float(lines[25 + nclust].split()[1])
+    output['avnlikeslice'] = float(lines[25 + nclust].split()[3])
+    # Means and stds of dimensions (not produced by PolyChord<=1.13)
+    if len(lines) > 29 + nclust:
+        output['param_means'] = []
+        output['param_mean_errs'] = []
+        for line in lines[29 + nclust:]:
+            print(line.split())
+            output['param_means'].append(float(line.split()[1]))
+            output['param_mean_errs'].append(float(line.split()[3]))
     return output
 
 

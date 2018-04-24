@@ -42,7 +42,9 @@ def write_dummy_polychord_stats(file_root, base_dir):
               'nlike': 123456,
               'nlive': 0,
               'avnlike': 100.0,
-              'avnlikeslice': 10.0}
+              'avnlikeslice': 10.0,
+              'param_means': [0.11, 0.01, -0.09],
+              'param_mean_errs': [0.04, 0.03, 0.04]}
     output['ncluster'] = len(output['logZs'])
     # Make a PolyChord format .stats file corresponding to output
     file_lines = [
@@ -77,7 +79,14 @@ def write_dummy_polychord_stats(file_root, base_dir):
         ' nlive:             {0}'.format(output['nlive']),
         ' nlike:         {0}'.format(output['nlike']),
         ' <nlike>:       {0}   (    {1} per slice )'.format(
-            output['avnlike'], output['avnlikeslice'])]
+            output['avnlike'], output['avnlikeslice']),
+        '',
+        '',
+        'Dim No.       Mean        Sigma']
+    for i, (mean, meanerr) in enumerate(zip(output['param_means'],
+                                            output['param_mean_errs'])):
+        file_lines.append('{0}  {1} +/-   {2}'.format(
+            str(i + 1).ljust(3), mean, meanerr))
     with open(os.path.join(base_dir, file_root) + '.stats', 'w') as stats_file:
         stats_file.writelines('{}\n'.format(line) for line in file_lines)
     return output
