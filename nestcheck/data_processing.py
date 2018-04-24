@@ -289,7 +289,6 @@ def process_polychord_stats(file_root, base_dir):
     # Other output info
     nclust = len(output['logZs'])
     output['ncluster'] = nclust
-    print(lines[19 + nclust])
     output['nposterior'] = int(lines[20 + nclust].split()[1])
     output['nequals'] = int(lines[21 + nclust].split()[1])
     output['ndead'] = int(lines[22 + nclust].split()[1])
@@ -302,7 +301,6 @@ def process_polychord_stats(file_root, base_dir):
         output['param_means'] = []
         output['param_mean_errs'] = []
         for line in lines[29 + nclust:]:
-            print(line.split())
             output['param_means'].append(float(line.split()[1]))
             output['param_mean_errs'].append(float(line.split()[3]))
     return output
