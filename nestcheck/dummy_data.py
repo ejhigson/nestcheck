@@ -8,7 +8,7 @@ import numpy as np
 import nestcheck.ns_run_utils
 
 
-def write_dummy_polychord_stats(file_root, base_dir):
+def write_dummy_polychord_stats(file_root, base_dir, **kwargs):
     """
     Writes a dummy PolyChord format .stats file for tests functions for
     processing stats files. This is written to:
@@ -23,6 +23,8 @@ def write_dummy_polychord_stats(file_root, base_dir):
         Root for run output file names (PolyChord file_root setting).
     base_dir: str
         Directory containing data (PolyChord base_dir setting).
+    kwargs: dict
+        Any output values - if not specified, defaults are used.
 
     Returns
     -------
@@ -30,21 +32,26 @@ def write_dummy_polychord_stats(file_root, base_dir):
         The expected output of
         nestcheck.process_polychord_stats(file_root, base_dir)
     """
-    output = {'file_root': file_root,
-              'base_dir': base_dir,
-              'logZ': -9.99,
-              'logZerr': 1.11,
-              'logZs': [-8.88, -7.77, -6.66, -5.55],
-              'logZerrs': [1.88, 1.77, 1.66, 1.55],
-              'nposterior': 0,
-              'nequals': 0,
-              'ndead': 1234,
-              'nlike': 123456,
-              'nlive': 0,
-              'avnlike': 100.0,
-              'avnlikeslice': 10.0,
-              'param_means': [0.11, 0.01, -0.09],
-              'param_mean_errs': [0.04, 0.03, 0.04]}
+    default_output = {'file_root': file_root,
+                      'base_dir': base_dir,
+                      'logZ': -9.99,
+                      'logZerr': 1.11,
+                      'logZs': [-8.88, -7.77, -6.66, -5.55],
+                      'logZerrs': [1.88, 1.77, 1.66, 1.55],
+                      'nposterior': 0,
+                      'nequals': 0,
+                      'ndead': 1234,
+                      'nlike': 123456,
+                      'nlive': 0,
+                      'avnlike': 100.0,
+                      'avnlikeslice': 10.0,
+                      'param_means': [0.11, 0.01, -0.09],
+                      'param_mean_errs': [0.04, 0.03, 0.04]}
+    output = {}
+    for key, value in default_output.items():
+        output[key] = kwargs.pop(key, value)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     output['ncluster'] = len(output['logZs'])
     # Make a PolyChord format .stats file corresponding to output
     file_lines = [

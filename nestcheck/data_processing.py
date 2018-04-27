@@ -6,7 +6,7 @@ Currently compatable with MultiNest and PolyChord output.
 Nestcheck's diagnostics require infomation about the steps at which points were
 sampled in order to split nested sampling runs into their constituent threads
 (single live point runs). See "Sampling Errors In Nested Sampling Parameter
-Estimation (Higson et al. 2017) for more details. *Producing these requires
+Estimation" (Higson et al. 2017) for more details. *Producing these requires
 MultiNest >= v3.11 and PolyChord >= v1.13.*
 
 

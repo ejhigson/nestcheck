@@ -136,9 +136,9 @@ def get_run_threads(ns_run):
     """
     samples = array_given_run(ns_run)
     unique_threads = np.unique(ns_run['thread_labels'])
-    assert ns_run['thread_min_max'].shape[0] == unique_threads.shape[0], \
-        ('some threads have no points! ' + str(unique_threads.shape[0]) +
-         '!=' + str(ns_run['thread_min_max'].shape[0]))
+    assert ns_run['thread_min_max'].shape[0] == unique_threads.shape[0], (
+        'some threads have no points! {0} != {1}'.format(
+            unique_threads.shape[0], ns_run['thread_min_max'].shape[0]))
     threads = []
     for i, th_lab in enumerate(unique_threads):
         thread_array = samples[np.where(samples[:, 1] == th_lab)]
