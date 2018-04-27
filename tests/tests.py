@@ -147,6 +147,16 @@ class TestDataProcessing(unittest.TestCase):
         self.assertEqual(len(run_list), 1)
 
 
+class TestDummyData(unittest.TestCase):
+
+    def test_write_dummy_polychord_stats(self):
+        """Check write_dummy_polychord_stats raises TypeError with unexpected
+        kwargs."""
+        self.assertRaises(
+            TypeError, nestcheck.dummy_data.write_dummy_polychord_stats,
+            'temp_file_root', TEST_CACHE_DIR, unexpected=1)
+
+
 class TestIOUtils(unittest.TestCase):
 
     """Tests for io_utils.py."""
