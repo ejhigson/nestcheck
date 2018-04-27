@@ -149,12 +149,33 @@ class TestDataProcessing(unittest.TestCase):
 
 class TestDummyData(unittest.TestCase):
 
-    def test_write_dummy_polychord_stats(self):
+    def test_write_dummy_polychord_stats_unexpected_kwarg(self):
         """Check write_dummy_polychord_stats raises TypeError with unexpected
         kwargs."""
         self.assertRaises(
             TypeError, nestcheck.dummy_data.write_dummy_polychord_stats,
             'temp_file_root', TEST_CACHE_DIR, unexpected=1)
+
+    def test_get_dummy_run_unexpected_kwarg(self):
+        """Check get_dummy_run raises TypeError with unexpected
+        kwargs."""
+        self.assertRaises(
+            TypeError, nestcheck.dummy_data.get_dummy_run,
+            1, 2, 3, unexpected=1)
+
+    def test_get_dummy_thread_unexpected_kwarg(self):
+        """Check get_dummy_thread raises TypeError with unexpected
+        kwargs."""
+        self.assertRaises(
+            TypeError, nestcheck.dummy_data.get_dummy_thread,
+            1, 2, unexpected=1)
+
+    def test_get_dummy_dynamic_run_unexpected_kwarg(self):
+        """Check get_dummy_dynamic_run raises TypeError with unexpected
+        kwargs."""
+        self.assertRaises(
+            TypeError, nestcheck.dummy_data.get_dummy_dynamic_run,
+            1, 2, unexpected=1)
 
 
 class TestIOUtils(unittest.TestCase):

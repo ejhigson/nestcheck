@@ -99,16 +99,22 @@ def write_dummy_polychord_stats(file_root, base_dir, **kwargs):
     return output
 
 
-def get_dummy_run(nthread, nsamples, ndim, seed=False, logl_start=-np.inf):
+def get_dummy_run(nthread, nsamples, ndim, **kwargs):
     """Generate template ns runs for quick testing without loading test
     data."""
+    seed = kwargs.pop('seed', False)
+    logl_start = kwargs.pop('logl_start', -np.inf)
+    logl_range = kwargs.pop('logl_range', 1)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     threads = []
     if seed is not False:
         np.random.seed(seed)
     threads = []
     for _ in range(nthread):
-        threads.append(get_dummy_thread(nsamples, ndim, seed=False,
-                                        logl_start=logl_start))
+        threads.append(get_dummy_thread(
+            nsamples, ndim, seed=False, logl_start=logl_start,
+            logl_range=logl_range))
     # Sort threads in order of starting logl so labels match labels that would
     # have been given processing a dead points array. N.B. this only works when
     # all threads have same start_logl
@@ -120,16 +126,21 @@ def get_dummy_run(nthread, nsamples, ndim, seed=False, logl_start=-np.inf):
     return nestcheck.ns_run_utils.combine_threads(threads)
 
 
-def get_dummy_dynamic_run(nsamples, ndim, seed=False, nthread_init=2,
-                          nthread_dyn=3):
+def get_dummy_dynamic_run(nsamples, ndim, **kwargs):
     """Get a dummy dynamic run."""
+    seed = kwargs.pop('seed', False)
+    nthread_init = kwargs.pop('nthread_init', 2)
+    nthread_dyn = kwargs.pop('nthread_dyn', 3)
+    logl_range = kwargs.pop('logl_range', 1)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     init = get_dummy_run(nthread_init, nsamples, ndim, seed=seed,
-                         logl_start=-np.inf)
+                         logl_start=-np.inf, logl_range=logl_range)
     dyn_starts = list(np.random.choice(
         init['logl'], nthread_dyn, replace=False))
     threads = nestcheck.ns_run_utils.get_run_threads(init)
-    threads += [get_dummy_thread(nsamples, ndim, seed=False, logl_start=start)
-                for start in dyn_starts]
+    threads += [get_dummy_thread(nsamples, ndim, seed=False, logl_start=st,
+                                 logl_range=logl_range) for st in dyn_starts]
     # make sure the threads have unique labels and combine them
     for i, _ in enumerate(threads):
         threads[i]['thread_labels'] = np.full(nsamples, i)
@@ -140,12 +151,17 @@ def get_dummy_dynamic_run(nsamples, ndim, seed=False, nthread_init=2,
     return nestcheck.data_processing.process_samples_array(samples)
 
 
-def get_dummy_thread(nsamples, ndim, seed=False, logl_start=-np.inf):
+def get_dummy_thread(nsamples, ndim, **kwargs):
     """Generate a single ns thread for quick testing without loading test
     data."""
+    seed = kwargs.pop('seed', False)
+    logl_start = kwargs.pop('logl_start', -np.inf)
+    logl_range = kwargs.pop('logl_range', 1)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     if seed is not False:
         np.random.seed(seed)
-    thread = {'logl': np.sort(np.random.random(nsamples)),
+    thread = {'logl': np.sort(np.random.random(nsamples)) * logl_range,
               'nlive_array': np.full(nsamples, 1.),
               'theta': np.random.random((nsamples, ndim)),
               'thread_labels': np.zeros(nsamples).astype(int)}
