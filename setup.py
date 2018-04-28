@@ -54,10 +54,9 @@ setuptools.setup(name='nestcheck',
                                    'futures'],
                  test_suite='nose.collector',
                  tests_require=['nose', 'coverage'],
-                 # Force sphinx<1.6 to avoid readthedocs error as per this
-                 # https://github.com/rtfd/readthedocs.org/issues/3148
-                 # Now fixed by new nbsphinx version?
-                 extras_require={'docs': ['sphinx', 'numpydoc',
-                                          'sphinx-rtd-theme', 'nbsphinx>=0.3.3']},
+                 extras_require={'docs': ['sphinx',
+                                          'numpydoc',
+                                          'sphinx-rtd-theme',
+                                          'nbsphinx>=0.3.3']},
                  project_urls={  # Optional
                      'Docs': 'http://nestcheck.readthedocs.io/en/latest/'})
