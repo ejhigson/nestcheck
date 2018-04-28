@@ -12,7 +12,7 @@ def get_dummy_thread(nsamples, **kwargs):
     """
     Generate dummy data for a single nested sampling thread.
 
-    Loglikelihood values of points are generated from a uniform distribution
+    Log-likelihood values of points are generated from a uniform distribution
     in (0, 1), sorted, scaled by logl_range and shifted by logl_start (if it is
     not -np.inf). Theta values of each point are each generated from a uniform
     distribution in (0, 1).
@@ -52,7 +52,7 @@ def get_dummy_run(nthread, nsamples, **kwargs):
     """
     Generate dummy data for a nested sampling run.
 
-    Loglikelihood values of points are generated from a uniform distribution
+    Log-likelihood values of points are generated from a uniform distribution
     in (0, 1), sorted, scaled by logl_range and shifted by logl_start (if it is
     not -np.inf). Theta values of each point are each generated from a uniform
     distribution in (0, 1).
