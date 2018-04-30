@@ -63,7 +63,10 @@ If this code is useful for your research, please cite the two papers on which it
 Contributions
 -------------
 
-Contributions are welcome! Please try to make sure the tests pass before issuing a pull request, and use `numpy-style docstrings <http://www.sphinx-doc.org/en/master/ext/example_numpy.html>`_.
+Contributions are welcome!
+
+Please try to make sure the tests pass before issuing a pull request, and use numpy-style docstrings (see `here <http://www.sphinx-doc.org/en/master/ext/example_numpy.html>`_ for an example).
+
 If you have any questions or suggestions please get in touch (e.higson@mrao.cam.ac.uk).
 
 Authors & License
