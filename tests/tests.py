@@ -261,7 +261,11 @@ class TestIOUtils(unittest.TestCase):
 
 class TestPandasFunctions(unittest.TestCase):
 
+    """Tests for pandas_functions.py"""
+
     def setUp(self):
+        """Set up dummy data in a pandas DataFrame and make a summary data
+        frame for testing."""
         self.nrows = 100
         self.ncols = 3
         self.data = np.random.random((self.nrows, self.ncols))
@@ -273,6 +277,7 @@ class TestPandasFunctions(unittest.TestCase):
             include_true_values=True, include_rmse=True)
 
     def test_summary_df(self):
+        """Check summary DataFrame has expected values."""
         self.assertEqual(self.sum_df.shape, (7, self.ncols))
         numpy.testing.assert_array_equal(
             self.sum_df.loc[('mean', 'value'), :].values,
@@ -292,6 +297,7 @@ class TestPandasFunctions(unittest.TestCase):
             include_true_values=True, include_rmse=True, unexpected=1)
 
     def test_summary_df_from_array(self):
+        """Check function making summary data frame from a numpy array."""
         df = nestcheck.pandas_functions.summary_df_from_array(
             self.data, self.col_names, true_values=np.zeros(self.ncols),
             include_true_values=True, include_rmse=True)
@@ -303,6 +309,7 @@ class TestPandasFunctions(unittest.TestCase):
         pandas.testing.assert_frame_equal(df, self.sum_df)
 
     def test_summary_df_from_list(self):
+        """Check function making summary data frame from a list."""
         data_list = [self.data[i, :] for i in range(self.nrows)]
         df = nestcheck.pandas_functions.summary_df_from_list(
             data_list, self.col_names, true_values=np.zeros(self.ncols),
@@ -310,6 +317,8 @@ class TestPandasFunctions(unittest.TestCase):
         pandas.testing.assert_frame_equal(df, self.sum_df)
 
     def test_summary_df_from_multi(self):
+        """Check function making summary data frame from a MultiIndex
+        DataFrame."""
         multi = self.df
         multi['method'] = 'method 1'
         multi.set_index('method', drop=True, append=True, inplace=True)
@@ -324,6 +333,8 @@ class TestPandasFunctions(unittest.TestCase):
             df.xs('method 1', level='method'), self.sum_df.iloc[1:, :])
 
     def test_efficiency_gain_df(self):
+        """Check function for calculating efficiency gains from different
+        methods."""
         data_list = [self.data[i, :] for i in range(self.nrows)]
         method_names = ['old', 'new']
         adjust_nsamp = np.asarray([1, 2])
@@ -355,6 +366,8 @@ class TestPandasFunctions(unittest.TestCase):
 
 
 class TestNSRunUtils(unittest.TestCase):
+
+    """Tests for ns_run_utils.py."""
 
     def test_combine_threads(self):
         """Check combining threads when birth contours are not present or are
@@ -388,7 +401,8 @@ class TestNSRunUtils(unittest.TestCase):
             [t2, t3], assert_birth_point=True)
         # When birth point in run once:
         # should work with assert_birth_point = True
-        nestcheck.ns_run_utils.combine_threads([t1, t2, t3], assert_birth_point=True)
+        nestcheck.ns_run_utils.combine_threads(
+            [t1, t2, t3], assert_birth_point=True)
         # When birth point in run twice:
         # Should raise assertion error only if assert_birth_point = True
         nestcheck.ns_run_utils.combine_threads([t1, t1, t2, t3])
@@ -415,6 +429,7 @@ class TestNSRunUtils(unittest.TestCase):
         comb_th = nestcheck.ns_run_utils.combine_threads(all_threads)
         for key, value in comb.items():
             if key not in ['output']:
+                self.assertTrue(key in comb_th)
                 numpy.testing.assert_array_equal(
                     value, comb_th[key], err_msg=key + ' not the same')
 
@@ -427,16 +442,21 @@ class TestNSRunUtils(unittest.TestCase):
 
 class TestErrorAnalysis(unittest.TestCase):
 
+    """Tests for error_analysis.py"""
+
     def test_bootstrap_resample_run(self):
+        """Check bootstrap resampling of nested sampling runs."""
         run = nestcheck.dummy_data.get_dummy_run(2, 1)
         run['settings'] = {'ninit': 1}
         # With only 2 threads and ninit=1, separating initial threads means
         # that the resampled run can only contain each thread once
-        resamp = nestcheck.error_analysis.bootstrap_resample_run(run, ninit_sep=True)
+        resamp = nestcheck.error_analysis.bootstrap_resample_run(
+            run, ninit_sep=True)
         self.assertTrue(np.array_equal(run['theta'], resamp['theta']))
         # With random_seed=1 and 2 threads each with a single points,
         # bootstrap_resample_run selects the second thread twice.
-        resamp = nestcheck.error_analysis.bootstrap_resample_run(run, random_seed=0)
+        resamp = nestcheck.error_analysis.bootstrap_resample_run(
+            run, random_seed=0)
         numpy.testing.assert_allclose(
             run['theta'][0, :], resamp['theta'][0, :])
         numpy.testing.assert_allclose(
@@ -445,17 +465,20 @@ class TestErrorAnalysis(unittest.TestCase):
         del run['settings']
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
-            resamp = nestcheck.error_analysis.bootstrap_resample_run(run, ninit_sep=True)
+            resamp = nestcheck.error_analysis.bootstrap_resample_run(
+                run, ninit_sep=True)
             self.assertEqual(len(war), 1)
 
     def test_run_std_bootstrap(self):
         """Check bootstrap std is zero when the run only contains one
         thread."""
         run = nestcheck.dummy_data.get_dummy_run(1, 10)
-        stds = nestcheck.error_analysis.run_std_bootstrap(run, [e.param_mean], n_simulate=10)
+        stds = nestcheck.error_analysis.run_std_bootstrap(
+            run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
-        self.assertRaises(TypeError, nestcheck.error_analysis.run_std_bootstrap, run,
-                          [e.param_mean], n_simulate=10, unexpected=1)
+        self.assertRaises(
+            TypeError, nestcheck.error_analysis.run_std_bootstrap, run,
+            [e.param_mean], n_simulate=10, unexpected=1)
 
     def test_run_ci_bootstrap(self):
         """Check bootstrap ci equals estimator expected value when the
@@ -469,7 +492,8 @@ class TestErrorAnalysis(unittest.TestCase):
         """Check simulate std is zero when the run only contains one
         point."""
         run = nestcheck.dummy_data.get_dummy_run(1, 1)
-        stds = nestcheck.error_analysis.run_std_simulate(run, [e.param_mean], n_simulate=10)
+        stds = nestcheck.error_analysis.run_std_simulate(
+            run, [e.param_mean], n_simulate=10)
         self.assertAlmostEqual(stds[0], 0, places=12)
 
     def test_pairwise_distances(self):
@@ -482,7 +506,10 @@ class TestErrorAnalysis(unittest.TestCase):
 
 class TestEstimators(unittest.TestCase):
 
+    """Tests for estimators.py."""
+
     def setUp(self):
+        """Set up a dummy run to test estimators on."""
         self.nsamples = 10
         self.ns_run = nestcheck.dummy_data.get_dummy_run(1, self.nsamples)
         self.logw = nestcheck.ns_run_utils.get_logw(self.ns_run)
@@ -495,7 +522,8 @@ class TestEstimators(unittest.TestCase):
 
     def test_run_estimators(self):
         """Check nestcheck.ns_run_utils.run_estimators wrapper is working."""
-        out = nestcheck.ns_run_utils.run_estimators(self.ns_run, [e.count_samples])
+        out = nestcheck.ns_run_utils.run_estimators(
+            self.ns_run, [e.count_samples])
         self.assertEqual(out.shape, (1,))  # out should be np array
         self.assertEqual(out[0], self.nsamples)
 
@@ -558,9 +586,6 @@ class TestEstimators(unittest.TestCase):
             e.weighted_quantile(prob, r, self.w_rel),
             places=12)
 
-
-class TestEstimatorLatexNames(unittest.TestCase):
-
     def test_outputs_unique_strings(self):
         """
         Check get_latex_names produces a unique string for each of a list of
@@ -584,13 +609,17 @@ class TestEstimatorLatexNames(unittest.TestCase):
         self.assertEqual(len(estimator_names), len(set(estimator_names)))
 
     def test_latex_name_unexpected_kwargs(self):
+        """Check unexpected kwarg for get_latex_name raises expected error."""
         self.assertRaises(TypeError, e.get_latex_name, e.logz, unexpected=1)
 
     def test_latex_name_unknown_func(self):
+        """Check unexpected func for get_latex_name raises expected error."""
         self.assertRaises(KeyError, e.get_latex_name, np.mean)
 
 
 class TestParallelUtils(unittest.TestCase):
+
+    """Tests for parallel_utils.py."""
 
     def setUp(self):
         """Define some variables."""
@@ -673,6 +702,8 @@ class TestParallelUtils(unittest.TestCase):
 
 class TestDiagnosticsTables(unittest.TestCase):
 
+    """Tests for diagnostics_tables.py."""
+
     def test_run_list_error_summary(self):
         """Test error df summary using numpy seeds."""
         run_list = []
@@ -682,8 +713,8 @@ class TestDiagnosticsTables(unittest.TestCase):
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             df = nestcheck.diagnostics_tables.run_list_error_summary(
-                run_list, [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
-                bs_stat_dist=True, parallel=False)
+                run_list, [e.param_mean], ['param_mean'], 10,
+                thread_pvalue=True, bs_stat_dist=True, parallel=False)
             self.assertEqual(len(war), 3)
         self.assertTrue(np.all(~np.isnan(df.values)))
         expected_vals = np.asarray([[5.09427108e-01],
@@ -712,12 +743,14 @@ class TestDiagnosticsTables(unittest.TestCase):
                                           rtol=1e-6, atol=1e-6)
 
     def test_run_list_error_values_unexpected_kwarg(self):
+        """Check unexpected kwarg raises expected error."""
         self.assertRaises(
             TypeError, nestcheck.diagnostics_tables.run_list_error_values,
             [], [e.param_mean], ['param_mean'], 10, thread_pvalue=True,
             bs_stat_dist=True, unexpected=1)
 
     def test_estimator_values_df_unexpected_kwarg(self):
+        """Check unexpected kwarg raises expected error."""
         self.assertRaises(
             TypeError, nestcheck.diagnostics_tables.estimator_values_df,
             [], [e.param_mean], unexpected=1)
@@ -734,6 +767,7 @@ class TestPlots(unittest.TestCase):
                                                logl_warn_only=True)
 
     def test_alternate_helper(self):
+        """Check alternate_helper."""
         alt_samps = np.random.random(3)
         alt_samps[-1] = np.nan
         x = np.random.random()
@@ -747,12 +781,16 @@ class TestPlots(unittest.TestCase):
         self.assertEqual(ans, sum((x, alt_samps[0], alt_samps[1])))
 
     def test_rel_posterior_mass(self):
+        """Check calculation of run's posterior mass with a simple test case
+        where the answer is known analytically."""
         self.assertTrue(np.array_equal(
             nestcheck.plots.rel_posterior_mass(
                 np.asarray([0, 1]), np.asarray([1, 0])),
             np.asarray([1, 1])))
 
     def test_plot_run_nlive(self):
+        """Check plots of run's number of live points as a function of
+        log X."""
         fig = nestcheck.plots.plot_run_nlive(
             ['type 1'], {'type 1': [self.ns_run] * 2},
             logl_given_logx=lambda x: x, ymax=100)
@@ -775,6 +813,8 @@ class TestPlots(unittest.TestCase):
             ['type 1'], {'type 1': [self.ns_run] * 2})
 
     def test_weighted_1d_gaussian_kde(self):
+        """Check 1d gaussian kde function gives same results as scipy function
+        when the weights of the samples are equal."""
         x = np.linspace(-0.5, 1.5, 10)
         samps = np.random.random(40)
         weights = np.ones(samps.shape)
@@ -796,6 +836,7 @@ class TestPlots(unittest.TestCase):
             x, samps, weights[1:])
 
     def test_param_logx_diagram(self):
+        """Check function for making plots of sample distributions in logX."""
         fig = nestcheck.plots.param_logx_diagram(
             self.ns_run, n_simulate=2, npoints=10, parallel=True)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
@@ -811,11 +852,14 @@ class TestPlots(unittest.TestCase):
             plot_means=False)
 
     def test_plot_bs_dists_unexpected_kwarg(self):
+        """Check unexpected kwargs raise the expected error."""
         self.assertRaises(
             TypeError, nestcheck.plots.plot_bs_dists,
             self.ns_run, [], [], unexpected=0)
 
     def test_bs_param_dists(self):
+        """Check plots of the variation of posterior distributions calculated
+        from bootstrap resamples."""
         fig = nestcheck.plots.bs_param_dists(
             self.ns_run, n_simulate=2, nx=10,
             parallel=True)
@@ -826,6 +870,7 @@ class TestPlots(unittest.TestCase):
             self.ns_run, unexpected=0)
 
     def test_kde_plot_df(self):
+        """Check 1dimensional kde plots."""
         df = pd.DataFrame(index=['run_1', 'run_2'])
         df['estimator_1'] = [np.random.random(10)] * 2
         df['estimator_2'] = [np.random.random(10)] * 2
@@ -841,10 +886,13 @@ class TestPlots(unittest.TestCase):
             unexpected=0)
 
 
-# helper functions
+# Helper functions for tests
+# --------------------------
 
 def parallel_apply_func(x, arg, kwarg=-1):
-    """A test function for checking parallel_apply."""
+    """A test function for checking parallel_apply.
+
+    Must be defined at module level to make it picklable."""
     return np.asarray([x, arg, kwarg])
 
 
@@ -853,9 +901,12 @@ if 'nose' in sys.modules.keys():
         unittest.main()
 else:
     # If not being run with nose, use cProfile to profile tests
-    import cProfile
-    import pstats
-    cProfile.run('unittest.main()', 'restats')
-    pst = pstats.Stats('restats')
-    os.remove('restats')
-    pst.strip_dirs().sort_stats('cumtime').print_stats('tests.py', 20)
+    try:
+        import cProfile
+        import pstats
+        cProfile.run('unittest.main()', 'restats')
+        PSTAT = pstats.Stats('restats')
+        os.remove('restats')
+        PSTAT.strip_dirs().sort_stats('cumtime').print_stats('tests.py', 20)
+    except ImportError:
+        unittest.main()
