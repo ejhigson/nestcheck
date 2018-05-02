@@ -230,12 +230,15 @@ class TestIOUtils(unittest.TestCase):
 
     def test_load_filenotfound(self):
         """Test loading files which dont exist causes FileNotFoundError."""
-        try:
-            FileNotFoundError
-        except NameError:
-            FileNotFoundError = IOError
-        self.assertRaises(FileNotFoundError, nestcheck.io_utils.pickle_load,
-                          TEST_CACHE_DIR + 'not_here')
+        if sys.version_info[0] >= 3:
+            self.assertRaises(
+                FileNotFoundError, nestcheck.io_utils.pickle_load,
+                TEST_CACHE_DIR + 'not_here')
+        else:
+            # FileNotFoundError not defined in python2 - use IOError instead
+            self.assertRaises(
+                IOError, nestcheck.io_utils.pickle_load,
+                TEST_CACHE_DIR + 'not_here')
 
     def test_no_overwrite(self):
         """Check option to not overwrite existing files."""
@@ -878,8 +881,8 @@ class TestPlots(unittest.TestCase):
         df['estimator_2'] = [np.random.random(10)] * 2
         df['estimator_3'] = [np.random.random(10)] * 2
         df['estimator_4'] = [np.random.random(10)] * 2
-        fig = nestcheck.plots.kde_plot_df(df, xlims={}, num_xticks=3,
-                                          legend=True)
+        fig = nestcheck.plots.kde_plot_df(
+            df, xlims={}, num_xticks=3, legend=True, normalize=False)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
         fig = nestcheck.plots.kde_plot_df(df, nrows=2)
         self.assertIsInstance(fig, matplotlib.figure.Figure)
