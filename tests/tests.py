@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 """
 Test suite for the nestcheck package.
-
-Uses a temporary directory, TEST_CACHE_DIR, for tests which require
-input/output. This is deleted after the tests are finished. If it already
-exists an error is thrown to avoid accidentally deleting a directory which may
-be in use.
 """
 import functools
 import os
@@ -29,10 +24,20 @@ import nestcheck.parallel_utils
 import nestcheck.plots
 import nestcheck.dummy_data
 
-TEST_CACHE_DIR = 'cache_tests'
-TEST_DIR_EXISTS_MSG = ('Directory ' + TEST_CACHE_DIR + ' exists! Tests use '
-                       'this dir to check caching then delete it afterwards, '
-                       'so the path should be left empty.')
+
+# Define a directory to output files produced by tests (this will be deleted
+# when the tests finish).
+TEST_CACHE_DIR = 'temp_test_data_to_delete'
+
+
+def setUpModule():
+    """Before running the test suite, check that TEST_CACHE_DIR does not
+    already exist - as the tests will delete it."""
+    assert not os.path.exists(TEST_CACHE_DIR), (
+        'Directory ' + TEST_CACHE_DIR + ' exists! Tests use this directory to '
+        'check caching then delete it afterwards, so its path should be left '
+        'empty. You should manually delete or move ' + TEST_CACHE_DIR
+        + ' before running the tests.')
 
 
 class TestDataProcessing(unittest.TestCase):
@@ -40,8 +45,11 @@ class TestDataProcessing(unittest.TestCase):
     """Tests for data_processing.py"""
 
     def setUp(self):
-        """Make a directory for saving test results."""
-        assert not os.path.exists(TEST_CACHE_DIR), TEST_DIR_EXISTS_MSG
+        """Make a temporary directory for saving test results."""
+        try:
+            os.makedirs(TEST_CACHE_DIR)
+        except FileExistsError:
+            pass
 
     def tearDown(self):
         """Remove any caches saved by the tests."""
@@ -75,7 +83,6 @@ class TestDataProcessing(unittest.TestCase):
         run = nestcheck.dummy_data.get_dummy_dynamic_run(
             10, seed=False, nthread_init=2, nthread_dyn=3)
         dead = nestcheck.dummy_data.run_dead_points_array(run)
-        os.makedirs(TEST_CACHE_DIR)
         np.savetxt(os.path.join(
             TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
         with warnings.catch_warnings(record=True) as war:
@@ -95,7 +102,6 @@ class TestDataProcessing(unittest.TestCase):
         """Check reading in PolyChord's <root>.stats file by making and saving
         a dummy one."""
         file_root = 'temp'
-        os.makedirs(TEST_CACHE_DIR)
         output = nestcheck.dummy_data.write_dummy_polychord_stats(
             file_root, TEST_CACHE_DIR)
         self.assertEqual(nestcheck.data_processing.process_polychord_stats(
@@ -106,7 +112,6 @@ class TestDataProcessing(unittest.TestCase):
         file_root = 'dummy_run'
         run = nestcheck.dummy_data.get_dummy_run(5, 10, seed=False)
         samples = nestcheck.dummy_data.run_dead_points_array(run)
-        os.makedirs(TEST_CACHE_DIR)
         # Replicate MultiNest's dead and live points files, including their
         # extra columns
         dead = samples[:-2, :]
@@ -135,7 +140,6 @@ class TestDataProcessing(unittest.TestCase):
             10, seed=False, nthread_init=2, nthread_dyn=3)
         dead = nestcheck.dummy_data.run_dead_points_array(run)
         nestcheck.data_processing.check_ns_run(run)
-        os.makedirs(TEST_CACHE_DIR)
         np.savetxt(os.path.join(
             TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
         with warnings.catch_warnings(record=True) as war:
@@ -185,8 +189,10 @@ class TestIOUtils(unittest.TestCase):
     """Tests for io_utils.py."""
 
     def setUp(self):
-        """Make a directory and data for io testing."""
-        assert not os.path.exists(TEST_CACHE_DIR), TEST_DIR_EXISTS_MSG
+        """Get some data data for io testing.
+
+        Note that the saving function in io_utils makes the specified directory
+        if it does not already exist, so there is no need to make it in setUp."""
         self.test_data = np.random.random(10)
 
         @nestcheck.io_utils.save_load_result
@@ -243,25 +249,24 @@ class TestIOUtils(unittest.TestCase):
     def test_no_overwrite(self):
         """Check option to not overwrite existing files."""
         # Save our test data
-        nestcheck.io_utils.pickle_save(self.test_data,
-                                       TEST_CACHE_DIR + '/io_test',
-                                       print_time=True)
+        nestcheck.io_utils.pickle_save(
+            self.test_data, TEST_CACHE_DIR + '/io_test', print_time=True)
         # Try saving some different data to same path
-        nestcheck.io_utils.pickle_save(self.test_data - 100,
-                                       TEST_CACHE_DIR + '/io_test',
-                                       overwrite_existing=False)
+        nestcheck.io_utils.pickle_save(
+            self.test_data - 100, TEST_CACHE_DIR + '/io_test',
+            overwrite_existing=False)
         # Check the test data was not edited
         data_out = nestcheck.io_utils.pickle_load(TEST_CACHE_DIR + '/io_test')
         self.assertTrue(np.array_equal(self.test_data, data_out))
 
     def test_save_load_unexpected_kwargs(self):
         """Unexpected kwarg should throw exception."""
-        self.assertRaises(TypeError, nestcheck.io_utils.pickle_load,
-                          self.test_data, TEST_CACHE_DIR + '/io_test',
-                          unexpected=1)
-        self.assertRaises(TypeError, nestcheck.io_utils.pickle_save,
-                          self.test_data, TEST_CACHE_DIR + '/io_test',
-                          unexpected=1)
+        self.assertRaises(
+            TypeError, nestcheck.io_utils.pickle_load,
+            self.test_data, TEST_CACHE_DIR + '/io_test', unexpected=1)
+        self.assertRaises(
+            TypeError, nestcheck.io_utils.pickle_save,
+            self.test_data, TEST_CACHE_DIR + '/io_test', unexpected=1)
 
 
 class TestPandasFunctions(unittest.TestCase):
