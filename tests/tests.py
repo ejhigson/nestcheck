@@ -149,6 +149,8 @@ class TestDataProcessing(unittest.TestCase):
 
 class TestDummyData(unittest.TestCase):
 
+    """Tests for the dummy_data.py module."""
+
     def test_write_dummy_polychord_stats_unexpected_kwarg(self):
         """Check write_dummy_polychord_stats raises TypeError with unexpected
         kwargs."""

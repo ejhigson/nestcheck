@@ -178,6 +178,9 @@ def kde_plot_df(df, xlims=None, **kwargs):
         Number of rows of subplots.
     ncols: int, optional
         Number of columns of subplots.
+    normalize: bool, optional
+        If true, kde plots are normalized to have the same area under their
+        curves. If False, their max value is set to 1.
     legend: bool, optional
         Should a legend be added?
     legend_kwargs: dict, optional
@@ -190,10 +193,11 @@ def kde_plot_df(df, xlims=None, **kwargs):
     assert xlims is None or isinstance(xlims, dict)
     figsize = kwargs.pop('figsize', (6.4, 1.5))
     num_xticks = kwargs.pop('num_xticks', None)
-    legend = kwargs.pop('legend', False)
-    legend_kwargs = kwargs.pop('legend_kwargs', {})
     nrows = kwargs.pop('nrows', 1)
     ncols = kwargs.pop('ncols', int(np.ceil(len(df.columns) / nrows)))
+    normalize = kwargs.pop('normalize', True)
+    legend = kwargs.pop('legend', False)
+    legend_kwargs = kwargs.pop('legend_kwargs', {})
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
@@ -210,7 +214,8 @@ def kde_plot_df(df, xlims=None, **kwargs):
         labels = []
         for name, samps in df[col].iteritems():
             pdf = scipy.stats.gaussian_kde(samps)(support)
-            pdf /= pdf.max()
+            if not normalize:
+                pdf /= pdf.max()
             handles.append(ax.plot(support, pdf, label=name)[0])
             labels.append(name)
         ax.set_ylim(bottom=0)

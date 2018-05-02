@@ -120,6 +120,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     return df
 
 
+@nestcheck.io_utils.save_load_result
 def estimator_values_df(run_list, estimator_list, **kwargs):
     """
     Get a dataframe of estimator values.
