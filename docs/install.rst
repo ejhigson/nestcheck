@@ -41,14 +41,13 @@ Note also that producing the birth contour output files needed for ``nestcheck``
 Tests
 -----
 
-You can run the test suite using `nose
-<http://nose.readthedocs.org/>`_. From the root of the ``nestcheck`` directory, run:
+You can run the test suite with `nose <http://nose.readthedocs.org/>`_. From the root of the ``dyPolyChord`` directory, run:
 
 .. code-block:: bash
 
     nosetests
 
-To also get code coverage information (requires the ``coverage`` package)
+To also get code coverage information (this requires the ``coverage`` package), use:
 
 .. code-block:: bash
 
