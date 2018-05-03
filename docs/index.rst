@@ -18,17 +18,26 @@ nestcheck
 - "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al., 2018 <https://arxiv.org/abs/1804.06406>`_);
 - "Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al., 2017 <https://doi.org/10.1214/17-BA1075>`_).
 
-For more information see the papers and the documentation.  ``nestcheck`` is fully compatible with `dynamic nested sampling <https://arxiv.org/abs/1704.03459>`_.
+To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. More examples, including the code used to make the results and plots in `Higson et al., 2018 <https://arxiv.org/abs/1804.06406>`_, can be found in the `examples folder <https://github.com/ejhigson/nestcheck/tree/master/examples>`_.
 
-Currently ``nestcheck`` loads output from `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_, `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_ and `perfectns <https://github.com/ejhigson/perfectns>`_, and you can easily add input functions for other nested sampling software packages.
+Compatible nested sampling software
+-----------------------------------
+
+Currently ``nestcheck`` can load and analyse output from:
+
+- `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_;
+- `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_;
+- `dyPolyChord <https://github.com/ejhigson/dyPolyChord>`_;
+- `perfectns <https://github.com/ejhigson/perfectns>`_.
+
+In addition, you can easily add input functions for other nested sampling software packages.
+``nestcheck`` is fully compatible with `dynamic nested sampling <https://arxiv.org/abs/1704.03459>`_, in which the number of live points is varied to increase calculation accuracy.
+
 ``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. (2017) <https://doi.org/10.1214/17-BA1075>`_ for more details. *Producing birth contour output files with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and "write_dead"=True (its default setting).*
 
-Jupyter notebooks containing example usage of ``nestcheck`` can be found in the `examples folder
-<https://github.com/ejhigson/nestcheck/tree/master/examples>`_. This includes the code used to make the results in the diagnostics tests paper (`Higson et al., 2018
-<https://arxiv.org/abs/1804.06406>`_).
 
-Documentation
--------------
+Documentation contents
+----------------------
 
 .. toctree::
    :maxdepth: 2
@@ -40,7 +49,7 @@ Documentation
 Attribution
 -----------
 
-If this code is useful for your research, please cite the two papers on which it is based - the bibtex is:
+If this code is useful for your academic research, please cite the two papers on which it is based. The BibTeX is:
 
 .. code-block:: tex
 
@@ -63,13 +72,16 @@ If this code is useful for your research, please cite the two papers on which it
 Contributions
 -------------
 
-Contributions are welcome!
+Contributions are welcome! Development takes place on github:
 
-Please try to make sure the tests pass before issuing a pull request, and use numpy-style docstrings (see `here <http://www.sphinx-doc.org/en/master/ext/example_numpy.html>`_ for an example).
+- source code: https://github.com/ejhigson/nestcheck;
+- issue tracker: https://github.com/ejhigson/nestcheck/issues.
+
+When creating a pull request, please try to make sure the tests pass and use numpy-style docstrings (see `here <http://www.sphinx-doc.org/en/master/ext/example_numpy.html>`_ for an example).
 
 If you have any questions or suggestions please get in touch (e.higson@mrao.cam.ac.uk).
 
 Authors & License
 -----------------
 
-Copyright 2018 Edward Higson (MIT Licence).
+Copyright 2018 Edward Higson and contributors (MIT Licence).
