@@ -16,13 +16,14 @@ import pandas.testing
 import scipy.special
 import nestcheck.data_processing
 import nestcheck.diagnostics_tables
+import nestcheck.dummy_data
 import nestcheck.error_analysis
 import nestcheck.estimators as e
 import nestcheck.io_utils
 import nestcheck.ns_run_utils
 import nestcheck.parallel_utils
 import nestcheck.plots
-import nestcheck.dummy_data
+import nestcheck.write_polychord_output
 
 
 # Define a directory to output files produced by tests (this will be deleted
@@ -82,7 +83,7 @@ class TestDataProcessing(unittest.TestCase):
         file_root = 'dummy_run'
         run = nestcheck.dummy_data.get_dummy_dynamic_run(
             10, seed=False, nthread_init=2, nthread_dyn=3)
-        dead = nestcheck.dummy_data.run_dead_points_array(run)
+        dead = nestcheck.write_polychord_output.run_dead_birth_array(run)
         np.savetxt(os.path.join(
             TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
         with warnings.catch_warnings(record=True) as war:
@@ -102,8 +103,8 @@ class TestDataProcessing(unittest.TestCase):
         """Check reading in PolyChord's <root>.stats file by making and saving
         a dummy one."""
         file_root = 'temp'
-        output = nestcheck.dummy_data.write_dummy_polychord_stats(
-            file_root, TEST_CACHE_DIR)
+        output = nestcheck.write_polychord_output.write_stats_file(
+            {'file_root': file_root, 'base_dir': TEST_CACHE_DIR})
         self.assertEqual(nestcheck.data_processing.process_polychord_stats(
             file_root, TEST_CACHE_DIR), output)
 
@@ -111,7 +112,7 @@ class TestDataProcessing(unittest.TestCase):
         """Check processing some dummy MultiNest data."""
         file_root = 'dummy_run'
         run = nestcheck.dummy_data.get_dummy_run(5, 10, seed=False)
-        samples = nestcheck.dummy_data.run_dead_points_array(run)
+        samples = nestcheck.write_polychord_output.run_dead_birth_array(run)
         # Replicate MultiNest's dead and live points files, including their
         # extra columns
         dead = samples[:-2, :]
@@ -138,8 +139,7 @@ class TestDataProcessing(unittest.TestCase):
         file_root = 'dummy_run'
         run = nestcheck.dummy_data.get_dummy_dynamic_run(
             10, seed=False, nthread_init=2, nthread_dyn=3)
-        dead = nestcheck.dummy_data.run_dead_points_array(run)
-        nestcheck.data_processing.check_ns_run(run)
+        dead = nestcheck.write_polychord_output.run_dead_birth_array(run)
         np.savetxt(os.path.join(
             TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
         with warnings.catch_warnings(record=True) as war:
@@ -151,16 +151,55 @@ class TestDataProcessing(unittest.TestCase):
         self.assertEqual(len(run_list), 1)
 
 
+class TestWritePolyChordOutput(unittest.TestCase):
+
+    """Tests for write_polychord_output.py."""
+
+    def setUp(self):
+        """Make a temporary directory for saving test results."""
+        try:
+            os.makedirs(TEST_CACHE_DIR)
+        except FileExistsError:
+            pass
+
+    def tearDown(self):
+        """Remove any caches saved by the tests."""
+        try:
+            shutil.rmtree(TEST_CACHE_DIR)
+        except OSError:
+            pass
+
+    def test_write_run_output_unexpected_kwarg(self):
+        """Check write_run_output raises TypeError with unexpected
+        kwargs."""
+        self.assertRaises(
+            TypeError, nestcheck.write_polychord_output.write_run_output,
+            {}, unexpected=1)
+
+    def test_write_run_output(self):
+        """Check writing PolyChord output files."""
+        file_root = 'dummy_run'
+        run = nestcheck.dummy_data.get_dummy_run(10, 10)
+        run['output'] = {'file_root': file_root, 'base_dir': TEST_CACHE_DIR}
+        # Run with and without equals=True and posterior=True to ensure full
+        # coverage
+        nestcheck.write_polychord_output.write_run_output(
+            run, equals=True, posteriors=True)
+        nestcheck.write_polychord_output.write_run_output(run)
+        processed_run = nestcheck.data_processing.process_polychord_run(
+            file_root, TEST_CACHE_DIR)
+        self.assertEqual(set(run.keys()), set(processed_run.keys()))
+        for key, value in processed_run.items():
+            if key not in ['output']:
+                numpy.testing.assert_allclose(
+                    value, run[key], err_msg=key + ' not the same')
+        self.assertEqual(processed_run['output']['file_root'], file_root)
+        self.assertEqual(processed_run['output']['base_dir'], TEST_CACHE_DIR)
+
+
 class TestDummyData(unittest.TestCase):
 
     """Tests for the dummy_data.py module."""
-
-    def test_write_dummy_polychord_stats_unexpected_kwarg(self):
-        """Check write_dummy_polychord_stats raises TypeError with unexpected
-        kwargs."""
-        self.assertRaises(
-            TypeError, nestcheck.dummy_data.write_dummy_polychord_stats,
-            'temp_file_root', TEST_CACHE_DIR, unexpected=1)
 
     def test_get_dummy_run_unexpected_kwarg(self):
         """Check get_dummy_run raises TypeError with unexpected
@@ -191,8 +230,10 @@ class TestIOUtils(unittest.TestCase):
     def setUp(self):
         """Get some data data for io testing.
 
-        Note that the saving function in io_utils makes the specified directory
-        if it does not already exist, so there is no need to make it in setUp."""
+        Note that the saving function in io_utils makes the specified
+        directory if it does not already exist, so there is no need to
+        make it in setUp.
+        """
         self.test_data = np.random.random(10)
 
         @nestcheck.io_utils.save_load_result
