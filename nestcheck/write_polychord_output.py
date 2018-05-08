@@ -56,7 +56,7 @@ def write_run_output(run, **kwargs):
         their uncertainties.
     fmt: str, optional
         Formatting for numbers written by np.savetxt. Default value is set to
-        make output files look like the ones produced by polychord.
+        make output files look like the ones produced by PolyChord.
     n_simulate: int, optional
         Number of bootstrap replications to use when estimating uncertainty on
         evidence and parameter means.

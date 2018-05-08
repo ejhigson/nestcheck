@@ -57,3 +57,15 @@ pandas_functions
 
 .. automodule:: nestcheck.pandas_functions
     :members:
+
+dummy_data
+==========
+
+.. automodule:: nestcheck.dummy_data
+    :members:
+
+write_polychord_output
+======================
+
+.. automodule:: nestcheck.write_polychord_output
+    :members:
