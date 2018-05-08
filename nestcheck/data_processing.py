@@ -332,7 +332,7 @@ def process_samples_array(samples):
     repeat_logls = (ns_run['logl'].shape[0] -
                     np.unique(ns_run['logl']).shape[0])
     assert repeat_logls == 0, (
-        '# unique logl values is ' + str(repeat_logls) + ' less than #point')
+        '# unique logl values is {} less than #point'.format(repeat_logls))
     ns_run['theta'] = samples[:, :-2]
     birth_contours = samples[:, -1]
     ns_run['thread_labels'] = threads_given_birth_contours(
