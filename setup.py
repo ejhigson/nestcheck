@@ -43,20 +43,17 @@ setuptools.setup(name='nestcheck',
                      'Topic :: Scientific/Engineering :: Information Analysis',
                  ],
                  packages=['nestcheck'],
-                 # futures is in standard library for python >= 3.2, but
-                 # include it for compatibility with python 2.7.
                  install_requires=['numpy>=1.13',
                                    'scipy>=1.0.0',
                                    'matplotlib>=2.1.0',
                                    'fgivenx>=1.1.4',
                                    'pandas>=0.21.0',
-                                   'tqdm>=4.11',
-                                   'futures'],
+                                   'tqdm>=4.11'],
                  test_suite='nose.collector',
                  tests_require=['nose', 'coverage'],
-                 extras_require={'docs': ['sphinx',
-                                          'numpydoc',
-                                          'sphinx-rtd-theme',
-                                          'nbsphinx>=0.3.3']},
+                 extras_require={
+                     'docs': ['sphinx', 'numpydoc', 'sphinx-rtd-theme',
+                              'nbsphinx>=0.3.3'],
+                     ':python_version == "2.7"': ['futures']},
                  project_urls={  # Optional
                      'Docs': 'http://nestcheck.readthedocs.io/en/latest/'})
