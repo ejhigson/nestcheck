@@ -46,6 +46,12 @@ Documentation contents
    demos/quickstart_demo
    api
 
+Changelog
+---------
+
+The changelog for each release can be found at https://github.com/ejhigson/nestcheck/releases.
+
+
 Attribution
 -----------
 
