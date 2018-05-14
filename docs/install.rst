@@ -9,8 +9,7 @@ Installation
 
    pip install nestcheck
 
-
-Alternatively, you can download the latest version and install it by cloning `the git
+Alternatively, you can download the latest version and install it by cloning `the github
 repository <https://github.com/ejhigson/nestcheck>`_:
 
 .. code-block:: bash
@@ -19,6 +18,7 @@ repository <https://github.com/ejhigson/nestcheck>`_:
     cd nestcheck
     python setup.py install
 
+Note that the github repository may include new changes which have not yet been released on PyPI (and therefore will not be included if installing with pip).
 Both of these methods also automatically install any of ``nestcheck``'s dependencies which are not already satisfied by your system.
 
 
@@ -41,7 +41,7 @@ Note also that producing the birth contour output files needed for ``nestcheck``
 Tests
 -----
 
-You can run the test suite with `nose <http://nose.readthedocs.org/>`_. From the root of the ``dyPolyChord`` directory, run:
+You can run the test suite with `nose <http://nose.readthedocs.org/>`_. From the root ``nestcheck`` directory, run:
 
 .. code-block:: bash
 
