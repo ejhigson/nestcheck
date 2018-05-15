@@ -150,6 +150,40 @@ class TestDataProcessing(unittest.TestCase):
             self.assertEqual(len(war), 2)
         self.assertEqual(len(run_list), 1)
 
+    def test_process_dynesty_run(self):
+        """Test processing dynesty results into nestcheck format."""
+
+        class DynestyResults(object):
+
+            """A dummy dynesty results object for testing."""
+
+            def __init__(self, run, dynamic=False):
+                """Initialse dynesty-format attributes corresponding to the
+                input run."""
+                self.samples = run['theta']
+                self.samples_id = run['thread_labels']
+                self.logl = run['logl']
+                if not dynamic:
+                    assert np.all(run['thread_min_max'][:, 0] == -np.inf)
+                    self.nlive = run['thread_min_max'].shape[0]
+                else:
+                    # Treat every thread as a seperate batch
+                    self.batch_bounds = run['thread_min_max']
+                    self.batch_nlive = np.full(
+                        run['thread_min_max'].shape[0], 1)
+                    self.samples_batch = run['thread_labels']
+
+        run = nestcheck.dummy_data.get_dummy_run(1, 10)
+        for dynamic in [True, False]:
+            results = DynestyResults(run, dynamic=dynamic)
+            processed = nestcheck.data_processing.process_dynesty_run(results)
+            for key, value in run.items():
+                if key not in ['output']:
+                    numpy.testing.assert_array_equal(
+                        value, processed[key],
+                        err_msg=('{0} not the same. dynamic={1}'
+                                 .format(key, dynamic)))
+
 
 class TestWritePolyChordOutput(unittest.TestCase):
 

@@ -84,8 +84,8 @@ def batch_process_data(file_roots, **kwargs):
     Returns
     -------
     list of ns_run dicts
-        List of nested sampling runs in dict format (see module docstring for
-        more details).
+        List of nested sampling runs in dict format (see the module
+        docstring for more details).
     """
     base_dir = kwargs.pop('base_dir', 'chains')
     process_func = kwargs.pop('process_func', process_polychord_run)
@@ -145,8 +145,9 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
     Returns
     -------
     run: dict
-        Nested sampling run dict (see module docstring for more details) or, if
-        an error occured, a dict containing its type and the file root.
+        Nested sampling run dict (see the module docstring for more
+        details) or, if an error occured, a dict containing its type
+        and the file root.
     """
     try:
         return process_func(root, base_dir, **func_kwargs)
@@ -185,7 +186,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False,
     Returns
     -------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see the module docstring for more details).
     """
     # N.B. PolyChord dead points files also contains remaining live points at
     # termination
@@ -229,7 +230,7 @@ def process_multinest_run(file_root, base_dir, logl_warn_only=False):
     Returns
     -------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details).
+        Nested sampling run dict (see the module docstring for more details).
     """
     # Load dead and live points
     dead = np.loadtxt(os.path.join(base_dir, file_root) + '-dead-birth.txt')
@@ -250,6 +251,60 @@ def process_multinest_run(file_root, base_dir, logl_warn_only=False):
     ns_run['output']['base_dir'] = base_dir
     check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
+
+
+def process_dynesty_run(results):
+    """
+    Transforms results from a dynesty run into the nestcheck dictionary format
+    for analysis. This function has been tested with dynesty v9.2.0.
+
+    Note that the nestcheck point weights and evidence will not be exactly
+    the same as the dynesty ones as nestcheck calculates logX volumes more
+    precicely (using the trapizium rule).
+
+    Parameters
+    ----------
+    results: dynesty results object
+        N.B. the remaining live points at termination must be included in the
+        results (dynesty samplers' run_nested method does this if
+        add_live_points=True - its default value).
+
+    Returns
+    -------
+    ns_run: dict
+        Nested sampling run dict (see the module docstring for more details).
+    """
+    samples = np.zeros((results.samples.shape[0],
+                        results.samples.shape[1] + 3))
+    samples[:, 0] = results.logl
+    samples[:, 1] = results.samples_id
+    samples[:, 3:] = results.samples
+    unique_th, first_inds = np.unique(results.samples_id, return_index=True)
+    assert np.array_equal(unique_th, np.asarray(range(unique_th.shape[0])))
+    thread_min_max = np.full((unique_th.shape[0], 2), np.nan)
+    try:
+        # Try processing standard nested sampling results
+        assert unique_th.shape[0] == results.nlive
+        assert np.array_equal(
+            np.unique(results.samples_id[-results.nlive:]),
+            np.asarray(range(results.nlive))), (
+                'perhaps the final live points are not included?')
+        thread_min_max[:, 0] = -np.inf
+    except AttributeError:
+        # If results has no nlive, attribute it must be dynamic nested sampling
+        print(unique_th.shape[0], sum(results.batch_nlive))
+        assert unique_th.shape[0] == sum(results.batch_nlive)
+        for th_lab, ind in zip(unique_th, first_inds):
+            thread_min_max[th_lab, 0] = (
+                results.batch_bounds[results.samples_batch[ind], 0])
+    for th_lab in unique_th:
+        final_ind = np.where(results.samples_id == th_lab)[0][-1]
+        thread_min_max[th_lab, 1] = results.logl[final_ind]
+        samples[final_ind, 2] = -1
+    assert np.all(~np.isnan(thread_min_max))
+    run = nestcheck.ns_run_utils.dict_given_run_array(samples, thread_min_max)
+    nestcheck.data_processing.check_ns_run(run)
+    return run
 
 
 def process_polychord_stats(file_root, base_dir):
@@ -322,9 +377,9 @@ def process_samples_array(samples):
     Returns
     -------
     ns_run: dict
-        Nested sampling run dict (see module docstring for more details). Only
-        contains information in samples (not additional optional output
-        key).
+        Nested sampling run dict (see the module docstring for more
+        details). Only contains information in samples (not additional
+        optional output key).
     """
     samples = samples[np.argsort(samples[:, -2])]
     ns_run = {}
