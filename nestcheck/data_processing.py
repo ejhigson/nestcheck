@@ -292,7 +292,6 @@ def process_dynesty_run(results):
         thread_min_max[:, 0] = -np.inf
     except AttributeError:
         # If results has no nlive, attribute it must be dynamic nested sampling
-        print(unique_th.shape[0], sum(results.batch_nlive))
         assert unique_th.shape[0] == sum(results.batch_nlive)
         for th_lab, ind in zip(unique_th, first_inds):
             thread_min_max[th_lab, 0] = (
