@@ -17,7 +17,7 @@ def get_long_description():
 
 
 setuptools.setup(name='nestcheck',
-                 version='0.1.0',
+                 version='0.1.1',
                  description=('Error analysis, diagnostic tests and plots for '
                               'nested sampling calculations.'),
                  long_description=get_long_description(),
