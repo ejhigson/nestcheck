@@ -23,17 +23,16 @@ To get started, see the `installation instructions <http://nestcheck.readthedocs
 Compatible nested sampling software
 -----------------------------------
 
-Currently ``nestcheck`` can load and analyse output from:
+Currently ``nestcheck.data_processing`` has functions to load results from:
 
-- `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_;
-- `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_;
-- `dyPolyChord <https://github.com/ejhigson/dyPolyChord>`_;
+- `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_ >=v3.11;
+- `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_ >=v1.13;
+- `dyPolyChord <https://github.com/ejhigson/dyPolyChord>`_ (same output format as PolyChord);
+- `dynesty <https://github.com/joshspeagle/dynesty>`_;
 - `perfectns <https://github.com/ejhigson/perfectns>`_.
 
-In addition, you can easily add input functions for other nested sampling software packages.
+You can easily add input functions for other nested sampling software packages. Note that ``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. (2017) <https://doi.org/10.1214/17-BA1075>`_ for more details.
 ``nestcheck`` is fully compatible with `dynamic nested sampling <https://arxiv.org/abs/1704.03459>`_, in which the number of live points is varied to increase calculation accuracy.
-
-``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. (2017) <https://doi.org/10.1214/17-BA1075>`_ for more details. *Producing birth contour output files with MultiNest requires v3.11 or later, and with PolyChord requires v1.13 or later and "write_dead"=True (its default setting).*
 
 
 Documentation contents
@@ -45,11 +44,6 @@ Documentation contents
    install
    demos/quickstart_demo
    api
-
-Changelog
----------
-
-The changelog for each release can be found at https://github.com/ejhigson/nestcheck/releases.
 
 
 Attribution
@@ -74,6 +68,11 @@ If this code is useful for your academic research, please cite the two papers on
     url={https://doi.org/10.1214/17-BA1075},
     year={2017}}
 
+
+Changelog
+---------
+
+The changelog for each release can be found at https://github.com/ejhigson/nestcheck/releases.
 
 Contributions
 -------------
