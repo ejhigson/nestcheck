@@ -530,9 +530,7 @@ def param_logx_diagram(run_list, **kwargs):
         # Plot means onto scatter plot
         # ----------------------------
         if plot_means:
-            logw_expected = nestcheck.ns_run_utils.get_logw(
-                run, simulate=False)
-            w_rel = np.exp(logw_expected - logw_expected.max())
+            w_rel = nestcheck.ns_run_utils.get_w_rel(run, simulate=False)
             w_rel /= np.sum(w_rel)
             means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]
             for nf, mean in enumerate(means):
@@ -636,8 +634,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     for i in range(n_simulate):
         run_temp = nestcheck.error_analysis.bootstrap_resample_run(
             run, threads=threads)
-        logw_temp = nestcheck.ns_run_utils.get_logw(run_temp, simulate=False)
-        w_temp = np.exp(logw_temp - logw_temp.max())
+        w_temp = nestcheck.ns_run_utils.get_w_rel(run_temp, simulate=False)
         bs_samps.append((run_temp['theta'], w_temp))
     for nf, ftheta in enumerate(fthetas):
         # Make an array where each row contains one bootstrap replication's
@@ -670,8 +667,7 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
     # Plot means
     # ----------
     if mean_color is not None:
-        logw_expected = nestcheck.ns_run_utils.get_logw(run, simulate=False)
-        w_rel = np.exp(logw_expected - logw_expected.max())
+        w_rel = nestcheck.ns_run_utils.get_w_rel(run, simulate=False)
         w_rel /= np.sum(w_rel)
         means = [np.sum(w_rel * f(run['theta'])) for f in fthetas]
         for nf, mean in enumerate(means):

@@ -82,8 +82,7 @@ def write_run_output(run, **kwargs):
         np.savetxt(root + '_dead-birth.txt', samples, fmt=fmt)
         np.savetxt(root + '_dead.txt', samples[:, :-1], fmt=fmt)
     if equals or posteriors:
-        logw = nestcheck.ns_run_utils.get_logw(run)
-        w_rel = np.exp(logw - logw.max())
+        w_rel = nestcheck.ns_run_utils.get_w_rel(run)
         post_arr = np.zeros((run['theta'].shape[0], run['theta'].shape[1] + 2))
         post_arr[:, 0] = w_rel
         post_arr[:, 1] = -2 * run['logl']
