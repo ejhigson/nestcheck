@@ -82,25 +82,36 @@ def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
     df: MultiIndex DataFrame
         See summary_df docstring for more details.
     """
-    if inds_to_keep is None:
-        inds_to_keep = list(multi_in.index.names)[:-1]
     # Need to pop include true values and add separately at the end as
     # otherwise we get multiple true values added
     include_true_values = kwargs.pop('include_true_values', False)
     true_values = kwargs.get('true_values', None)
-    df = multi_in.groupby(inds_to_keep).apply(
-        summary_df, include_true_values=False, **kwargs)
-    if 'calculation type' in inds_to_keep:
-        # If there is already an index called 'calculation type' in multi,
-        # prepend the 'calculation type' values ('mean' and 'std') produced by
-        # summary_df to it instead of making a second 'calculation type' index.
-        ct_lev = [i for i in range(len(df.index.names)) if df.index.names[i] ==
-                  'calculation type']
-        ind = (df.index.get_level_values(ct_lev[0]) + ' ' +
-               df.index.get_level_values(ct_lev[1]))
+    if inds_to_keep is None:
+        inds_to_keep = list(multi_in.index.names)[:-1]
+    if 'calculation type' not in inds_to_keep:
+        df = multi_in.groupby(inds_to_keep).apply(
+            summary_df, include_true_values=False, **kwargs)
+    else:
+        # If there is already an index level called 'calculation type' in multi,
+        # summary_df will try making a second 'calculation type' index and (as
+        # of pandas v0.23.0) throw an error. Avoid this by renaming.
+        inds_to_keep = [lev if lev != 'calculation type' else
+                        'calculation type temp' for lev in inds_to_keep]
+        multi_temp = copy.deepcopy(multi_in)
+        multi_temp.index.set_names(
+            [lev if lev != 'calculation type' else 'calculation type temp' for
+             lev in list(multi_temp.index.names)], inplace=True)
+        df = multi_temp.groupby(inds_to_keep).apply(
+            summary_df, include_true_values=False, **kwargs)
+        # add the 'calculation type' values ('mean' and 'std') produced by
+        # summary_df to the input calculation type names (now in level
+        # 'calculation type temp')
+        ind = (df.index.get_level_values('calculation type temp') + ' ' +
+               df.index.get_level_values('calculation type'))
         order = list(df.index.names)
-        del order[ct_lev[1]]
-        df.index = df.index.droplevel(ct_lev)
+        order.remove('calculation type temp')
+        df.index = df.index.droplevel(
+            ['calculation type', 'calculation type temp'])
         df['calculation type'] = list(ind)
         df.set_index('calculation type', append=True, inplace=True)
         df = df.reorder_levels(order)
