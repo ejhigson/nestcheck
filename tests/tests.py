@@ -184,6 +184,19 @@ class TestDataProcessing(unittest.TestCase):
                         err_msg=('{0} not the same. dynamic={1}'
                                  .format(key, dynamic)))
 
+    def test_process_samples_array(self):
+        """Check the handling of duplicate loglikelihood values."""
+        samples = np.zeros((4, 3))
+        samples[:, -1] = np.asarray([-1e30, -1e30, 1, 1])  # births
+        samples[:, -2] = np.asarray([1, 1, 2, 3])  # logls
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
+            run = nestcheck.data_processing.process_samples_array(samples)
+            self.assertEqual(len(war), 1)
+        # Check the logls didn't change much when we broke the degeneracy -
+        # should be a factor of < 10 ** -12
+        numpy.testing.assert_allclose(run['logl'], samples[:, -2])
+
 
 class TestWritePolyChordOutput(unittest.TestCase):
 
