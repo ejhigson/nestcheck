@@ -53,20 +53,20 @@ If this code is useful for your academic research, please cite the two papers on
 
 .. code-block:: tex
 
-    @article{higson2018a,
+    @article{higson2018diagnostic,
     title={Diagnostic Tests for Nested Sampling Calculations},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
     journal={arXiv preprint arXiv:1804.06406},
     url={1804.06406},
     year={2018}}
 
-    @article{higson2017a,
+    @article{higson2018sampling,
     title={Sampling Errors in Nested Sampling Parameter Estimation},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
     doi={doi:10.1214/17-BA1075},
     journal={Bayesian Analysis},
     url={https://doi.org/10.1214/17-BA1075},
-    year={2017}}
+    year={2018}}
 
 
 Changelog
