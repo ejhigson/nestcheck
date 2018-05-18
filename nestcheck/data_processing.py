@@ -382,47 +382,8 @@ def process_samples_array(samples):
     """
     samples = samples[np.argsort(samples[:, -2])]
     ns_run = {}
-    ns_run['logl'] = samples[:, -2]
-    ns_run['theta'] = samples[:, :-2]
-    birth_contours = samples[:, -1]
-    unique_logls, counts = np.unique(ns_run['logl'], return_counts=True)
-    repeat_logls = ns_run['logl'].shape[0] - unique_logls.shape[0]
-    if repeat_logls != 0:
-        warnings.warn((
-            '{} duplicate logl values (out of a total of {}). '
-            '\nrepeated logls = {}\ncounts = {}\nI will add a tiny bit of '
-            'random noise to each to make them unique').format(
-                repeat_logls, ns_run['logl'].shape[0],
-                unique_logls[counts != 1], counts[counts != 1]), UserWarning)
-        state = np.random.get_state()  # Save random state to restore after
-        np.random.seed(1)  # Seed so added noise is repeatable
-        for duplicate in unique_logls[counts != 1]:
-            inds = np.where(ns_run['logl'] == duplicate)[0]
-            birth_inds = np.where(birth_contours == duplicate)[0]
-            noise = np.random.random(inds.shape)
-            # Make sure noise changes by a factor which is very small but
-            # greater than double precision (~10 ** -12)
-            noise *= ns_run['logl'][inds] * (10 ** -12)
-            ns_run['logl'][inds] += noise
-            # Add corresponding noise to the birth contours, while randomising
-            # order to ensure no bias and taking care that there may be fewer
-            # duplicate birth contours (as one of the duplicates may be the
-            # final logl in a run)
-            np.random.shuffle(noise)
-            birth_contours[birth_inds] += noise[:birth_inds.shape[0]]
-        # Now resort the points in ascending likelihood order
-        sort_inds = np.argsort(ns_run['logl'])
-        ns_run['logl'] = ns_run['logl'][sort_inds]
-        ns_run['theta'] = ns_run['theta'][sort_inds, :]
-        birth_contours = birth_contours[sort_inds]
-        np.random.set_state(state)  # restore random state
-    assert ns_run['logl'].shape == np.unique(ns_run['logl']).shape, ((
-        'After trying to make all logls unique there are still '
-        '{} duplicate logl values (out of a total of {}). '
-        '\nrepeated logls = {}\ncounts = {}\nI will add a tiny bit of '
-        'random noise to each to make them unique').format(
-            repeat_logls, ns_run['logl'].shape[0],
-            unique_logls[counts != 1], counts[counts != 1]))
+    ns_run['logl'], birth_contours, ns_run['theta'] = check_logls_unique(
+        samples[:, -2], samples[:, -1], samples[:, :-2])
     ns_run['thread_labels'] = threads_given_birth_contours(
         ns_run['logl'], birth_contours)
     unique_threads = np.unique(ns_run['thread_labels'])
@@ -456,6 +417,65 @@ def process_samples_array(samples):
     ns_run['thread_min_max'] = thread_min_max
     ns_run['nlive_array'] = np.cumsum(delta_nlive)[:-1]
     return ns_run
+
+
+def check_logls_unique(logl, birth_contours, theta):
+    """Checks all the input loglikelihood values are all unique. If so the
+    arguments are returned unchanged. If not, a tiny random delta is added to
+    to each duplicate value to give a unique order, with any corresponding
+    duplicate birth contour loglikelihoods and the order of the samples
+    updated according.
+
+    Parameters
+    ----------
+    logl: 1d numpy array
+        Point loglikelihood values
+    birth_contours: 1d numpy array
+        Iso-likelihood contours from within which each point was sampled
+        ('born').
+    theta: 2d numpy array
+        Parameter values of the samples.
+    """
+    unique_logls, counts = np.unique(logl, return_counts=True)
+    repeat_logls = logl.shape[0] - unique_logls.shape[0]
+    if repeat_logls != 0:
+        warnings.warn((
+            '{} duplicate logl values (out of a total of {}). This may be '
+            'caused by limited numerical precision in the output files.'
+            '\nrepeated logls = {}\ncounts = {}\nI will add a tiny bit of '
+            'random noise to each duplicate logl to get a unique sample '
+            'logl order.').format(
+                repeat_logls, logl.shape[0],
+                unique_logls[counts != 1], counts[counts != 1]), UserWarning)
+        state = np.random.get_state()  # Save random state to restore after
+        np.random.seed(1)  # Seed so added noise is repeatable
+        for duplicate in unique_logls[counts != 1]:
+            inds = np.where(logl == duplicate)[0]
+            birth_inds = np.where(birth_contours == duplicate)[0]
+            noise = np.random.random(inds.shape)
+            # Make sure noise changes by a factor which is very small but
+            # greater than double precision (~10 ** -12)
+            noise *= logl[inds] * (10 ** -12)
+            logl[inds] += noise
+            # Add corresponding noise to the birth contours, while randomising
+            # order to ensure no bias and taking care that there may be fewer
+            # duplicate birth contours (as one of the duplicates may be the
+            # final logl in a run)
+            np.random.shuffle(noise)
+            birth_contours[birth_inds] += noise[:birth_inds.shape[0]]
+        # Now resort the points in ascending likelihood order
+        sort_inds = np.argsort(logl)
+        logl = logl[sort_inds]
+        theta = theta[sort_inds, :]
+        birth_contours = birth_contours[sort_inds]
+        np.random.set_state(state)  # restore random state
+        assert logl.shape == np.unique(logl).shape, ((
+            'After trying to make all logls unique there are still '
+            '{} duplicate logl values (out of a total of {}). '
+            '\nrepeated logls = {}\ncounts = {}').format(
+                repeat_logls, logl.shape[0],
+                unique_logls[counts != 1], counts[counts != 1]))
+    return logl, birth_contours, theta
 
 
 def threads_given_birth_contours(logl, birth_logl):
