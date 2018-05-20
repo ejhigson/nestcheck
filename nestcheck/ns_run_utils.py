@@ -174,17 +174,28 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
         details).
     """
     run_list = copy.deepcopy(run_list_in)
-    nthread_tot = 0
-    for i, _ in enumerate(run_list):
-        dp.check_ns_run(run_list[i], logl_warn_only=logl_warn_only)
-        run_list[i]['thread_labels'] += nthread_tot
-        nthread_tot += run_list[i]['thread_min_max'].shape[0]
-    thread_min_max = np.vstack([run['thread_min_max'] for run in run_list])
-    # construct samples array from the threads, including an updated nlive
-    samples_temp = np.vstack([array_given_run(run) for run in run_list])
-    samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
-    # Make combined run
-    run = dict_given_run_array(samples_temp, thread_min_max)
+    if len(run_list) == 1:
+        run = run_list[0]
+    else:
+        nthread_tot = 0
+        for i, _ in enumerate(run_list):
+            dp.check_ns_run(run_list[i], logl_warn_only=logl_warn_only)
+            run_list[i]['thread_labels'] += nthread_tot
+            nthread_tot += run_list[i]['thread_min_max'].shape[0]
+        thread_min_max = np.vstack([run['thread_min_max'] for run in run_list])
+        # construct samples array from the threads, including an updated nlive
+        samples_temp = np.vstack([array_given_run(run) for run in run_list])
+        samples_temp = samples_temp[np.argsort(samples_temp[:, 0])]
+        # Make combined run
+        run = dict_given_run_array(samples_temp, thread_min_max)
+        # Combine only the additive properties stored in run['output']
+        run['output'] = {}
+        for key in ['nlike', 'ndead']:
+            try:
+                run['output'][key] = sum([temp['output']['key'] for temp in
+                                          run_list_in])
+            except KeyError:
+                pass
     dp.check_ns_run(run, logl_warn_only=logl_warn_only)
     return run
 

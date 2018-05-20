@@ -530,6 +530,12 @@ class TestNSRunUtils(unittest.TestCase):
                 self.assertTrue(key in comb_th)
                 numpy.testing.assert_array_equal(
                     value, comb_th[key], err_msg=key + ' not the same')
+        # Check lists of runs of length 1 are returned unchanged (including
+        # non-additive properties in run['output'])
+        run_in = nestcheck.dummy_data.get_dummy_run(2, 10)
+        run_in['output'] = {'some key': 'its value'}
+        run_out = nestcheck.ns_run_utils.combine_ns_runs([run_in])
+        self.assertEqual(run_in['output'], run_out['output'])
 
     def test_get_logw(self):
         """Check IndexError raising"""
