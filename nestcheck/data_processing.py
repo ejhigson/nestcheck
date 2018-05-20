@@ -157,7 +157,7 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
         return run
 
 
-def process_polychord_run(file_root, base_dir, logl_warn_only=False,
+def process_polychord_run(file_root, base_dir, logl_warn_only=True,
                           process_stats_file=True):
     """
     Loads data from a PolyChord run into the nestcheck dictionary format for
@@ -191,7 +191,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False,
     # N.B. PolyChord dead points files also contains remaining live points at
     # termination
     samples = np.loadtxt(os.path.join(base_dir, file_root) + '_dead-birth.txt')
-    ns_run = process_samples_array(samples)
+    ns_run = process_samples_array(samples, logl_warn_only=logl_warn_only)
     ns_run['output'] = {'base_dir': base_dir, 'file_root': file_root}
     if process_stats_file:
         try:
@@ -205,7 +205,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=False,
     return ns_run
 
 
-def process_multinest_run(file_root, base_dir, logl_warn_only=False):
+def process_multinest_run(file_root, base_dir, logl_warn_only=True):
     """
     Loads data from a MultiNest run into the nestcheck dictionary format for
     analysis.
@@ -242,7 +242,8 @@ def process_multinest_run(file_root, base_dir, logl_warn_only=False):
     assert dead[:, -2].max() < live[:, -2].min(), (
         'final live points should have greater logls than any dead point!',
         dead, live)
-    ns_run = process_samples_array(np.vstack((dead, live)))
+    ns_run = process_samples_array(np.vstack((dead, live)),
+                                   logl_warn_only=logl_warn_only)
     assert np.all(ns_run['thread_min_max'][:, 0] == -np.inf), (
         'As MultiNest does not currently perform dynamic nested sampling, all '
         'threads should start by sampling the whole prior.')
@@ -360,7 +361,7 @@ def process_polychord_stats(file_root, base_dir):
     return output
 
 
-def process_samples_array(samples):
+def process_samples_array(samples, logl_warn_only=True):
     """
     Convert an array of nested sampling dead and live points of the type
     produced by PolyChord and MultiNest into a nestcheck nested sampling run
@@ -382,10 +383,14 @@ def process_samples_array(samples):
     """
     samples = samples[np.argsort(samples[:, -2])]
     ns_run = {}
-    ns_run['logl'], birth_contours, ns_run['theta'] = check_logls_unique(
-        samples[:, -2], samples[:, -1], samples[:, :-2])
-    ns_run['thread_labels'] = threads_given_birth_contours(
-        ns_run['logl'], birth_contours)
+    ns_run['logl'] = samples[:, -2]
+    ns_run['theta'] = samples[:, :-2]
+    birth_contours = samples[:, -1]
+    # birth_contours, ns_run['theta'] = check_logls_unique(
+    #     samples[:, -2], samples[:, -1], samples[:, :-2])
+    birth_inds = get_birth_inds(birth_contours, ns_run['logl'],
+                                logl_warn_only=logl_warn_only)
+    ns_run['thread_labels'] = threads_given_birth_contours(birth_inds)
     unique_threads = np.unique(ns_run['thread_labels'])
     assert np.array_equal(unique_threads,
                           np.asarray(range(unique_threads.shape[0])))
@@ -398,91 +403,30 @@ def process_samples_array(samples):
     # I.E. birth on step 1 corresponds to replacing dead point zero
     delta_nlive = np.zeros(samples.shape[0] + 1)
     for label in unique_threads:
-        inds = np.where(ns_run['thread_labels'] == label)[0]
+        thread_inds = np.where(ns_run['thread_labels'] == label)[0]
         # Max is final logl in thread
-        thread_min_max[label, 1] = ns_run['logl'][inds[-1]]
-        birth_logl = birth_contours[inds[0]]
+        thread_min_max[label, 1] = ns_run['logl'][thread_inds[-1]]
+        thread_start_birth_ind = birth_inds[thread_inds[0]]
         # delta nlive indexes are +1 from logl indexes to allow for initial
         # nlive (before first dead point)
-        delta_nlive[inds[-1] + 1] -= 1
-        if birth_logl == birth_contours[0]:
+        delta_nlive[thread_inds[-1] + 1] -= 1
+        if thread_start_birth_ind == birth_inds[0]:
             # thread minimum is -inf as it starts by sampling from whole prior
             thread_min_max[label, 0] = -np.inf
             delta_nlive[0] += 1
         else:
-            thread_min_max[label, 0] = birth_logl
-            birth_ind = np.where(ns_run['logl'] == birth_logl)[0]
-            assert birth_ind.shape == (1,)
-            delta_nlive[birth_ind[0] + 1] += 1
+            assert thread_start_birth_ind >= 0
+            thread_min_max[label, 0] = ns_run['logl'][thread_start_birth_ind]
+            delta_nlive[thread_start_birth_ind + 1] += 1
     ns_run['thread_min_max'] = thread_min_max
     ns_run['nlive_array'] = np.cumsum(delta_nlive)[:-1]
     return ns_run
 
 
-def check_logls_unique(logl, birth_contours, theta):
-    """Checks all the input loglikelihood values are all unique. If so the
-    arguments are returned unchanged. If not, a tiny random delta is added to
-    to each duplicate value to give a unique order, with any corresponding
-    duplicate birth contour loglikelihoods and the order of the samples
-    updated according.
-
-    Parameters
-    ----------
-    logl: 1d numpy array
-        Point loglikelihood values
-    birth_contours: 1d numpy array
-        Iso-likelihood contours from within which each point was sampled
-        ('born').
-    theta: 2d numpy array
-        Parameter values of the samples.
+def get_birth_inds(birth_logl, logl, logl_warn_only=True):
     """
-    unique_logls, counts = np.unique(logl, return_counts=True)
-    repeat_logls = logl.shape[0] - unique_logls.shape[0]
-    if repeat_logls != 0:
-        warnings.warn((
-            '{} duplicate logl values (out of a total of {}). This may be '
-            'caused by limited numerical precision in the output files.'
-            '\nrepeated logls = {}\ncounts = {}\nI will add a tiny bit of '
-            'random noise to each duplicate logl to get a unique sample '
-            'logl order.').format(
-                repeat_logls, logl.shape[0],
-                unique_logls[counts != 1], counts[counts != 1]), UserWarning)
-        state = np.random.get_state()  # Save random state to restore after
-        np.random.seed(1)  # Seed so added noise is repeatable
-        for duplicate in unique_logls[counts != 1]:
-            inds = np.where(logl == duplicate)[0]
-            birth_inds = np.where(birth_contours == duplicate)[0]
-            noise = np.random.random(inds.shape)
-            # Make sure noise changes by a factor which is very small but
-            # greater than double precision (~10 ** -12)
-            noise *= logl[inds] * (10 ** -12)
-            logl[inds] += noise
-            # Add corresponding noise to the birth contours, while randomising
-            # order to ensure no bias and taking care that there may be fewer
-            # duplicate birth contours (as one of the duplicates may be the
-            # final logl in a run)
-            np.random.shuffle(noise)
-            birth_contours[birth_inds] += noise[:birth_inds.shape[0]]
-        # Now resort the points in ascending likelihood order
-        sort_inds = np.argsort(logl)
-        logl = logl[sort_inds]
-        theta = theta[sort_inds, :]
-        birth_contours = birth_contours[sort_inds]
-        np.random.set_state(state)  # restore random state
-        assert logl.shape == np.unique(logl).shape, ((
-            'After trying to make all logls unique there are still '
-            '{} duplicate logl values (out of a total of {}). '
-            '\nrepeated logls = {}\ncounts = {}').format(
-                repeat_logls, logl.shape[0],
-                unique_logls[counts != 1], counts[counts != 1]))
-    return logl, birth_contours, theta
-
-
-def threads_given_birth_contours(logl, birth_logl):
-    """
-    Divides a nested sampling run into threads, using info on the contours at
-    which points were sampled. See "Sampling errors in nested sampling
-    parameter estimation" (Higson et al. 2017) for more information.
+    Maps the iso-likelihood contours on which points were born to the index of
+    the dead point on this contour.
 
     MultiNest and PolyChord use different values to identify the inital live
     points which were sampled from the whole prior (PolyChord uses -1e+30
@@ -502,24 +446,73 @@ def threads_given_birth_contours(logl, birth_logl):
 
     Returns
     -------
+    birth_inds: 1d numpy array of ints
+        Indexes of logl corresponding to each birth_logl. Points sampled from
+        the whole prior are assigned value -1.
+    """
+    # Check if all the logls are unique
+    unique_logls, counts = np.unique(logl, return_counts=True)
+    repeat_logls = logl.shape[0] - unique_logls.shape[0]
+    msg = ('{} duplicate logl values (out of a total of {}). This may be '
+           'caused by limited numerical precision in the output files.'
+           '\nrepeated logls = {}\ncounts = {}').format(
+               repeat_logls, logl.shape[0],
+               unique_logls[counts != 1], counts[counts != 1])
+    if logl_warn_only:
+        if repeat_logls != 0:
+            warnings.warn(msg, UserWarning)
+    else:
+        assert repeat_logls == 0, msg
+    init_birth = birth_logl[0]
+    assert np.all(birth_logl <= logl), str(logl[birth_logl > logl])
+    birth_inds = np.full(birth_logl.shape, np.nan)
+    birth_inds[birth_logl == init_birth] = -1
+    for i, birth in enumerate(birth_logl):
+        if np.isnan(birth_inds[i]):
+            inds = np.where(logl == birth)[0]
+            if inds.shape == (1,):
+                birth_inds[i] = inds[0]
+            else:
+                assert inds.shape[0] > 1
+                assert logl_warn_only
+                duplicate_births = np.where(birth_logl == birth)[0]
+                np.random.shuffle(inds)
+                # note that inds may have more members than duplicate_births
+                # as one of the duplicates may be the final point in a thread
+                birth_inds[duplicate_births] = inds[:duplicate_births.shape[0]]
+    assert np.all(~np.isnan(birth_inds)), np.isnan(birth_inds).sum()
+    return birth_inds.astype(int)
+
+
+def threads_given_birth_contours(birth_inds):
+    """
+    Divides a nested sampling run into threads, using info on the contours at
+    which points were sampled. See "Sampling errors in nested sampling
+    parameter estimation" (Higson et al. 2017) for more information.
+
+    Parameters
+    ----------
+    birth_inds: 1d numpy array
+        Indexes of the iso-likelihood contours from within which each point was
+        sampled ("born").
+
+    Returns
+    -------
     thread_labels: 1d numpy array of ints
         labels of the thread each point belongs to.
     """
-    init_birth = birth_logl[0]
-    for i, birth in enumerate(birth_logl):
-        assert birth < logl[i], str(birth) + ' ' + str(logl[i])
-        assert birth == init_birth or np.where(logl == birth)[0].shape == (1,)
-    unique, counts = np.unique(birth_logl[np.where(birth_logl != init_birth)],
-                               return_counts=True)
-    thread_start_logls = np.concatenate((np.asarray([init_birth]),
-                                         unique[np.where(counts > 1)]))
-    thread_start_counts = np.concatenate(
-        (np.asarray([(birth_logl == init_birth).sum()]),
-         counts[np.where(counts > 1)] - 1))
-    thread_labels = np.full(logl.shape, np.nan)
+    unique, counts = np.unique(birth_inds, return_counts=True)
+    # First get a list of all the indexes on which threads start and their
+    # counts. This is every point initially sampled from the prior, plus any
+    # indexes where more than one point is sampled.
+    thread_start_inds = np.concatenate((
+        unique[:1], unique[1:][counts[1:] > 1]))
+    thread_start_counts = np.concatenate((
+        counts[:1], counts[1:][counts[1:] > 1] - 1))
+    thread_labels = np.full(birth_inds.shape, np.nan)
     thread_num = 0
-    for nmulti, multi in enumerate(thread_start_logls):
-        for i, start_ind in enumerate(np.where(birth_logl == multi)[0]):
+    for nmulti, multi in enumerate(thread_start_inds):
+        for i, start_ind in enumerate(np.where(birth_inds == multi)[0]):
             # unless nmulti=0 the first point born on the contour (i=0) is
             # already assigned to a thread
             if i != 0 or nmulti == 0:
@@ -527,23 +520,23 @@ def threads_given_birth_contours(logl, birth_logl):
                 assert np.isnan(thread_labels[start_ind])
                 thread_labels[start_ind] = thread_num
                 # find the point which replaced it
-                next_ind = np.where(birth_logl == logl[start_ind])[0]
+                next_ind = np.where(birth_inds == start_ind)[0]
                 while next_ind.shape != (0,):
                     # check point has not already been assigned
                     assert np.isnan(thread_labels[next_ind[0]])
                     thread_labels[next_ind[0]] = thread_num
                     # find the point which replaced it
-                    next_ind = np.where(birth_logl == logl[next_ind[0]])[0]
+                    next_ind = np.where(birth_inds == next_ind[0])[0]
                 thread_num += 1
     assert np.all(~np.isnan(thread_labels)), \
         ('Some points were not given a thread label! Indexes=' +
          str(np.where(np.isnan(thread_labels))[0]) +
          '\nlogls on which threads start are:' +
-         str(thread_start_logls) + ' with num of threads starting on each: ' +
+         str(thread_start_inds) + ' with num of threads starting on each: ' +
          str(thread_start_counts) +
          '\nthread_labels =' + str(thread_labels))
-    assert np.array_equal(thread_labels, thread_labels.astype(int)), \
-        'Thread labels should all be ints!'
+    assert np.array_equal(thread_labels, thread_labels.astype(int)), (
+        'Thread labels should all be ints!')
     thread_labels = thread_labels.astype(int)
     # Check unique thread labels are a sequence from 0 to nthreads-1
     assert np.array_equal(
@@ -684,10 +677,11 @@ def check_ns_run_threads(run):
         'whole prior')
     for th_lab in uniq_th:
         inds = np.where(run['thread_labels'] == th_lab)[0]
-        th_info = (str(th_lab) + ', ' + str(run['logl'][inds[0]])
-                   + str(run['thread_min_max'][th_lab, :]))
-        assert run['thread_min_max'][th_lab, 0] < run['logl'][inds[0]], (
+        th_info = 'thread label={}, first_logl={}, thread_min_max={}'.format(
+            th_lab, run['logl'][inds[0]], run['thread_min_max'][th_lab, :])
+        assert run['thread_min_max'][th_lab, 0] <= run['logl'][inds[0]], (
             'First point in thread has logl less than thread min logl! ' +
-            th_info)
+            th_info + ', difference={}'.format(
+                run['logl'][inds[0]] - run['thread_min_max'][th_lab, 0]))
         assert run['thread_min_max'][th_lab, 1] == run['logl'][inds[-1]], (
             'Last point in thread logl != thread end logl! ' + th_info)

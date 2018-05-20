@@ -186,16 +186,20 @@ class TestDataProcessing(unittest.TestCase):
 
     def test_process_samples_array(self):
         """Check the handling of duplicate loglikelihood values."""
+        # Make a samples array with some duplicate logl values
         samples = np.zeros((4, 3))
         samples[:, -1] = np.asarray([-1e30, -1e30, 1, 1])  # births
         samples[:, -2] = np.asarray([1, 1, 2, 3])  # logls
+        # Should raise warning if logl_warn_only is True
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
-            run = nestcheck.data_processing.process_samples_array(samples)
+            nestcheck.data_processing.process_samples_array(
+                samples, logl_warn_only=True)
             self.assertEqual(len(war), 1)
-        # Check the logls didn't change much when we broke the degeneracy -
-        # should be a factor of < 10 ** -12
-        numpy.testing.assert_allclose(run['logl'], samples[:, -2])
+        # Should raise AssertionError if logl_warn_only is False
+        self.assertRaises(
+            AssertionError, nestcheck.data_processing.process_samples_array,
+            samples, logl_warn_only=False)
 
 
 class TestWritePolyChordOutput(unittest.TestCase):
