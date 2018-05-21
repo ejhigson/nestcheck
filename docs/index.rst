@@ -11,7 +11,7 @@ nestcheck
     :target: https://codeclimate.com/github/ejhigson/nestcheck/maintainability
     :alt: Maintainability
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
-    :target: https://github.com/ejhigson/nestcheck/LICENSE
+    :target: https://github.com/ejhigson/nestcheck/blob/master/LICENSE
 
 ``nestcheck`` provides python utilities for analysing nested sampling runs and estimating numerical uncertainties. This includes implementations of the diagnostic tests and plots described in:
 
