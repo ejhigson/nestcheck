@@ -34,6 +34,8 @@ def parallel_map(func, *arg_iterable, **kwargs):
         Additional keyword arguments for func.
     parallel: bool, optional
         To turn off parallelisation if needed.
+    parallel_warning: bool, optional
+        To turn off warning for no parallelisation if needed.
     max_workers: int or None, optional
         Number of processes.
         If max_workers is None then concurrent.futures.ProcessPoolExecutor
@@ -50,6 +52,7 @@ def parallel_map(func, *arg_iterable, **kwargs):
     func_kwargs = kwargs.pop('func_kwargs', {})
     max_workers = kwargs.pop('max_workers', None)
     parallel = kwargs.pop('parallel', True)
+    parallel_warning = kwargs.pop('parallel_warning', True)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     func_to_map = functools.partial(func, *func_pre_args, **func_kwargs)
@@ -57,8 +60,10 @@ def parallel_map(func, *arg_iterable, **kwargs):
         pool = concurrent.futures.ProcessPoolExecutor(max_workers=max_workers)
         return list(pool.map(func_to_map, *arg_iterable, chunksize=chunksize))
     else:
-        warnings.warn(('parallel_map has parallel=False - turn on '
-                       'parallelisation for faster processing'), UserWarning)
+        if parallel_warning:
+            warnings.warn(('parallel_map has parallel=False - turn on '
+                           'parallelisation for faster processing'),
+                          UserWarning)
         return list(map(func_to_map, *arg_iterable))
 
 
@@ -87,6 +92,8 @@ def parallel_apply(func, arg_iterable, **kwargs):
         Additional keyword arguments for func.
     parallel: bool, optional
         To turn off parallelisation if needed.
+    parallel_warning: bool, optional
+        To turn off warning for no parallelisation if needed.
     max_workers: int or None, optional
         Number of processes.
         If max_workers is None then concurrent.futures.ProcessPoolExecutor
@@ -100,6 +107,7 @@ def parallel_apply(func, arg_iterable, **kwargs):
     """
     max_workers = kwargs.pop('max_workers', None)
     parallel = kwargs.pop('parallel', True)
+    parallel_warning = kwargs.pop('parallel_warning', True)
     func_args = kwargs.pop('func_args', ())
     func_pre_args = kwargs.pop('func_pre_args', ())
     func_kwargs = kwargs.pop('func_kwargs', {})
@@ -120,8 +128,10 @@ def parallel_apply(func, arg_iterable, **kwargs):
     except (NameError, AssertionError):
         progress = tqdm.tqdm
     if not parallel:
-        warnings.warn(('parallel_apply has parallel=False - turn on '
-                       'parallelisation for faster processing'), UserWarning)
+        if parallel_warning:
+            warnings.warn(('parallel_map has parallel=False - turn on '
+                           'parallelisation for faster processing'),
+                          UserWarning)
         return [func(*(func_pre_args + (x,) + func_args), **func_kwargs) for
                 x in progress(arg_iterable, **tqdm_kwargs)]
     else:
