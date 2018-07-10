@@ -192,7 +192,7 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
         run['output'] = {}
         for key in ['nlike', 'ndead']:
             try:
-                run['output'][key] = sum([temp['output']['key'] for temp in
+                run['output'][key] = sum([temp['output'][key] for temp in
                                           run_list_in])
             except KeyError:
                 pass
