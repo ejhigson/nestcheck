@@ -65,17 +65,23 @@ class TestDataProcessing(unittest.TestCase):
             TypeError, nestcheck.data_processing.batch_process_data,
             ['path'], base_dir=TEST_CACHE_DIR, unexpected=1)
 
+    def test_get_birth_inds_unexpected_kwarg(self):
+        """Test unexpected kwargs checks."""
+        self.assertRaises(
+            TypeError, nestcheck.data_processing.get_birth_inds,
+            'birth_logl', 'logl', unexpected=1)
+
     def test_check_ns_run_logls(self):
         """Ensure check_ns_run_logls raises error if and only if
         warn_only=False"""
         repeat_logl_run = {'logl': np.asarray([0, 0, 1])}
         self.assertRaises(
             AssertionError, nestcheck.data_processing.check_ns_run_logls,
-            repeat_logl_run, warn_only=False)
+            repeat_logl_run, dup_assert=True)
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             nestcheck.data_processing.check_ns_run_logls(
-                repeat_logl_run, warn_only=True)
+                repeat_logl_run, dup_warn=True)
             self.assertEqual(len(war), 1)
 
     def test_process_polychord_data(self):
@@ -190,16 +196,16 @@ class TestDataProcessing(unittest.TestCase):
         samples = np.zeros((4, 3))
         samples[:, -1] = np.asarray([-1e30, -1e30, 1, 1])  # births
         samples[:, -2] = np.asarray([1, 1, 2, 3])  # logls
-        # Should raise warning if logl_warn_only is True
+        # Should raise warning if dup_warn is True
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             nestcheck.data_processing.process_samples_array(
-                samples, logl_warn_only=True)
+                samples, dup_warn=True)
             self.assertEqual(len(war), 1)
-        # Should raise AssertionError if logl_warn_only is False
+        # Should raise AssertionError if dup_assert is True
         self.assertRaises(
             AssertionError, nestcheck.data_processing.process_samples_array,
-            samples, logl_warn_only=False)
+            samples, dup_assert=True)
 
 
 class TestWritePolyChordOutput(unittest.TestCase):
@@ -871,8 +877,8 @@ class TestPlots(unittest.TestCase):
     def setUp(self):
         """Get some dummy data to plot."""
         self.ns_run = nestcheck.dummy_data.get_dummy_run(3, 10)
-        nestcheck.data_processing.check_ns_run(self.ns_run,
-                                               logl_warn_only=True)
+        nestcheck.data_processing.check_ns_run(self.ns_run)
+
 
     def test_alternate_helper(self):
         """Check alternate_helper."""

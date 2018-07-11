@@ -157,8 +157,8 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
         return run
 
 
-def process_polychord_run(file_root, base_dir, logl_warn_only=True,
-                          process_stats_file=True):
+def process_polychord_run(file_root, base_dir, process_stats_file=True,
+                          **kwargs):
     """
     Loads data from a PolyChord run into the nestcheck dictionary format for
     analysis.
@@ -174,14 +174,12 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=True,
         Root for run output file names (PolyChord file_root setting).
     base_dir: str
         Directory containing data (PolyChord base_dir setting).
-    logl_warn_only: bool, optional
-        Whether only a warning should be given (rather than an assertion error)
-        should be given if there are non-unique logls in the file.
-        Passed to check_ns_run (see its docs for more details).
     process_stats_file: bool, optional
         Should PolyChord's <root>.stats file be processed? Set to False if you
         don't have the <root>.stats file (such as if PolyChord was run with
         write_stats=False).
+    kwargs: dict, optional
+        Options passed to check_ns_run
 
     Returns
     -------
@@ -191,7 +189,7 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=True,
     # N.B. PolyChord dead points files also contains remaining live points at
     # termination
     samples = np.loadtxt(os.path.join(base_dir, file_root) + '_dead-birth.txt')
-    ns_run = process_samples_array(samples, logl_warn_only=logl_warn_only)
+    ns_run = process_samples_array(samples, **kwargs)
     ns_run['output'] = {'base_dir': base_dir, 'file_root': file_root}
     if process_stats_file:
         try:
@@ -201,11 +199,10 @@ def process_polychord_run(file_root, base_dir, logl_warn_only=True,
                 'process_polychord_stats raised ' + type(err).__name__
                 + ' processing ' + os.path.join(base_dir, file_root)
                 + '.stats file. Proceeding without it.'), UserWarning)
-    check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
 
 
-def process_multinest_run(file_root, base_dir, logl_warn_only=True):
+def process_multinest_run(file_root, base_dir, **kwargs):
     """
     Loads data from a MultiNest run into the nestcheck dictionary format for
     analysis.
@@ -222,10 +219,9 @@ def process_multinest_run(file_root, base_dir, logl_warn_only=True):
     base_dir: str
         Directory containing output files. When running MultiNest, this is
         determined by the nest_root parameter.
-    logl_warn_only: bool, optional
-        Whether only a warning should be given (rather than an assertion error)
-        should be given if there are non-unique logls in the file.
-        Passed to check_ns_run (see its docs for more details).
+    kwargs: dict, optional
+        Passed to check_ns_run (via process_samples_array)
+
 
     Returns
     -------
@@ -242,15 +238,13 @@ def process_multinest_run(file_root, base_dir, logl_warn_only=True):
     assert dead[:, -2].max() < live[:, -2].min(), (
         'final live points should have greater logls than any dead point!',
         dead, live)
-    ns_run = process_samples_array(np.vstack((dead, live)),
-                                   logl_warn_only=logl_warn_only)
+    ns_run = process_samples_array(np.vstack((dead, live)), **kwargs)
     assert np.all(ns_run['thread_min_max'][:, 0] == -np.inf), (
         'As MultiNest does not currently perform dynamic nested sampling, all '
         'threads should start by sampling the whole prior.')
     ns_run['output'] = {}
     ns_run['output']['file_root'] = file_root
     ns_run['output']['base_dir'] = base_dir
-    check_ns_run(ns_run, logl_warn_only=logl_warn_only)
     return ns_run
 
 
@@ -361,7 +355,7 @@ def process_polychord_stats(file_root, base_dir):
     return output
 
 
-def process_samples_array(samples, logl_warn_only=True):
+def process_samples_array(samples, **kwargs):
     """
     Convert an array of nested sampling dead and live points of the type
     produced by PolyChord and MultiNest into a nestcheck nested sampling run
@@ -373,6 +367,8 @@ def process_samples_array(samples, logl_warn_only=True):
         Array of dead points and any remaining live points at termination.
         Has #parameters + 2 columns:
         param_1, param_2, ... , logl, birth_logl
+    kwargs: dict, optional
+        Options passed to get_birth_inds
 
     Returns
     -------
@@ -388,8 +384,7 @@ def process_samples_array(samples, logl_warn_only=True):
     birth_contours = samples[:, -1]
     # birth_contours, ns_run['theta'] = check_logls_unique(
     #     samples[:, -2], samples[:, -1], samples[:, :-2])
-    birth_inds = get_birth_inds(birth_contours, ns_run['logl'],
-                                logl_warn_only=logl_warn_only)
+    birth_inds = get_birth_inds(birth_contours, ns_run['logl'], **kwargs)
     ns_run['thread_labels'] = threads_given_birth_contours(birth_inds)
     unique_threads = np.unique(ns_run['thread_labels'])
     assert np.array_equal(unique_threads,
@@ -423,7 +418,7 @@ def process_samples_array(samples, logl_warn_only=True):
     return ns_run
 
 
-def get_birth_inds(birth_logl, logl, logl_warn_only=True):
+def get_birth_inds(birth_logl, logl, **kwargs):
     """
     Maps the iso-likelihood contours on which points were born to the index of
     the dead point on this contour.
@@ -443,6 +438,10 @@ def get_birth_inds(birth_logl, logl, logl_warn_only=True):
     birth_logl: 1d numpy array
         logl values of the iso-likelihood contour from within each point was
         sampled (on which it was born).
+    dup_assert: bool, optional
+        See check_ns_run_logls docstring.
+    dup_warn: bool, optional
+        See check_ns_run_logls docstring.
 
     Returns
     -------
@@ -450,19 +449,14 @@ def get_birth_inds(birth_logl, logl, logl_warn_only=True):
         Indexes of logl corresponding to each birth_logl. Points sampled from
         the whole prior are assigned value -1.
     """
-    # Check if all the logls are unique
-    unique_logls, counts = np.unique(logl, return_counts=True)
-    repeat_logls = logl.shape[0] - unique_logls.shape[0]
-    msg = ('{} duplicate logl values (out of a total of {}). This may be '
-           'caused by limited numerical precision in the output files.'
-           '\nrepeated logls = {}\ncounts = {}').format(
-               repeat_logls, logl.shape[0],
-               unique_logls[counts != 1], counts[counts != 1])
-    if logl_warn_only:
-        if repeat_logls != 0:
-            warnings.warn(msg, UserWarning)
-    else:
-        assert repeat_logls == 0, msg
+    dup_assert = kwargs.pop('dup_assert', False)
+    dup_warn = kwargs.pop('dup_warn', False)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    # Check for duplicate logl values (if specified by dup_assert or dup_warn)
+    check_ns_run_logls({'logl': logl}, dup_assert=dup_assert,
+                       dup_warn=dup_warn)
+    # Calculate birth inds
     init_birth = birth_logl[0]
     assert np.all(birth_logl <= logl), str(logl[birth_logl > logl])
     birth_inds = np.full(birth_logl.shape, np.nan)
@@ -474,7 +468,6 @@ def get_birth_inds(birth_logl, logl, logl_warn_only=True):
                 birth_inds[i] = inds[0]
             else:
                 assert inds.shape[0] > 1
-                assert logl_warn_only
                 duplicate_births = np.where(birth_logl == birth)[0]
                 np.random.shuffle(inds)
                 # note that inds may have more members than duplicate_births
@@ -551,7 +544,7 @@ def threads_given_birth_contours(birth_inds):
 # ensure they have the expected properties.
 
 
-def check_ns_run(run, logl_warn_only=False):
+def check_ns_run(run, dup_assert=False, dup_warn=False):
     """
     Checks a nestcheck format nested sampling run dictionary has the expected
     properties (see the module docstring for more details).
@@ -560,9 +553,10 @@ def check_ns_run(run, logl_warn_only=False):
     ----------
     run: dict
         nested sampling run to check.
-    logl_warn_only: bool, optional
-        Whether only a warning should be given (rather than an assertion error)
-        should be given if there are non-unique logls in the file.
+    dup_assert: bool, optional
+        See check_ns_run_logls docstring.
+    dup_warn: bool, optional
+        See check_ns_run_logls docstring.
 
 
     Raises
@@ -572,7 +566,7 @@ def check_ns_run(run, logl_warn_only=False):
     """
     assert isinstance(run, dict)
     check_ns_run_members(run)
-    check_ns_run_logls(run, warn_only=logl_warn_only)
+    check_ns_run_logls(run, dup_assert=dup_assert, dup_warn=dup_warn)
     check_ns_run_threads(run)
 
 
@@ -617,7 +611,7 @@ def check_ns_run_members(run):
     assert run['logl'].shape[0] == run['theta'].shape[0]
 
 
-def check_ns_run_logls(run, warn_only=False):
+def check_ns_run_logls(run, dup_assert=False, dup_warn=False):
     """
     Check run logls are unique and in the correct order.
 
@@ -625,6 +619,11 @@ def check_ns_run_logls(run, warn_only=False):
     ----------
     run: dict
         nested sampling run to check.
+    dup_assert: bool, optional
+        Whether to raise and AssertionError if there are duplicate logl values.
+    dup_warn: bool, optional
+        Whether to give a UserWarning if there are duplicate logl values (only
+        used if dup_assert is False).
 
     Raises
     ------
@@ -632,24 +631,19 @@ def check_ns_run_logls(run, warn_only=False):
         if run does not have expected properties.
     """
     assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
-    logl_u, counts = np.unique(run['logl'], return_counts=True)
-    repeat_logls = run['logl'].shape[0] - logl_u.shape[0]
-    if repeat_logls != 0:
-        msg = ('# unique logl values is ' + str(repeat_logls) +
-               ' less than # points. Duplicate values: ' +
-               str(logl_u[np.where(counts > 1)[0]]))
-        if logl_u.shape[0] != 1:
-            msg += (
-                ', Counts: ' + str(counts[np.where(counts > 1)[0]]) +
-                ', First point at inds ' +
-                str(np.where(run['logl'] == logl_u[np.where(
-                    counts > 1)[0][0]])[0])
-                + ' out of ' + str(run['logl'].shape[0]))
-    if not warn_only:
-        assert repeat_logls == 0, msg
-    else:
-        if repeat_logls != 0:
-            warnings.warn(msg, UserWarning)
+    if dup_assert or dup_warn:
+        unique_logls, counts = np.unique(run['logl'], return_counts=True)
+        repeat_logls = run['logl'].shape[0] - unique_logls.shape[0]
+        msg = ('{} duplicate logl values (out of a total of {}). This may be '
+               'caused by limited numerical precision in the output files.'
+               '\nrepeated logls = {}\ncounts = {}').format(
+                   repeat_logls, run['logl'].shape[0],
+                   unique_logls[counts != 1], counts[counts != 1])
+        if dup_assert:
+            assert repeat_logls == 0, msg
+        elif dup_warn:
+            if repeat_logls != 0:
+                warnings.warn(msg, UserWarning)
 
 
 def check_ns_run_threads(run):

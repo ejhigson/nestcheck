@@ -152,7 +152,7 @@ def get_run_threads(ns_run):
     return threads
 
 
-def combine_ns_runs(run_list_in, logl_warn_only=True):
+def combine_ns_runs(run_list_in, **kwargs):
     """
     Combine a list of complete nested sampling run dictionaries into a single
     ns run.
@@ -164,8 +164,8 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
     run_list_in: list of dicts
         List of nested sampling runs in dict format (see data_processing module
         docstring for more details).
-    logl_warn_only: bool, optional
-        See check_ns_run docstring for more details.
+    kwargs: dict, optional
+        Options for check_ns_run.
 
     Returns
     -------
@@ -179,7 +179,7 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
     else:
         nthread_tot = 0
         for i, _ in enumerate(run_list):
-            dp.check_ns_run(run_list[i], logl_warn_only=logl_warn_only)
+            dp.check_ns_run(run_list[i], **kwargs)
             run_list[i]['thread_labels'] += nthread_tot
             nthread_tot += run_list[i]['thread_min_max'].shape[0]
         thread_min_max = np.vstack([run['thread_min_max'] for run in run_list])
@@ -196,7 +196,7 @@ def combine_ns_runs(run_list_in, logl_warn_only=True):
                                           run_list_in])
             except KeyError:
                 pass
-    dp.check_ns_run(run, logl_warn_only=logl_warn_only)
+    dp.check_ns_run(run, **kwargs)
     return run
 
 

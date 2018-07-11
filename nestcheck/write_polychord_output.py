@@ -60,8 +60,6 @@ def write_run_output(run, **kwargs):
     n_simulate: int, optional
         Number of bootstrap replications to use when estimating uncertainty on
         evidence and parameter means.
-    logl_warn_only: bool, optional
-        See check_ns_run docstring for more details.
     """
     write_dead = kwargs.pop('write_dead', True)
     write_stats = kwargs.pop('write_stats', True)
@@ -70,7 +68,6 @@ def write_run_output(run, **kwargs):
     stats_means_errs = kwargs.pop('stats_means_errs', True)
     fmt = kwargs.pop('fmt', '% .14E')
     n_simulate = kwargs.pop('n_simulate', 100)
-    logl_warn_only = kwargs.pop('logl_warn_only', False)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     mandatory_keys = ['file_root', 'base_dir']
@@ -78,7 +75,7 @@ def write_run_output(run, **kwargs):
         assert key in run['output'], key + ' not in run["output"]'
     root = os.path.join(run['output']['base_dir'], run['output']['file_root'])
     if write_dead:
-        samples = run_dead_birth_array(run, logl_warn_only=logl_warn_only)
+        samples = run_dead_birth_array(run)
         np.savetxt(root + '_dead-birth.txt', samples, fmt=fmt)
         np.savetxt(root + '_dead.txt', samples[:, :-1], fmt=fmt)
     if equals or posteriors:
@@ -116,7 +113,7 @@ def write_run_output(run, **kwargs):
         write_stats_file(run['output'])
 
 
-def run_dead_birth_array(run, logl_warn_only=False):
+def run_dead_birth_array(run, **kwargs):
     """
     Converts input run into an array of the format of a PolyChord
     <root>_dead-birth.txt file. Note that this in fact includes live points
@@ -127,8 +124,8 @@ def run_dead_birth_array(run, logl_warn_only=False):
     ns_run: dict
         Nested sampling run dict (see data_processing module docstring for more
         details).
-    logl_warn_only: bool, optional
-        See check_ns_run docstring for more details.
+    kwargs: dict, optional
+        Options for check_ns_run.
 
     Returns
     -------
@@ -137,7 +134,7 @@ def run_dead_birth_array(run, logl_warn_only=False):
         Has #parameters + 2 columns:
         param_1, param_2, ... , logl, birth_logl
     """
-    nestcheck.data_processing.check_ns_run(run, logl_warn_only=logl_warn_only)
+    nestcheck.data_processing.check_ns_run(run, **kwargs)
     threads = nestcheck.ns_run_utils.get_run_threads(run)
     samp_arrays = []
     ndim = run['theta'].shape[1]
