@@ -431,6 +431,10 @@ def get_birth_inds(birth_logl, logl, **kwargs):
 
     init_birth = birth_logl[0]
 
+    If there are many points with the same logl and dup_assert is False, these
+    points are randomly assigned an order (to ensure results are
+    consistent, random seeding is used).
+
     Parameters
     ----------
     logl: 1d numpy array
@@ -456,6 +460,9 @@ def get_birth_inds(birth_logl, logl, **kwargs):
     # Check for duplicate logl values (if specified by dup_assert or dup_warn)
     check_ns_run_logls({'logl': logl}, dup_assert=dup_assert,
                        dup_warn=dup_warn)
+    # Random seed so results are consistent if there are duplicate logls
+    state = np.random.get_state()  # Save random state before seeding
+    np.random.seed(0)
     # Calculate birth inds
     init_birth = birth_logl[0]
     assert np.all(birth_logl <= logl), str(logl[birth_logl > logl])
@@ -474,6 +481,7 @@ def get_birth_inds(birth_logl, logl, **kwargs):
                 # as one of the duplicates may be the final point in a thread
                 birth_inds[duplicate_births] = inds[:duplicate_births.shape[0]]
     assert np.all(~np.isnan(birth_inds)), np.isnan(birth_inds).sum()
+    np.random.set_state(state)  # Reset random state
     return birth_inds.astype(int)
 
 
