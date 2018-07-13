@@ -5,6 +5,7 @@ Test suite for the nestcheck package.
 import functools
 import os
 import sys
+import copy
 import shutil
 import unittest
 import warnings
@@ -88,7 +89,7 @@ class TestDataProcessing(unittest.TestCase):
         """Check processing some dummy PolyChord data."""
         file_root = 'dummy_run'
         run = nestcheck.dummy_data.get_dummy_dynamic_run(
-            10, seed=False, nthread_init=2, nthread_dyn=3)
+            10, seed=0, nthread_init=2, nthread_dyn=3)
         dead = nestcheck.write_polychord_output.run_dead_birth_array(run)
         np.savetxt(os.path.join(
             TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
@@ -552,6 +553,33 @@ class TestNSRunUtils(unittest.TestCase):
         self.assertRaises(IndexError, nestcheck.ns_run_utils.get_logw,
                           {'nlive_array': np.asarray(1.),
                            'logl': np.asarray([])})
+
+    def test_dict_given_run_array(self):
+        """Check dict_given_run_array when some threads start on logl.min()."""
+        logl_start = -100.
+        runs = [nestcheck.dummy_data.get_dummy_run(1, 10),
+                nestcheck.dummy_data.get_dummy_run(1, 10)]
+        for i, _ in enumerate(runs):
+            runs[i]['logl'][0] = logl_start
+        # Check for just one thread starting on logl_min
+        run_in = copy.deepcopy(runs[0])
+        run_in['thread_min_max'][:, 0] = logl_start
+        run_out = nestcheck.ns_run_utils.dict_given_run_array(
+            nestcheck.ns_run_utils.array_given_run(run_in),
+            run_in['thread_min_max'])
+        numpy.testing.assert_array_equal(
+            run_in['nlive_array'], run_out['nlive_array'])
+        # Check multiple threads
+        run_in = nestcheck.ns_run_utils.combine_ns_runs(runs)
+        run_in['thread_min_max'][:, 0] = logl_start
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
+            run_out = nestcheck.ns_run_utils.dict_given_run_array(
+                nestcheck.ns_run_utils.array_given_run(run_in),
+                run_in['thread_min_max'])
+            self.assertEqual(len(war), 1)
+        numpy.testing.assert_array_equal(
+            run_in['nlive_array'], run_out['nlive_array'])
 
 
 class TestErrorAnalysis(unittest.TestCase):

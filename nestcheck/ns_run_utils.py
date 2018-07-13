@@ -6,8 +6,8 @@ working out point weights and splitting and combining runs.
 Nested sampling runs are stored in a standard format as python dictionaries
 (see data_processing module docstring for more details).
 """
-
 import copy
+import warnings
 import numpy as np
 import scipy.special
 import nestcheck.data_processing as dp
@@ -98,19 +98,37 @@ def dict_given_run_array(samples, thread_min_max):
         details).
     """
     ns_run = {'logl': samples[:, 0],
-              'thread_labels': samples[:, 1].astype(int),
+              'thread_labels': samples[:, 1],
               'thread_min_max': thread_min_max,
               'theta': samples[:, 3:]}
-    assert np.array_equal(samples[:, 1], ns_run['thread_labels']), (
-        'Casting thread labels from samples array to int has changed ' +
-        'their values!')
-    nlive_0 = (thread_min_max[:, 0] < ns_run['logl'].min()).sum()
+    if np.all(~np.isnan(ns_run['thread_labels'])):
+        ns_run['thread_labels'] = ns_run['thread_labels'].astype(int)
+        assert np.array_equal(samples[:, 1], ns_run['thread_labels']), ((
+            'Casting thread labels from samples array to int has changed '
+            'their values!\nsamples[:, 1]={}\nthread_labels={}').format(
+                samples[:, 1], ns_run['thread_labels']))
+    nlive_0 = (thread_min_max[:, 0] <= ns_run['logl'].min()).sum()
+    assert nlive_0 > 0, 'nlive_0={}'.format(nlive_0)
     nlive_array = np.zeros(samples.shape[0]) + nlive_0
     nlive_array[1:] += np.cumsum(samples[:-1, 2])
-    assert nlive_array.min() > 0, (
-        'nlive contains 0s or negative values.' +
-        '\nnlive_array = ' + str(nlive_array) +
-        '\nthread_min_max=' + str(thread_min_max))
+    # Check if there are multiple threads starting on the first logl point
+    dup_th_starts = (thread_min_max[:, 0] == ns_run['logl'].min()).sum()
+    if dup_th_starts > 1:
+        # In this case we approximate the true nlive (which we dont really
+        # know) by making sure the array's final point is 1 and setting all
+        # points with logl = logl.min() to have the same nlive
+        nlive_array += (1 - nlive_array[-1])
+        n_logl_min = (ns_run['logl'] == ns_run['logl'].min()).sum()
+        nlive_array[:n_logl_min] = nlive_0
+        warnings.warn((
+            'duplicate starting logls: {} threads start at logl.min()={}, '
+            'and {} points have logl=logl.min(). nlive_array may only be '
+            'approximately correct.').format(
+                dup_th_starts, ns_run['logl'].min(), n_logl_min), UserWarning)
+    assert nlive_array.min() > 0, ((
+        'nlive contains 0s or negative values. nlive_0={}'
+        '\nnlive_array = {}\nthread_min_max={}').format(
+            nlive_0, nlive_array, thread_min_max))
     assert nlive_array[-1] == 1, (
         'final point in nlive_array != 1.\nnlive_array = ' + str(nlive_array))
     ns_run['nlive_array'] = nlive_array
@@ -235,6 +253,8 @@ def combine_threads(threads, assert_birth_point=False):
     # update the changes in live points column for threads which start part way
     # through the run. These are only present in dynamic nested sampling.
     logl_starts = thread_min_max[:, 0]
+    state = np.random.get_state()  # save random state
+    np.random.seed(0)  # seed to make sure any random assignment is repoducable
     for logl_start in logl_starts[logl_starts != -np.inf]:
         ind = np.where(samples_temp[:, 0] == logl_start)[0]
         if assert_birth_point:
@@ -256,6 +276,7 @@ def combine_threads(threads, assert_birth_point=False):
             # increment nlive on. This avoids any systematic bias from e.g.
             # always choosing the first point.
             samples_temp[np.random.choice(ind), 2] += 1
+    np.random.set_state(state)
     # make run
     ns_run = dict_given_run_array(samples_temp, thread_min_max)
     try:
