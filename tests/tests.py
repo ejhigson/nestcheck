@@ -145,7 +145,7 @@ class TestDataProcessing(unittest.TestCase):
         batch_process_data."""
         file_root = 'dummy_run'
         run = nestcheck.dummy_data.get_dummy_dynamic_run(
-            10, seed=False, nthread_init=2, nthread_dyn=3)
+            10, seed=0, nthread_init=2, nthread_dyn=3)
         dead = nestcheck.write_polychord_output.run_dead_birth_array(run)
         np.savetxt(os.path.join(
             TEST_CACHE_DIR, file_root + '_dead-birth.txt'), dead)
