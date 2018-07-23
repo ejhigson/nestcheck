@@ -306,7 +306,7 @@ def bs_param_dists(run_list, **kwargs):
         'There should be the same number of axes and labels')
     width_ratios = [40] * len(fthetas) + [1] * len(run_list)
     fig, axes = plt.subplots(nrows=1, ncols=len(run_list) + len(fthetas),
-                             gridspec_kw={'wspace': 0.05,
+                             gridspec_kw={'wspace': 0.1,
                                           'width_ratios': width_ratios},
                              figsize=figsize)
     colormaps = ['Reds_r', 'Blues_r', 'Greys_r', 'Greens_r', 'Oranges_r']
