@@ -43,6 +43,7 @@ def get_latex_name(func_in, **kwargs):
         func = func_in
     param_ind = kwargs.pop('param_ind', 0)
     probability = kwargs.pop('probability', 0.5)
+    kwargs.pop('handle_indexerror', None)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     ind_str = r'{\hat{' + str(param_ind + 1) + '}}'
@@ -92,15 +93,26 @@ def evidence(ns_run, logw=None, simulate=False):
     return np.exp(scipy.special.logsumexp(logw))
 
 
-def param_mean(ns_run, logw=None, simulate=False, param_ind=0):
+def param_mean(ns_run, logw=None, simulate=False, param_ind=0,
+               handle_indexerror=False):
     """
     Mean of a single parameter (single component of theta).
+
+    handle_indexerror means the function returns nan rather than raising an
+    IndexError if param_ind >= ndim. This is useful when applying the same
+    list of estimators to data sets of different dimensions.
     """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())
-    return (np.sum(w_relative * ns_run['theta'][:, param_ind])
-            / np.sum(w_relative))
+    try:
+        return (np.sum(w_relative * ns_run['theta'][:, param_ind])
+                / np.sum(w_relative))
+    except IndexError:
+        if handle_indexerror:
+            return np.nan
+        else:
+            raise
 
 
 def param_cred(ns_run, logw=None, simulate=False, probability=0.5,

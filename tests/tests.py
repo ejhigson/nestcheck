@@ -682,9 +682,14 @@ class TestEstimators(unittest.TestCase):
 
     def test_param_mean(self):
         """Check param_mean estimator."""
-        self.assertAlmostEqual(e.param_mean(self.ns_run),
-                               np.sum(self.w_rel * self.ns_run['theta'][:, 0]),
-                               places=12)
+        self.assertAlmostEqual(
+            e.param_mean(self.ns_run),
+            np.sum(self.w_rel * self.ns_run['theta'][:, 0]), places=12)
+        ndim = self.ns_run['theta'].shape[1]
+        self.assertRaises(
+            IndexError, e.param_mean, self.ns_run, param_ind=ndim)
+        self.assertTrue(np.isnan(
+            e.param_mean(self.ns_run, param_ind=ndim, handle_indexerror=True)))
 
     def test_param_squared_mean(self):
         """ Check param_squared_mean estimator."""
@@ -906,7 +911,6 @@ class TestPlots(unittest.TestCase):
         """Get some dummy data to plot."""
         self.ns_run = nestcheck.dummy_data.get_dummy_run(3, 10)
         nestcheck.data_processing.check_ns_run(self.ns_run)
-
 
     def test_alternate_helper(self):
         """Check alternate_helper."""
