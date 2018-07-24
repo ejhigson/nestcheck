@@ -120,13 +120,7 @@ def parallel_apply(func, arg_iterable, **kwargs):
         str(func_args) + ' is type ' + str(type(func_args)))
     assert isinstance(func_pre_args, tuple), (
         str(func_pre_args) + ' is type ' + str(type(func_pre_args)))
-    # If running in a jupyter notebook then use tqdm_notebook. Otherwise use
-    # regular tqdm progress bar
-    try:
-        progress = tqdm.tqdm_notebook
-        assert get_ipython().has_trait('kernel')
-    except (NameError, AssertionError):
-        progress = tqdm.tqdm
+    progress = select_tqdm()
     if not parallel:
         if parallel_warning:
             warnings.warn(('parallel_map has parallel=False - turn on '
@@ -146,3 +140,20 @@ def parallel_apply(func, arg_iterable, **kwargs):
                             total=len(arg_iterable), **tqdm_kwargs):
             results.append(fut.result())
         return results
+
+
+def select_tqdm():
+    """
+    If running in a jupyter notebook, then returns tqdm_notebook. Otherwise
+    returns a regular tqdm progress bar.
+
+    Returns
+    -------
+    progress: function
+    """
+    try:
+        progress = tqdm.tqdm_notebook
+        assert get_ipython().has_trait('kernel')
+    except (NameError, AssertionError):
+        progress = tqdm.tqdm
+    return progress
