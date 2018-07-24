@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pylint: disable=unexpected-keyword-arg
 """
 Test suite for the nestcheck package.
 """
