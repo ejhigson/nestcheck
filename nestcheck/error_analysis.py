@@ -268,7 +268,7 @@ def run_std_simulate(ns_run, estimator_list, n_simulate=None):
 
 
 def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
-                       nsim=1000000):
+                       nsim=1000000, random_seed=0):
     """
     Estimates implementation errors from the standard deviations of results
     and of bootstrap values. See "Diagnostic tests for nested sampling
@@ -290,12 +290,15 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
     imp_frac_u = np.zeros(imp_frac.shape)
     # Simulate errors distributions
     for i, _ in enumerate(imp_std_u):
+        state = np.random.get_state()
+        np.random.seed(random_seed)
         sim_vals_std = np.random.normal(vals_std[i], vals_std_u[i], size=nsim)
         sim_bs_std = np.random.normal(bs_std[i], bs_std_u[i], size=nsim)
         sim_imp_var = (sim_vals_std ** 2) - (sim_bs_std ** 2)
         sim_imp_std = np.sqrt(np.abs(sim_imp_var)) * np.sign(sim_imp_var)
         imp_std_u[i] = np.std(sim_imp_std, ddof=1)
         imp_frac_u[i] = np.std((sim_imp_std / sim_vals_std), ddof=1)
+        np.random.set_state(state)
     return imp_std, imp_std_u, imp_frac, imp_frac_u
 
 
