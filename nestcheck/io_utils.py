@@ -60,6 +60,9 @@ def save_load_result(func):
             When the save path already contains file: if True, file will be
             overwritten, if False the data will be saved with the system time
             appended to the file name.
+        warn_if_error: bool, optional
+            Whether or not to issue UserWarning if load=True and save_name
+            is not None but there is an error loading.
 
         Returns
         -------
@@ -70,18 +73,22 @@ def save_load_result(func):
         save = kwargs.pop('save', save_name is not None)
         load = kwargs.pop('load', save_name is not None)
         overwrite_existing = kwargs.pop('overwrite_existing', True)
+        warn_if_error = kwargs.pop('warn_if_error', False)
         if load:
             if save_name is None:
-                warnings.warn((func.__name__ + ' has load=True but cannot ' +
-                               'load because save_name=None'), UserWarning)
+                warnings.warn(
+                    ('{} has load=True but cannot load because '
+                     'save_name=None'.format(func.__name__)),
+                    UserWarning)
             else:
                 try:
                     return pickle_load(save_name)
                 except (OSError, IOError) as err:
-                    warnings.warn(
-                        (func.__name__ + ' had ' + type(err).__name__
-                         + ' loading file ' + save_name
-                         + '. Continuing without loading.'), UserWarning)
+                    if warn_if_error:
+                        msg = ('{} had {} loading file {}.'.format(
+                            func.__name__, type(err).__name__, save_name))
+                        msg = ' Continuing without loading.'
+                        warnings.warn(msg, UserWarning)
         result = func(*args, **kwargs)
         if save:
             if save_name is None:
@@ -125,8 +132,8 @@ def pickle_save(data, name, **kwargs):
         print(filename + ' already exists! Saving with time appended')
         filename = name + '_' + time.asctime().replace(' ', '_')
         filename += extension
-    # check if permission error is defined (was not before python 3.3) and otherwise
-    # use IOError
+    # check if permission error is defined (was not before python 3.3)
+    # and otherwise use IOError
     try:
         PermissionError
     except NameError:

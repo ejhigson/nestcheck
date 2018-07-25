@@ -313,8 +313,9 @@ class TestIOUtils(unittest.TestCase):
         # Before any data saved (will save but not load)
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
-            data_out = self.io_func(self.test_data, save=True, load=True,
-                                    save_name=TEST_CACHE_DIR + '/io_test')
+            data_out = self.io_func(
+                self.test_data, save=True, load=True, warn_if_error=True,
+                save_name=TEST_CACHE_DIR + '/io_test')
             self.assertEqual(len(war), 1)
         self.assertTrue(np.array_equal(self.test_data, data_out))
         # After data saved (will load)
