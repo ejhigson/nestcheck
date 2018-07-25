@@ -7,13 +7,13 @@ calculations" (Higson et al. 2018).
 """
 
 import functools
-import fgivenx
-import fgivenx.plot
 import matplotlib
 import matplotlib.pyplot as plt
 import mpl_toolkits.axes_grid1
 import numpy as np
 import scipy.stats
+import fgivenx
+import fgivenx.plot
 import nestcheck.error_analysis
 import nestcheck.ns_run_utils
 
@@ -391,7 +391,12 @@ def param_logx_diagram(run_list, **kwargs):
     cache: str or None
         Root for fgivenx caching (no caching if None).
     parallel: bool, optional
-        fgivenx parallel option.
+        fgivenx parallel optional
+    point_size: float, optional
+        size of markers on scatter plot (in pts)
+    thin: float, optional
+        factor by which to reduce the number of samples before plotting the
+        scatter plot. Must be in half-closed interval (0, 1].
     rasterize_contours: bool, optional
         fgivenx rasterize_contours option.
     tqdm_kwargs: dict, optional
@@ -420,6 +425,8 @@ def param_logx_diagram(run_list, **kwargs):
     cache_in = kwargs.pop('cache', None)
     parallel = kwargs.pop('parallel', True)
     rasterize_contours = kwargs.pop('rasterize_contours', True)
+    point_size = kwargs.pop('point_size', 0.2)
+    thin = kwargs.pop('thin', 1)
     npoints = kwargs.pop('npoints', 100)
     tqdm_kwargs = kwargs.pop('tqdm_kwargs', {'disable': True})
     if kwargs:
@@ -503,10 +510,22 @@ def param_logx_diagram(run_list, **kwargs):
         # ------------
         logx = nestcheck.ns_run_utils.get_logx(run['nlive_array'],
                                                simulate=False)
+        scatter_x = logx
+        scatter_theta = run['theta']
+        if thin != 1:
+            assert 0 < thin <= 1, (
+                'thin={} should be in the half-closed interval(0, 1]'
+                .format(thin))
+            state = np.random.get_state()  # save initial random state
+            np.random.seed(random_seed)
+            inds = np.where(np.random.random(logx.shape) <= thin)[0]
+            np.random.set_state(state)  # return to original random state
+            scatter_x = logx[inds]
+            scatter_theta = run['theta'][inds, :]
         for nf, ftheta in enumerate(fthetas):
             ax_samples = axes[1 + nf, 1]
-            ax_samples.scatter(logx, ftheta(run['theta']), s=0.2,
-                               color=colors[nrun])
+            ax_samples.scatter(scatter_x, ftheta(scatter_theta),
+                               s=point_size, color=colors[nrun])
             if threads_to_plot is not None:
                 for i in threads_to_plot:
                     thread_inds = np.where(run['thread_labels'] == i)[0]
