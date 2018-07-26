@@ -275,8 +275,8 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
     calculations" (Higson et al. 2018) for more details.
 
     Simulate errors dirstributions using the fact that (from central limit
-    theorem) our uncertainties on vals_std and bs_std are normal
-    distributions
+    theorem) our uncertainties on vals_std and bs_std are (approximately)
+    normally distributed.
     """
     # if the implementation errors are uncorrelated with the
     # sampling errrors: var results = var imp + var sampling

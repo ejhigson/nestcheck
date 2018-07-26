@@ -203,10 +203,25 @@ def error_values_summary(error_values, **summary_df_kwargs):
     df.loc[('implementation std', 'uncertainty'), df.columns] = imp_std_unc
     df.loc[('implementation std frac', 'value'), :] = imp_frac
     df.loc[('implementation std frac', 'uncertainty'), :] = imp_frac_unc
+    # Get implementation RMSEs (calculated using the values RMSE instead of
+    # values std)
+    if 'values rmse' in set(df.index.get_level_values('calculation type')):
+        imp_rmse, imp_rmse_unc, imp_frac, imp_frac_unc = \
+            nestcheck.error_analysis.implementation_std(
+                df.loc[('values rmse', 'value')],
+                df.loc[('values rmse', 'uncertainty')],
+                df.loc[('bootstrap std mean', 'value')],
+                df.loc[('bootstrap std mean', 'uncertainty')])
+        df.loc[('implementation rmse', 'value'), df.columns] = imp_rmse
+        df.loc[('implementation rmse', 'uncertainty'), df.columns] = \
+            imp_rmse_unc
+        df.loc[('implementation rmse frac', 'value'), :] = imp_frac
+        df.loc[('implementation rmse frac', 'uncertainty'), :] = imp_frac_unc
     # Return only the calculation types we are interested in, in order
     calcs_to_keep = ['true values', 'values mean', 'values std',
                      'values rmse', 'bootstrap std mean',
                      'implementation std', 'implementation std frac',
+                     'implementation rmse', 'implementation rmse frac',
                      'thread ks pvalue mean', 'bootstrap ks distance mean',
                      'bootstrap energy distance mean',
                      'bootstrap earth mover distance mean']
