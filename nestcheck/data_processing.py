@@ -194,11 +194,12 @@ def process_polychord_run(file_root, base_dir, process_stats_file=True,
     if process_stats_file:
         try:
             ns_run['output'] = process_polychord_stats(file_root, base_dir)
-        except (OSError, IOError) as err:
-            warnings.warn((
-                'process_polychord_stats raised ' + type(err).__name__
-                + ' processing ' + os.path.join(base_dir, file_root)
-                + '.stats file. Proceeding without it.'), UserWarning)
+        except (OSError, IOError, ValueError) as err:
+            warnings.warn(
+                ('process_polychord_stats raised {} processing {}.stats file. '
+                 ' Proceeding without stats.').format(
+                     type(err).__name__, os.path.join(base_dir, file_root)),
+                UserWarning)
     return ns_run
 
 
