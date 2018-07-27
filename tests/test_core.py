@@ -533,19 +533,26 @@ class TestDiagnosticsTables(unittest.TestCase):
             warnings.simplefilter("always")
             df = nestcheck.diagnostics_tables.run_list_error_summary(
                 run_list, [e.param_mean], ['param_mean'], 10,
-                thread_pvalue=True, bs_stat_dist=True, parallel=False)
+                thread_pvalue=True, bs_stat_dist=True, parallel=False,
+                true_values=np.asarray([0.5]), include_rmse=True)
             self.assertEqual(len(war), 3)
         self.assertTrue(np.all(~np.isnan(df.values)))
         expected_vals = np.asarray([[5.09427108e-01],
                                     [5.09720232e-02],
                                     [1.13976909e-01],
                                     [4.02969225e-02],
+                                    [1.02378997e-01],
+                                    [2.55413864e-02],
                                     [6.29938278e-02],
                                     [1.57592691e-02],
                                     [9.49869116e-02],
                                     [6.17742874e-02],
                                     [8.33387330e-01],
                                     [3.77401247e+01],
+                                    [8.07046256e-02],
+                                    [4.63611578e-02],
+                                    [7.88292797e-01],
+                                    [3.95552239e+00],
                                     [5.45196361e-01],
                                     [1.10751031e-01],
                                     [7.30000000e-01],
