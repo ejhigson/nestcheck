@@ -267,8 +267,7 @@ def run_std_simulate(ns_run, estimator_list, n_simulate=None):
 # --------------------------------
 
 
-def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
-                       nsim=1000000, random_seed=0):
+def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
     """
     Estimates implementation errors from the standard deviations of results
     and of bootstrap values. See "Diagnostic tests for nested sampling
@@ -278,6 +277,10 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u,
     theorem) our uncertainties on vals_std and bs_std are (approximately)
     normally distributed.
     """
+    nsim = kwargs.pop('nsim', 1000000)
+    random_seed = kwargs.pop('random_seed', 0)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     # if the implementation errors are uncorrelated with the
     # sampling errrors: var results = var imp + var sampling
     # so std imp = sqrt(var results - var sampling)

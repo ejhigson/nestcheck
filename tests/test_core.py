@@ -317,6 +317,13 @@ class TestErrorAnalysis(unittest.TestCase):
         df = nestcheck.error_analysis.pairwise_distances([a, a])
         self.assertTrue(np.array_equal(df.values, np.asarray([1, 0, 0, 0])))
 
+    def test_implementation_std(self):
+        """Check implementation_std raises error with unexpected kwargs."""
+        self.assertRaises(
+            TypeError, nestcheck.error_analysis.implementation_std,
+            np.random.random(4), np.random.random(4), np.random.random(4),
+            np.random.random(4), unexpected=1)
+
 
 class TestEstimators(unittest.TestCase):
 
