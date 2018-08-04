@@ -6,7 +6,6 @@ tags:
   - dynamic nested sampling
   - Bayesian inference
   - error analysis
-  - astronomy
 authors:
   - name: Edward Higson
     orcid: 0000-0001-8383-4614
@@ -16,8 +15,7 @@ affiliations:
    index: 1
  - name: Kavli Institute for Cosmology, Madingley Road, Cambridge, CB3 0HA, UK
    index : 2
-
-date: 3 August 2018
+date: 4 August 2018
 bibliography: paper.bib
 ---
 
@@ -27,7 +25,7 @@ Nested sampling [@Skilling2006] is a popular Monte Carlo method for Bayesian ana
 Due to the distinctive manner in which the nested sampling algorithm explores the parameter space, it produces posterior samples with different statistical properties to those generated from alternative techniques such as Markov chain Monte Carlo (MCMC)-based approaches.
 As a result, posterior inferences and estimates of their associated uncertainties require methods specific to nested sampling.
 
-``nestcheck`` is a pure Python package for analysing samples produced by nested sampling, and estimating uncertainty on posterior inferences.
+``nestcheck`` is a Python package for analysing samples produced by nested sampling, and estimating uncertainty on posterior inferences.
 Most importantly, ``nestcheck`` contains fast and well-tested implementations of the error analysis methods introduced in [@Higson2017a] and the diagnostic tests and plots described in [@Higson:2018a].
 The code has been profiled for computational efficiency and uses fast ``numpy`` functions and parallelisation with ``concurrent.futures``.
 The diagnostic plots make use of the ``matplotlib`` [@Hunter2007] and ``fgivenx`` [@zenodofgivenx] packages.
