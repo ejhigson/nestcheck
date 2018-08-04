@@ -38,10 +38,10 @@ The diagnostic plots make use of the ``matplotlib`` [@Hunter2007] and ``fgivenx`
 ``nestcheck`` is designed to allow nested sampling software users to quickly calculate results and uncertainty estimates, as well as to apply diagnostics for checking their software has explored the posterior correctly.
 It was used for the diagnostic tests and plots in [@Higson:2018a], and for error analysis in [@Higson2017b] and [@Higson2018b].
 An earlier version of the code was used in the analysis of black hole mergers in [@Chua2018].
-The source code for ``nestcheck`` has been archived to Zenodo with the linked DOI: [@zenodonestcheck]
+The source code for ``nestcheck`` has been archived to Zenodo [@zenodonestcheck].
 
 # Acknowledgements
 
-We acknowledge help and advice from Will Handley, Anthony Lasenby and Mike Hobson.
+I am grateful to Will Handley, Anthony Lasenby and Mike Hobson for their help and advice.
 
 # References
