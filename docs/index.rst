@@ -18,7 +18,7 @@ nestcheck
 - "Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al., 2018a <https://doi.org/10.1214/17-BA1075>`_).
 - "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al., 2018b <https://arxiv.org/abs/1804.06406>`_);
 
-To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. More examples, including the code used to make the results and plots in `Higson et al. (2018) <https://arxiv.org/abs/1804.06406>`_, can be found in the `examples folder <https://github.com/ejhigson/nestcheck/tree/master/examples>`_.
+To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. More examples, including the code used to make the results and plots in `Higson et al. (2018b) <https://arxiv.org/abs/1804.06406>`_, can be found in the `examples folder <https://github.com/ejhigson/nestcheck/tree/master/examples>`_.
 
 Compatible nested sampling software
 -----------------------------------
@@ -65,6 +65,9 @@ If ``nestcheck`` is useful for your academic research, please cite the two paper
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
     doi={doi:10.1214/17-BA1075},
     journal={Bayesian Analysis},
+    number={3},
+    volume={13},
+    pages = {873--896},
     url={https://doi.org/10.1214/17-BA1075},
     year={2018}}
 
