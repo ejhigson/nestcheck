@@ -118,8 +118,21 @@ class TestPandasFunctions(unittest.TestCase):
         methods."""
         data_list = [self.data[i, :] for i in range(self.nrows)]
         method_names = ['old', 'new']
-        adjust_nsamp = np.asarray([1, 2])
         method_values = [data_list] * len(method_names)
+        # Check gain without adjusting nsamp
+        adjust_nsamp = None
+        df = nestcheck.pandas_functions.efficiency_gain_df(
+            method_names, method_values, est_names=self.col_names,
+            true_values=np.zeros(self.ncols),
+            include_true_values=True, include_rmse=True,
+            adjust_nsamp=adjust_nsamp)
+        for i, method in enumerate(method_names[1:]):
+            gains = np.asarray([1] * self.ncols)
+            for gain_type in ['rmse efficiency gain', 'std efficiency gain']:
+                numpy.testing.assert_array_equal(
+                    df.loc[(gain_type, method, 'value'), :].values, gains)
+        # Test with nsamp adjustment
+        adjust_nsamp = np.asarray([1, 2])
         df = nestcheck.pandas_functions.efficiency_gain_df(
             method_names, method_values, est_names=self.col_names,
             true_values=np.zeros(self.ncols),

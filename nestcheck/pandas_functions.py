@@ -92,7 +92,7 @@ def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
         df = multi_in.groupby(inds_to_keep).apply(
             summary_df, include_true_values=False, **kwargs)
     else:
-        # If there is already an index level called 'calculation type' in multi,
+        # If there is already a level called 'calculation type' in multi,
         # summary_df will try making a second 'calculation type' index and (as
         # of pandas v0.23.0) throw an error. Avoid this by renaming.
         inds_to_keep = [lev if lev != 'calculation type' else
@@ -267,24 +267,23 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
             stats = ['std']
             if include_rmse:
                 stats.append('rmse')
+            if adjust_nsamp is not None:
+                # Efficiency gain measures performance per number of
+                # samples (proportional to computational work). If the
+                # number of samples is not the same we can adjust this.
+                adjust = (adjust_nsamp[0] / adjust_nsamp[i])
+            else:
+                adjust = 1
             for stat in stats:
                 # Calculate efficiency gain vs standard nested sampling
-                ratio = (df_dict[method_names[0]].loc[(stat, 'value')]
-                         / df.loc[(stat, 'value')])
-                ratio_unc = array_ratio_std(
+                gain, gain_unc = get_eff_gain(
                     df_dict[method_names[0]].loc[(stat, 'value')],
                     df_dict[method_names[0]].loc[(stat, 'uncertainty')],
-                    df.loc[(stat, 'value')], df.loc[(stat, 'uncertainty')])
+                    df.loc[(stat, 'value')],
+                    df.loc[(stat, 'uncertainty')], adjust=adjust)
                 key = stat + ' efficiency gain'
-                df.loc[(key, 'value'), :] = ratio ** 2
-                df.loc[(key, 'uncertainty'), :] = 2 * ratio * ratio_unc
-                if adjust_nsamp is not None:
-                    # Efficiency gain measures performance per number of
-                    # samples (proportional to computational work). If the
-                    # number of samples is not the same we can adjust this.
-                    adjust = (adjust_nsamp[0] / adjust_nsamp[i])
-                    df.loc[(key, 'value'), :] *= adjust
-                    df.loc[(key, 'uncertainty'), :] *= adjust
+                df.loc[(key, 'value'), :] = gain
+                df.loc[(key, 'uncertainty'), :] = gain_unc
         df_dict[method_name] = df
     results = pd.concat(df_dict)
     results.index.rename('dynamic settings', level=0, inplace=True)
@@ -350,6 +349,38 @@ def paper_format_efficiency_gain_df(eff_gain_df):
 
 # Helper functions
 # ----------------
+
+
+def get_eff_gain(base_std, base_std_unc, meth_std, meth_std_unc, adjust=1):
+    """Calculates efficiency gain:
+
+    efficiency gain ~ [(st dev standard) / (st dev new method)] ** 2
+
+    as well as an estimate of its uncertainty.
+
+    Parameters
+    ----------
+    base_std: 1d numpy array
+    base_std_unc: 1d numpy array
+        Uncertainties on base_std.
+    meth_std: 1d numpy array
+    meth_std_unc: 1d numpy array
+        Uncertainties on base_std.
+
+    Returns
+    -------
+    gain: 1d numpy array
+    gain_unc: 1d numpy array
+        Uncertainties on gain.
+    """
+    ratio = base_std / meth_std
+    ratio_unc = array_ratio_std(
+        base_std, base_std_unc, meth_std, meth_std_unc)
+    gain = ratio ** 2
+    gain_unc = 2 * ratio * ratio_unc
+    gain *= adjust
+    gain_unc *= adjust
+    return gain, gain_unc
 
 
 def rmse_and_unc(values_array, true_values):
