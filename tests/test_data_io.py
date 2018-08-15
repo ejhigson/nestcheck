@@ -66,6 +66,16 @@ class TestDataProcessing(unittest.TestCase):
             TypeError, nestcheck.data_processing.get_birth_inds,
             'birth_logl', 'logl', unexpected=1)
 
+    def test_get_birth_inds(self):
+        """Check birth inds allocation function."""
+        logl = np.asarray([1, 1, 3, 5])
+        birth_logl = np.asarray([-1, 1, 1, 1])
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
+            inds = nestcheck.data_processing.get_birth_inds(birth_logl, logl)
+            self.assertEqual(len(war), 1)
+        numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 1, 0]))
+
     def test_check_ns_run_logls(self):
         """Ensure check_ns_run_logls raises error if and only if
         warn_only=False"""

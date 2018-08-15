@@ -126,8 +126,8 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
 
     OSError: if you are not sure if all the files exist
     AssertionError: if some of the many assertions fail for known reasons;
-    for example is there is an occasional non-unique logl due to limited
-    numerical precision.
+    for example is there are occasional problems decomposing runs into threads
+    due to limited numerical precision in logls.
 
     Parameters
     ----------
@@ -287,7 +287,7 @@ def process_dynesty_run(results):
                 'perhaps the final live points are not included?')
         thread_min_max[:, 0] = -np.inf
     except AttributeError:
-        # If results has no nlive, attribute it must be dynamic nested sampling
+        # If results has no nlive attribute, it must be dynamic nested sampling
         assert unique_th.shape[0] == sum(results.batch_nlive)
         for th_lab, ind in zip(unique_th, first_inds):
             thread_min_max[th_lab, 0] = (
@@ -458,6 +458,8 @@ def get_birth_inds(birth_logl, logl, **kwargs):
     dup_warn = kwargs.pop('dup_warn', False)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    assert logl.ndim == 1, logl.ndim
+    assert birth_logl.ndim == 1, birth_logl.ndim
     # Check for duplicate logl values (if specified by dup_assert or dup_warn)
     check_ns_run_logls({'logl': logl}, dup_assert=dup_assert,
                        dup_warn=dup_warn)
@@ -480,7 +482,32 @@ def get_birth_inds(birth_logl, logl, **kwargs):
                 np.random.shuffle(inds)
                 # note that inds may have more members than duplicate_births
                 # as one of the duplicates may be the final point in a thread
-                birth_inds[duplicate_births] = inds[:duplicate_births.shape[0]]
+                try:
+                    birth_inds[duplicate_births] = (
+                        inds[:duplicate_births.shape[0]])
+                except ValueError:
+                    if inds.shape[0] >= duplicate_births.shape[0]:
+                        raise
+                    else:
+                        # deal with edge case that duplicate births has a
+                        # bigger shape than inds. This should not happen, even
+                        # in dynamic nested sampling, as every point (including
+                        # the final live points) is contained in logl.
+                        warnings.warn((
+                            'for logl={}, the number of points born (indexes='
+                            '{}) is bigger than the number of points dying '
+                            '(indexes={}). I will try to give an approximate '
+                            'answer but there may be errors in the nested '
+                            'sampling output files I am processing').format(
+                                birth, duplicate_births, inds), UserWarning)
+                        extra_inds = np.random.choice(
+                            inds,
+                            size=duplicate_births.shape[0] - inds.shape[0])
+                        inds = np.concatenate((inds, extra_inds))
+                        np.random.shuffle(inds)
+                        birth_inds[duplicate_births] = \
+                            inds[:duplicate_births.shape[0]]
+
     assert np.all(~np.isnan(birth_inds)), np.isnan(birth_inds).sum()
     np.random.set_state(state)  # Reset random state
     return birth_inds.astype(int)
@@ -530,13 +557,12 @@ def threads_given_birth_contours(birth_inds):
                     # find the point which replaced it
                     next_ind = np.where(birth_inds == next_ind[0])[0]
                 thread_num += 1
-    assert np.all(~np.isnan(thread_labels)), \
-        ('Some points were not given a thread label! Indexes=' +
-         str(np.where(np.isnan(thread_labels))[0]) +
-         '\nlogls on which threads start are:' +
-         str(thread_start_inds) + ' with num of threads starting on each: ' +
-         str(thread_start_counts) +
-         '\nthread_labels =' + str(thread_labels))
+    assert np.all(~np.isnan(thread_labels)), (
+        ('Some points were not given a thread label! Indexes without labels '
+         'are {} (out of a total of {} samples).\nlogls on which threads '
+         'start are: {} with {} threads starting on each.').format(
+             np.where(np.isnan(thread_labels))[0], birth_inds.shape[0],
+             thread_start_inds, thread_start_counts))
     assert np.array_equal(thread_labels, thread_labels.astype(int)), (
         'Thread labels should all be ints!')
     thread_labels = thread_labels.astype(int)
@@ -645,9 +671,11 @@ def check_ns_run_logls(run, dup_assert=False, dup_warn=False):
         repeat_logls = run['logl'].shape[0] - unique_logls.shape[0]
         msg = ('{} duplicate logl values (out of a total of {}). This may be '
                'caused by limited numerical precision in the output files.'
-               '\nrepeated logls = {}\ncounts = {}').format(
+               '\nrepeated logls = {}\ncounts = {}\npositions in list of {}'
+               ' unique logls = {}').format(
                    repeat_logls, run['logl'].shape[0],
-                   unique_logls[counts != 1], counts[counts != 1])
+                   unique_logls[counts != 1], counts[counts != 1],
+                   unique_logls.shape[0], np.where(counts != 1)[0])
         if dup_assert:
             assert repeat_logls == 0, msg
         elif dup_warn:
