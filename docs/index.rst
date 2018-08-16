@@ -26,7 +26,7 @@ Compatible nested sampling software
 Currently ``nestcheck.data_processing`` has functions to load results from:
 
 - `MultiNest <https://ccpforge.cse.rl.ac.uk/gf/project/multinest/>`_ >=v3.11;
-- `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_ >=v1.13;
+- `PolyChord <https://ccpforge.cse.rl.ac.uk/gf/project/polychord/>`_ >=v1.14;
 - `dyPolyChord <https://github.com/ejhigson/dyPolyChord>`_ (same output format as PolyChord);
 - `dynesty <https://github.com/joshspeagle/dynesty>`_;
 - `perfectns <https://github.com/ejhigson/perfectns>`_.
