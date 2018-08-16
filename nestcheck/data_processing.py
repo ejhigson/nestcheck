@@ -489,16 +489,15 @@ def get_birth_inds(birth_logl, logl, **kwargs):
                     if inds.shape[0] >= duplicate_births.shape[0]:
                         raise
                     else:
-                        # deal with edge case that duplicate births has a
-                        # bigger shape than inds. This should not happen, even
-                        # in dynamic nested sampling, as every point (including
-                        # the final live points) is contained in logl.
                         warnings.warn((
                             'for logl={}, the number of points born (indexes='
                             '{}) is bigger than the number of points dying '
-                            '(indexes={}). I will try to give an approximate '
-                            'answer but there may be errors in the nested '
-                            'sampling output files I am processing').format(
+                            '(indexes={}). This indicates a problem with your '
+                            'nested sampling software - it may be caused by '
+                            'a bug in PolyChord which was fixed in PolyChord '
+                            'v1.14, so try upgrading. I will try to give an '
+                            'approximate allocation of threads but this may '
+                            'fail.').format(
                                 birth, duplicate_births, inds), UserWarning)
                         extra_inds = np.random.choice(
                             inds,
