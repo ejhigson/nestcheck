@@ -419,7 +419,7 @@ def process_samples_array(samples, **kwargs):
     return ns_run
 
 
-def get_birth_inds(birth_logl, logl, **kwargs):
+def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
     """
     Maps the iso-likelihood contours on which points were born to the index of
     the dead point on this contour.
@@ -430,17 +430,17 @@ def get_birth_inds(birth_logl, logl, **kwargs):
     dead point must have been sampled from the whole prior, so for either
     package we can use
 
-    init_birth = birth_logl[0]
+    init_birth = birth_logl_arr[0]
 
-    If there are many points with the same logl and dup_assert is False, these
-    points are randomly assigned an order (to ensure results are
+    If there are many points with the same logl_arr and dup_assert is False,
+    these points are randomly assigned an order (to ensure results are
     consistent, random seeding is used).
 
     Parameters
     ----------
-    logl: 1d numpy array
+    logl_arr: 1d numpy array
         logl values of each point.
-    birth_logl: 1d numpy array
+    birth_logl_arr: 1d numpy array
         logl values of the iso-likelihood contour from within each point was
         sampled (on which it was born).
     dup_assert: bool, optional
@@ -451,62 +451,69 @@ def get_birth_inds(birth_logl, logl, **kwargs):
     Returns
     -------
     birth_inds: 1d numpy array of ints
-        Indexes of logl corresponding to each birth_logl. Points sampled from
+        Step at which each element of logl_arr was sampled. Points sampled from
         the whole prior are assigned value -1.
     """
     dup_assert = kwargs.pop('dup_assert', False)
     dup_warn = kwargs.pop('dup_warn', False)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
-    assert logl.ndim == 1, logl.ndim
-    assert birth_logl.ndim == 1, birth_logl.ndim
+    assert logl_arr.ndim == 1, logl_arr.ndim
+    assert birth_logl_arr.ndim == 1, birth_logl_arr.ndim
     # Check for duplicate logl values (if specified by dup_assert or dup_warn)
-    check_ns_run_logls({'logl': logl}, dup_assert=dup_assert,
+    check_ns_run_logls({'logl': logl_arr}, dup_assert=dup_assert,
                        dup_warn=dup_warn)
     # Random seed so results are consistent if there are duplicate logls
     state = np.random.get_state()  # Save random state before seeding
     np.random.seed(0)
     # Calculate birth inds
-    init_birth = birth_logl[0]
-    assert np.all(birth_logl <= logl), str(logl[birth_logl > logl])
-    birth_inds = np.full(birth_logl.shape, np.nan)
-    birth_inds[birth_logl == init_birth] = -1
-    for i, birth in enumerate(birth_logl):
-        if np.isnan(birth_inds[i]):
-            inds = np.where(logl == birth)[0]
-            if inds.shape == (1,):
-                birth_inds[i] = inds[0]
+    init_birth = birth_logl_arr[0]
+    assert np.all(birth_logl_arr <= logl_arr), (
+        logl_arr[birth_logl_arr > logl_arr])
+    birth_inds = np.full(birth_logl_arr.shape, np.nan)
+    birth_inds[birth_logl_arr == init_birth] = -1
+    for i, birth_logl in enumerate(birth_logl_arr):
+        if not np.isnan(birth_inds[i]):
+            # birth ind has already been assigned
+            continue
+        dup_deaths = np.where(logl_arr == birth_logl)[0]
+        if dup_deaths.shape == (1,):
+            # death index is unique
+            birth_inds[i] = dup_deaths[0]
+            continue
+        # The remainder of this loop deals with the case that multiple points
+        # have the same logl value (=birth_logl). This can occur due to limited
+        # precision, or for likelihoods with contant regions. In this case we
+        # attempt to randomly assign the duplicates birth steps in a manner
+        # that provides a valid division into nested sampling runs
+        assert dup_deaths.shape[0] > 1, dup_deaths
+        dup_births = np.where(birth_logl_arr == birth_logl)[0]
+        np.random.shuffle(dup_deaths)
+        # note that dup_deaths may have more members than dup_births
+        # as one of the duplicates may be the final point in a thread
+        try:
+            birth_inds[dup_births] = (
+                dup_deaths[:dup_births.shape[0]])
+        except ValueError:
+            if dup_deaths.shape[0] >= dup_births.shape[0]:
+                raise
             else:
-                assert inds.shape[0] > 1
-                duplicate_births = np.where(birth_logl == birth)[0]
-                np.random.shuffle(inds)
-                # note that inds may have more members than duplicate_births
-                # as one of the duplicates may be the final point in a thread
-                try:
-                    birth_inds[duplicate_births] = (
-                        inds[:duplicate_births.shape[0]])
-                except ValueError:
-                    if inds.shape[0] >= duplicate_births.shape[0]:
-                        raise
-                    else:
-                        warnings.warn((
-                            'for logl={}, the number of points born (indexes='
-                            '{}) is bigger than the number of points dying '
-                            '(indexes={}). This indicates a problem with your '
-                            'nested sampling software - it may be caused by '
-                            'a bug in PolyChord which was fixed in PolyChord '
-                            'v1.14, so try upgrading. I will try to give an '
-                            'approximate allocation of threads but this may '
-                            'fail.').format(
-                                birth, duplicate_births, inds), UserWarning)
-                        extra_inds = np.random.choice(
-                            inds,
-                            size=duplicate_births.shape[0] - inds.shape[0])
-                        inds = np.concatenate((inds, extra_inds))
-                        np.random.shuffle(inds)
-                        birth_inds[duplicate_births] = \
-                            inds[:duplicate_births.shape[0]]
-
+                warnings.warn((
+                    'for logl={}, the number of points born (indexes='
+                    '{}) is bigger than the number of points dying '
+                    '(indexes={}). This indicates a problem with your '
+                    'nested sampling software - it may be caused by '
+                    'a bug in PolyChord which was fixed in PolyChord '
+                    'v1.14, so try upgrading. I will try to give an '
+                    'approximate allocation of threads but this may '
+                    'fail.').format(
+                        birth_logl, dup_births, dup_deaths), UserWarning)
+                extra_inds = np.random.choice(
+                    dup_deaths, size=dup_births.shape[0] - dup_deaths.shape[0])
+                dup_deaths = np.concatenate((dup_deaths, extra_inds))
+                np.random.shuffle(dup_deaths)
+                birth_inds[dup_births] = \
+                    dup_deaths[:dup_births.shape[0]]
     assert np.all(~np.isnan(birth_inds)), np.isnan(birth_inds).sum()
     np.random.set_state(state)  # Reset random state
     return birth_inds.astype(int)
