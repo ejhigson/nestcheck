@@ -17,7 +17,7 @@ def get_long_description():
 
 
 setuptools.setup(name='nestcheck',
-                 version='0.1.5',
+                 version='0.1.6',
                  description=('Error analysis, diagnostic tests and plots for '
                               'nested sampling calculations.'),
                  long_description=get_long_description(),
@@ -46,7 +46,7 @@ setuptools.setup(name='nestcheck',
                  install_requires=['numpy>=1.13',
                                    'scipy>=1.0.0',
                                    'matplotlib>=2.1.0',
-                                   'fgivenx>=1.1.4',
+                                   'fgivenx>=2.1.11',
                                    'pandas>=0.21.0',
                                    'tqdm>=4.11'],
                  test_suite='nose.collector',

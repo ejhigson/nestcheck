@@ -485,13 +485,12 @@ def param_logx_diagram(run_list, **kwargs):
         except TypeError:
             cache = None
         interp_alt = functools.partial(alternate_helper, func=np.interp)
-        y, pmf = fgivenx.compute_pmf(interp_alt, logx_sup, samples,
-                                     cache=cache, ny=npoints,
-                                     parallel=parallel,
-                                     tqdm_kwargs=tqdm_kwargs)
-        cbar = fgivenx.plot.plot(logx_sup, y, pmf, ax_weight,
-                                 rasterize_contours=rasterize_contours,
-                                 colors=plt.get_cmap(colormaps[nrun]))
+        y, pmf = fgivenx.drivers.compute_pmf(
+            interp_alt, logx_sup, samples, cache=cache, ny=npoints,
+            parallel=parallel, tqdm_kwargs=tqdm_kwargs)
+        cbar = fgivenx.plot.plot(
+            logx_sup, y, pmf, ax_weight, rasterize_contours=rasterize_contours,
+            colors=plt.get_cmap(colormaps[nrun]))
         ax_weight.set_xlim([logx_min, 0])
         ax_weight.set_ylim(bottom=0)
         ax_weight.set_yticks([])
@@ -671,18 +670,18 @@ def plot_bs_dists(run, fthetas, axes, **kwargs):
             cache = None
         samp_kde = functools.partial(alternate_helper,
                                      func=weighted_1d_gaussian_kde)
-        y, pmf = fgivenx.compute_pmf(samp_kde, ftheta_vals, samples_array,
-                                     ny=ny, cache=cache, parallel=parallel,
-                                     tqdm_kwargs=tqdm_kwargs)
+        y, pmf = fgivenx.drivers.compute_pmf(
+            samp_kde, ftheta_vals, samples_array, ny=ny, cache=cache,
+            parallel=parallel, tqdm_kwargs=tqdm_kwargs)
         if flip_axes:
-            cbar = fgivenx.plot.plot(y, ftheta_vals, np.swapaxes(pmf, 0, 1),
-                                     axes[nf], colors=colormap,
-                                     rasterize_contours=rasterize_contours,
-                                     smooth=smooth)
+            cbar = fgivenx.plot.plot(
+                y, ftheta_vals, np.swapaxes(pmf, 0, 1), axes[nf],
+                colors=colormap, rasterize_contours=rasterize_contours,
+                smooth=smooth)
         else:
-            cbar = fgivenx.plot.plot(ftheta_vals, y, pmf, axes[nf],
-                                     rasterize_contours=rasterize_contours,
-                                     colors=colormap, smooth=smooth)
+            cbar = fgivenx.plot.plot(
+                ftheta_vals, y, pmf, axes[nf], colors=colormap,
+                rasterize_contours=rasterize_contours, smooth=smooth)
     # Plot means
     # ----------
     if mean_color is not None:
