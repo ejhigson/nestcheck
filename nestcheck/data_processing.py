@@ -42,6 +42,7 @@ Samples are arranged in ascending order of logl.
 import os
 import re
 import warnings
+import copy
 import numpy as np
 import nestcheck.io_utils
 import nestcheck.parallel_utils
@@ -484,39 +485,64 @@ def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
         # The remainder of this loop deals with the case that multiple points
         # have the same logl value (=birth_logl). This can occur due to limited
         # precision, or for likelihoods with contant regions. In this case we
-        # attempt to randomly assign the duplicates birth steps in a manner
+        # randomly assign the duplicates birth steps in a manner
         # that provides a valid division into nested sampling runs
-        assert dup_deaths.shape[0] > 1, dup_deaths
         dup_births = np.where(birth_logl_arr == birth_logl)[0]
-        np.random.shuffle(dup_deaths)
-        # note that dup_deaths may have more members than dup_births
-        # as one of the duplicates may be the final point in a thread
+        assert dup_deaths.shape[0] > 1, dup_deaths
+        if np.all(birth_logl_arr[dup_deaths] != birth_logl):
+            # If no points both are born and die on this contour, we can just
+            # randomly assign an order
+            np.random.shuffle(dup_deaths)
+            inds_to_use = dup_deaths
+        else:
+            # If some points are both born and die on the contour, we need to
+            # take care that the assigned birth inds do not result in some
+            # points dying before they are born
+            inds_to_use = sample_with_condition(dup_deaths, dup_births)
         try:
-            birth_inds[dup_births] = (
-                dup_deaths[:dup_births.shape[0]])
+            # Add our selected inds_to_use values to the birth_inds array
+            # Note that dup_deaths (and hence inds to use) may have more
+            # members than dup_births, because one of the duplicates may be
+            # the final point in a thread. We therefore include only the first
+            # :dup_births.shape inds,
+            birth_inds[dup_births] = inds_to_use[:dup_births.shape[0]]
         except ValueError:
-            if dup_deaths.shape[0] >= dup_births.shape[0]:
-                raise
-            else:
-                warnings.warn((
-                    'for logl={}, the number of points born (indexes='
-                    '{}) is bigger than the number of points dying '
-                    '(indexes={}). This indicates a problem with your '
-                    'nested sampling software - it may be caused by '
-                    'a bug in PolyChord which was fixed in PolyChord '
-                    'v1.14, so try upgrading. I will try to give an '
-                    'approximate allocation of threads but this may '
-                    'fail.').format(
-                        birth_logl, dup_births, dup_deaths), UserWarning)
-                extra_inds = np.random.choice(
-                    dup_deaths, size=dup_births.shape[0] - dup_deaths.shape[0])
-                dup_deaths = np.concatenate((dup_deaths, extra_inds))
-                np.random.shuffle(dup_deaths)
-                birth_inds[dup_births] = \
-                    dup_deaths[:dup_births.shape[0]]
+            warnings.warn((
+                'for logl={}, the number of points born (indexes='
+                '{}) is bigger than the number of points dying '
+                '(indexes={}). This indicates a problem with your '
+                'nested sampling software - it may be caused by '
+                'a bug in PolyChord which was fixed in PolyChord '
+                'v1.14, so try upgrading. I will try to give an '
+                'approximate allocation of threads but this may '
+                'fail.').format(
+                    birth_logl, dup_births, inds_to_use), UserWarning)
+            extra_inds = np.random.choice(
+                inds_to_use, size=dup_births.shape[0] - inds_to_use.shape[0])
+            inds_to_use = np.concatenate((inds_to_use, extra_inds))
+            np.random.shuffle(inds_to_use)
+            birth_inds[dup_births] = inds_to_use[:dup_births.shape[0]]
     assert np.all(~np.isnan(birth_inds)), np.isnan(birth_inds).sum()
     np.random.set_state(state)  # Reset random state
     return birth_inds.astype(int)
+
+
+def sample_with_condition(choices_in, condition):
+    """Creates a random sample from choices without replacement, subject to the
+    condition that each element of the output is greater than the corresponding
+    element of the condition array.
+
+    condition should be in ascending order."""
+    output = np.zeros(min(condition.shape[0], choices_in.shape[0]))
+    choices = copy.deepcopy(choices_in)
+    for i, _ in enumerate(output):
+        # randomly select one of the choices which meets condition
+        avail_inds = np.where(choices < condition[i])[0]
+        selected_ind = np.random.choice(avail_inds)
+        output[i] = choices[selected_ind]
+        # remove the chosen value
+        choices = np.delete(choices, selected_ind)
+    return output
 
 
 def threads_given_birth_contours(birth_inds):

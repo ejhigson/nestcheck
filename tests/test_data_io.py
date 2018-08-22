@@ -68,13 +68,21 @@ class TestDataProcessing(unittest.TestCase):
 
     def test_get_birth_inds(self):
         """Check birth inds allocation function."""
+        # Check get_birth_inds works when points born and dying on same contour
         logl = np.asarray([1, 1, 3, 5])
-        birth_logl = np.asarray([-1, 1, 1, 1])
+        birth_logl = np.asarray([-1, 1, 1, 3])
+        inds = nestcheck.data_processing.get_birth_inds(birth_logl, logl)
+        numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 1, 2]))
+        # Check error handeling of PolyChord v1.13 bug with more births than
+        # deaths on a contour
+        logl = np.asarray([1, 1, 2, 3, 5])
+        birth_logl = np.asarray([-1, 1, 1, 1, 3])
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             inds = nestcheck.data_processing.get_birth_inds(birth_logl, logl)
+            print(inds)
             self.assertEqual(len(war), 1)
-        numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 1, 0]))
+        numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 0, 1, 3]))
 
     def test_check_ns_run_logls(self):
         """Ensure check_ns_run_logls raises error if and only if
