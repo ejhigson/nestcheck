@@ -344,7 +344,12 @@ def process_polychord_stats(file_root, base_dir):
     output['nequals'] = int(lines[21 + nclust].split()[1])
     output['ndead'] = int(lines[22 + nclust].split()[1])
     output['nlive'] = int(lines[23 + nclust].split()[1])
-    output['nlike'] = int(lines[24 + nclust].split()[1])
+    try:
+        output['nlike'] = int(lines[24 + nclust].split()[1])
+    except ValueError:
+        # if nlike has too many digits, PolyChord just writes ***** to .stats
+        # file. This causes a ValueError
+        output['nlike'] = np.nan
     output['avnlike'] = float(lines[25 + nclust].split()[1])
     output['avnlikeslice'] = float(lines[25 + nclust].split()[3])
     # Means and stds of dimensions (not produced by PolyChord<=1.13)
@@ -499,7 +504,8 @@ def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
             # take care that the assigned birth inds do not result in some
             # points dying before they are born
             try:
-                inds_to_use = sample_less_than_condition(dup_deaths, dup_births)
+                inds_to_use = sample_less_than_condition(
+                    dup_deaths, dup_births)
             except ValueError as err:
                 raise ValueError((
                     'There is no way to allocate indexes dup_deaths={} such '

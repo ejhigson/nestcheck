@@ -123,7 +123,8 @@ class TestDataProcessing(unittest.TestCase):
         a dummy one."""
         file_root = 'temp'
         output = nestcheck.write_polychord_output.write_stats_file(
-            {'file_root': file_root, 'base_dir': TEST_CACHE_DIR})
+            {'file_root': file_root, 'base_dir': TEST_CACHE_DIR,
+             'nlike': np.nan})
         self.assertEqual(nestcheck.data_processing.process_polychord_stats(
             file_root, TEST_CACHE_DIR), output)
 
