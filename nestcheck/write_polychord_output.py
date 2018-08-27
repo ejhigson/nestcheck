@@ -164,13 +164,9 @@ def write_stats_file(run_output_dict):
 
     Parameters
     ----------
-    file_root: str
-        Root for run output file names (PolyChord file_root setting).
-    base_dir: str
-        Directory containing data (PolyChord base_dir setting).
-    kwargs: dict
-        Output information to write to .stats file - if not specified,
-        default values are used.
+    run_output_dict: dict
+        Output information to write to .stats file. Must contain file_root and
+        base_dir. If other settings are not specified, default values are used.
 
     Returns
     -------
