@@ -506,11 +506,11 @@ def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
             try:
                 inds_to_use = sample_less_than_condition(
                     dup_deaths, dup_births)
-            except ValueError as err:
+            except ValueError:
                 raise ValueError((
                     'There is no way to allocate indexes dup_deaths={} such '
                     'that each is less than dup_births={}.').format(
-                        dup_deaths, dup_births)) from err
+                        dup_deaths, dup_births))
         try:
             # Add our selected inds_to_use values to the birth_inds array
             # Note that dup_deaths (and hence inds to use) may have more
