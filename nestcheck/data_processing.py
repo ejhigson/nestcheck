@@ -498,13 +498,19 @@ def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
             # If some points are both born and die on the contour, we need to
             # take care that the assigned birth inds do not result in some
             # points dying before they are born
-            inds_to_use = sample_with_condition(dup_deaths, dup_births)
+            try:
+                inds_to_use = sample_less_than_condition(dup_deaths, dup_births)
+            except ValueError as err:
+                raise ValueError((
+                    'There is no way to allocate indexes dup_deaths={} such '
+                    'that each is less than dup_births={}.').format(
+                        dup_deaths, dup_births)) from err
         try:
             # Add our selected inds_to_use values to the birth_inds array
             # Note that dup_deaths (and hence inds to use) may have more
             # members than dup_births, because one of the duplicates may be
             # the final point in a thread. We therefore include only the first
-            # :dup_births.shape inds,
+            # dup_births.shape[0] elements
             birth_inds[dup_births] = inds_to_use[:dup_births.shape[0]]
         except ValueError:
             warnings.warn((
@@ -527,7 +533,7 @@ def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
     return birth_inds.astype(int)
 
 
-def sample_with_condition(choices_in, condition):
+def sample_less_than_condition(choices_in, condition):
     """Creates a random sample from choices without replacement, subject to the
     condition that each element of the output is greater than the corresponding
     element of the condition array.

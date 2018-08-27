@@ -3,3 +3,4 @@ show_missing = True
 exclude_lines =
     pragma: no cover
     raise
+    except ValueError as err
