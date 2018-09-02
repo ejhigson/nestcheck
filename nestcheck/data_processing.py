@@ -602,7 +602,9 @@ def threads_given_birth_contours(birth_inds):
                     next_ind = np.where(birth_inds == next_ind[0])[0]
                 thread_num += 1
     assert np.all(~np.isnan(thread_labels)), (
-        ('Some points were not given a thread label! Indexes without labels '
+        ('Some points were not given a thread label! This is likely due to '
+         'errors in your nested sampling software while running the '
+         'calculation or writing the input files. Indexes without labels '
          'are {} (out of a total of {} samples).\nlogls on which threads '
          'start are: {} with {} threads starting on each.').format(
              np.where(np.isnan(thread_labels))[0], birth_inds.shape[0],
