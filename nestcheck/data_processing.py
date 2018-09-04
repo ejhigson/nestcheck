@@ -601,14 +601,41 @@ def threads_given_birth_contours(birth_inds):
                     # find the point which replaced it
                     next_ind = np.where(birth_inds == next_ind[0])[0]
                 thread_num += 1
+    if not np.all(~np.isnan(thread_labels)):
+        warnings.warn((
+            '{} points (out of a total of {}) were not given a thread label! '
+            'This is likely due to small numerical errors in your nested '
+            'sampling software while running the calculation or writing the '
+            'input files. '
+            'I will try to give an approximate answer by randomly assigning '
+            'these points to threads.'
+            '\nIndexes without labels are {}'
+            '\nIndexes on which threads start are {} with {} threads '
+            'starting on each.').format(
+                (np.isnan(thread_labels)).sum(), birth_inds.shape[0],
+                np.where(np.isnan(thread_labels))[0],
+                thread_start_inds, thread_start_counts))
+        inds = np.where(np.isnan(thread_labels))[0]
+        state = np.random.get_state()  # Save random state before seeding
+        np.random.seed(0)  # make thread decomposition is reproducible
+        for ind in inds:
+            print(ind)
+            print(thread_labels[:ind])
+            print(thread_labels[ind + 1:])
+            # Get the set of threads with members both before and after ind to
+            # ensure we don't change nlive_array by extending a thread
+            labels_to_choose = np.intersect1d(  # N.B. this removes nans too
+                thread_labels[:ind], thread_labels[ind + 1:])
+            if labels_to_choose.shape[0] == 0:
+                # In edge case that there is no intersection, just randomly
+                # select from non-nan thread labels
+                labels_to_choose = np.unique(
+                    thread_labels[~np.isnan(thread_labels)])
+            thread_labels[ind] = np.random.choice(labels_to_choose)
+        np.random.set_state(state)  # Reset random state
     assert np.all(~np.isnan(thread_labels)), (
-        ('Some points were not given a thread label! This is likely due to '
-         'errors in your nested sampling software while running the '
-         'calculation or writing the input files. Indexes without labels '
-         'are {} (out of a total of {} samples).\nlogls on which threads '
-         'start are: {} with {} threads starting on each.').format(
-             np.where(np.isnan(thread_labels))[0], birth_inds.shape[0],
-             thread_start_inds, thread_start_counts))
+        '{} points still do not have thread labels'.format(
+            (np.isnan(thread_labels)).sum()))
     assert np.array_equal(thread_labels, thread_labels.astype(int)), (
         'Thread labels should all be ints!')
     thread_labels = thread_labels.astype(int)

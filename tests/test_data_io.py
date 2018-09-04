@@ -84,6 +84,15 @@ class TestDataProcessing(unittest.TestCase):
             self.assertEqual(len(war), 1)
         numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 0, 1, 3]))
 
+    def test_threads_given_birth_inds(self):
+        """Check mapping from birth inds to threads."""
+        birth_inds = np.array([-1, -1, 1, 2, 3, 7]).astype(int)
+        # Check random assignment of leftover points to threads
+        numpy.testing.assert_array_equal(
+            nestcheck.data_processing.threads_given_birth_contours(birth_inds),
+            np.array([0, 1, 1, 1, 1, 0]).astype(int))
+
+
     def test_check_ns_run_logls(self):
         """Ensure check_ns_run_logls raises error if and only if
         warn_only=False"""
