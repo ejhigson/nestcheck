@@ -111,7 +111,8 @@ def batch_process_data(file_roots, **kwargs):
         message = (error_name + ' processing ' + str(len(index_list)) + ' / '
                    + str(len(file_roots)) + ' files')
         if len(index_list) != len(file_roots):
-            message += '. Roots with errors have indexes: ' + str(index_list)
+            message += ('. Roots with errors have (zero based) indexes: '
+                        + str(index_list))
         print(message)
     # Return runs which did not have errors
     return [run for run in data if 'error' not in run]
