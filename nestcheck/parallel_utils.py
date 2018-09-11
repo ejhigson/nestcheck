@@ -43,6 +43,7 @@ def parallel_map(func, *arg_iterable, **kwargs):
         N.B. If max_workers=None and running on supercomputer clusters with
         multiple nodes, this may default to the number of processors on a
         single node.
+
     Returns
     -------
     results_list: list of function outputs
@@ -101,6 +102,7 @@ def parallel_apply(func, arg_iterable, **kwargs):
         N.B. If max_workers=None and running on supercomputer clusters with
         multiple nodes, this may default to the number of processors on a
         single node.
+
     Returns
     -------
     results_list: list of function outputs
