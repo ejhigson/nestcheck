@@ -17,25 +17,28 @@ def write_run_output(run, **kwargs):
     """Writes PolyChord output files corresponding to the input nested sampling
     run. The file root is
 
-    root = os.path.join(run['output']['base_dir'], run['output']['file_root'])
+    .. code-block:: python
+
+        root = os.path.join(run['output']['base_dir'],
+                            run['output']['file_root'])
 
     Output files which can be made with this function (see the PolyChord
     documentation for more information about what each contains):
 
-    [root].stats
-    [root].txt
-    [root]_equal_weights.txt
-    [root]_dead-birth.txt
-    [root]_dead.txt
+    * [root].stats
+    * [root].txt
+    * [root]_equal_weights.txt
+    * [root]_dead-birth.txt
+    * [root]_dead.txt
 
     Files produced by PolyChord which are not made by this function:
 
-    [root].resume: for resuming runs part way through (not relevant for a
-    completed run).
-    [root]_phys_live.txt and [root]phys_live-birth.txt: for checking runtime
-    progress (not relevant for a completed run).
-    [root].paramnames: for use with getdist (not needed when calling getdist
-    from within python).
+    * [root].resume: for resuming runs part way through (not relevant for a
+      completed run).
+    * [root]_phys_live.txt and [root]phys_live-birth.txt: for checking runtime
+      progress (not relevant for a completed run).
+    * [root].paramnames: for use with getdist (not needed when calling getdist
+      from within python).
 
     Parameters
     ----------
@@ -51,8 +54,8 @@ def write_run_output(run, **kwargs):
     equals: bool, optional
         Whether or not to write [root]_equal_weights.txt.
     stats_means_errs: bool, optional
-        Whether or not to calculate mean values of logZ and each parameter and
-        their uncertainties.
+        Whether or not to calculate mean values of :math:`\log \mathcal{Z}` and
+        each parameter, and their uncertainties.
     fmt: str, optional
         Formatting for numbers written by np.savetxt. Default value is set to
         make output files look like the ones produced by PolyChord.

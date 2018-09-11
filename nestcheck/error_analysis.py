@@ -279,12 +279,12 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
     vals_std: numpy array
         Standard deviations of results from repeated calculations.
     vals_std_u: numpy array
-        math:`1\sigma` uncertainties on vals_std_u.
+        :math:`1\sigma` uncertainties on vals_std_u.
     bs_std: numpy array
         Bootstrap error estimates. Each element should correspond to the same
         element in vals_std.
     bs_std_u: numpy array
-        math:`1\sigma` uncertainties on vals_std_u.
+        :math:`1\sigma` uncertainties on vals_std_u.
     nsim: int, optional
         Number of simulations to use to numerically calculate the uncertainties
         on the estimated implementation-specific effects.
@@ -297,11 +297,11 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
         Estimated standard deviation of results due to implementation-specific
         effects.
     imp_std_u: numpy array
-        math:`1\sigma` uncertainties on imp_std.
+        :math:`1\sigma` uncertainties on imp_std.
     imp_frac: numpy array
         imp_std as a fraction of vals_std.
     imp_frac_u:
-        math:`1\sigma` uncertainties on imp_frac.
+        :math:`1\sigma` uncertainties on imp_frac.
     """
     nsim = kwargs.pop('nsim', 1000000)
     random_seed = kwargs.pop('random_seed', 0)

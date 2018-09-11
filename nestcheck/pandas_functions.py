@@ -207,7 +207,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
 
     efficiency gain ~ [(st dev standard) / (st dev new method)] ** 2
 
-    See the dynamic nested sampling paper (Higson et al. 2017) for more
+    See the dynamic nested sampling paper (Higson et al. 2018) for more
     details.
 
     The standard method on which to base the gain is assumed to be the first
@@ -304,7 +304,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
 
 def paper_format_efficiency_gain_df(eff_gain_df):
     """Transform efficiency gain data frames output by nestcheck into the
-    format shown in the dynamic nested sampling paper (Higson et al. 2017).
+    format shown in the dynamic nested sampling paper (Higson et al. 2018).
 
     Parameters
     ----------
@@ -346,11 +346,20 @@ def paper_format_efficiency_gain_df(eff_gain_df):
 
 
 def get_eff_gain(base_std, base_std_unc, meth_std, meth_std_unc, adjust=1):
-    """Calculates efficiency gain:
+    r"""Calculates efficiency gain for a new method compared to a base method.
+    Given the variation in repeated calculations' results using the two
+    methods, the efficiency gain is:
 
-    efficiency gain ~ [(st dev standard) / (st dev new method)] ** 2
+    .. math::
 
-    as well as an estimate of its uncertainty.
+        \mathrm{efficiency\,gain}
+        =
+        \frac{\mathrm{Var[base\,method]}}{\mathrm{Var[new\,method]}}
+
+    The uncertainty on the efficiency gain is also calculated.
+
+    See the dynamic nested sampling paper (Higson et al. 2018) for more
+    details.
 
     Parameters
     ----------
@@ -378,14 +387,14 @@ def get_eff_gain(base_std, base_std_unc, meth_std, meth_std_unc, adjust=1):
 
 
 def rmse_and_unc(values_array, true_values):
-    """Calculate the root meet squared error and its numerical uncertainty.
+    r"""Calculate the root meet squared error and its numerical uncertainty.
 
     With a reasonably large number of values in values_list the uncertainty
     on sq_errors should be approximately normal (from the central limit
     theorem).
-    Uncertainties are calculated via error propagation: if sigma is the error
-    on X then the error on X^0.5
-    is (X^0.5 / X) * 0.5 * sigma = 0.5 * (X^-0.5) * sigma
+    Uncertainties are calculated via error propagation: if :math:`\sigma`
+    is the error on :math:`X` then the error on :math:`\sqrt{X}`
+    is :math:`\frac{\sigma}{2 \sqrt{X}}`.
 
     Parameters
     ----------
@@ -414,10 +423,26 @@ def rmse_and_unc(values_array, true_values):
 
 
 def array_ratio_std(values_n, sigmas_n, values_d, sigmas_d):
-    """Gives error on the ratio of 2 floats or 2 1dimensional arrays given
-    their values and errors assuming the errors are uncorrelated.
-    This assumes covariance = 0. _n and _d denote the numerator and
-    denominator.
+    r"""Gives error on the ratio of 2 floats or 2 1-dimensional arrays given
+    their values and uncertainties. This assumes the covariance = 0, and that
+    the input uncertainties are small compared to the corresponding input
+    values. _n and _d denote the numerator and denominator respectively.
+
+    Parameters
+    ----------
+    values_n: float or numpy array
+        Numerator values.
+    sigmas_n: float or numpy array
+        :math:`1\sigma` uncertainties on values_n.
+    values_d: float or numpy array
+        Denominator values.
+    sigmas_d: float or numpy array
+        :math:`1\sigma` uncertainties on values_d.
+
+    Returns
+    -------
+    std: float or numpy array
+        :math:`1\sigma` uncertainty on values_n / values_d.
     """
     std = np.sqrt((sigmas_n / values_n) ** 2 + (sigmas_d / values_d) ** 2)
     std *= (values_n / values_d)
