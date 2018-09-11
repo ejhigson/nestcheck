@@ -21,7 +21,7 @@ import nestcheck.ns_run_utils
 def plot_run_nlive(method_names, run_dict, **kwargs):
     """Plot the allocations of live points as a function of logX for the input
     sets of nested sampling runs of the type used in the dynamic nested
-    sampling paper (Higson et al. 2017).
+    sampling paper (Higson et al. 2018).
     Plots also include analytically calculated distributions of relative
     posterior mass and relative posterior mass remaining.
 
@@ -155,8 +155,8 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
 
 
 def kde_plot_df(df, xlims=None, **kwargs):
-    """Plots kde estimates of distributions of samples in each cell of the input
-    pandas DataFrame.
+    """Plots kde estimates of distributions of samples in each cell of the
+    input pandas DataFrame.
 
     There is one subplot for each dataframe column, and on each subplot there
     is one kde line.

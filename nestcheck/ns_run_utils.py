@@ -73,10 +73,10 @@ def dict_given_run_array(samples, thread_min_max):
     Converts an array of information about samples back into a nested sampling
     run dictionary (see data_processing module docstring for more details).
 
-    N.B. the output dict only keys: 'logl', 'thread_label', 'nlive_array',
-    'theta'. Any other keys giving additional information about the run
-    output cannot be reproduced from the function arguments and are
-    therefore ommitted.
+    N.B. the output dict only contains the following keys: 'logl',
+    'thread_label', 'nlive_array', 'theta'. Any other keys giving additional
+    information about the run output cannot be reproduced from the function
+    arguments, and are therefore ommitted.
 
     Parameters
     ----------
@@ -293,7 +293,7 @@ def get_logw(ns_run, simulate=False):
 
     Uses the trapezium rule such that the weight of point i is
 
-    .. math:: w_i = \mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
+    .. math:: w_i = , mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
 
     Parameters
     ----------
@@ -370,7 +370,7 @@ def get_logx(nlive, simulate=False):
 
     We are interested in
 
-    .. math:: \log(t_i) = \log X_{i-1} - \logX_{i}
+    .. math:: \log(t_i) = \log X_{i-1} - \log X_{i}
 
     which has expected value :math:`-1/n_i`.
 
@@ -398,8 +398,10 @@ def get_logx(nlive, simulate=False):
 
 
 def log_subtract(loga, logb):
-    """Numerically stable way to calculate log(a-b) given loga and logb
-    (where loga > logb) while avoiding overflow errors.
+    r"""Numerically stable way to calculate :math:`\log (a-b)`, given
+    :math:`\log (a)`, :math:`\log (a)` and that :math:`a > b`, while avoiding
+    overflow errors.
+
     See https://hips.seas.harvard.edu/blog/2013/01/09/computing-log-sum-exp/
     for more details.
 

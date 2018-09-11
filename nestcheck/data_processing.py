@@ -6,8 +6,8 @@ Currently compatable with ``MultiNest`` and ``PolyChord`` output.
 Nestcheck's diagnostics require infomation about the steps at which points were
 sampled in order to split nested sampling runs into their constituent threads
 (single live point runs). See "Sampling Errors In Nested Sampling Parameter
-Estimation" (Higson et al. 2018) for more details. *Producing these requires
-``MultiNest`` >= v3.11 and ``PolyChord`` >= v1.13.*
+Estimation" (Higson et al. 2018) for more details. *Producing these requires*
+``MultiNest`` *>= v3.11 and* ``PolyChord`` *>= v1.13.*
 
 
 **nestested sampling run format**
@@ -554,7 +554,7 @@ def sample_less_than_condition(choices_in, condition):
 def threads_given_birth_contours(birth_inds):
     """Divides a nested sampling run into threads, using info on the contours
     at which points were sampled. See "Sampling errors in nested sampling
-    parameter estimation" (Higson et al. 2017) for more information.
+    parameter estimation" (Higson et al. 2018) for more information.
 
     Parameters
     ----------

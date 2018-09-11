@@ -37,8 +37,8 @@ def summary_df_from_array(results_array, names, axis=0, **kwargs):
 
 
 def summary_df_from_list(results_list, names, **kwargs):
-    """Make a panda data frame of the mean and std devs of each element of a list
-    of 1d arrays, including the uncertainties on the values.
+    """Make a panda data frame of the mean and std devs of each element of a
+    list of 1d arrays, including the uncertainties on the values.
 
     This just converts the array to a DataFrame and calls summary_df on it.
 
@@ -303,8 +303,8 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
 
 
 def paper_format_efficiency_gain_df(eff_gain_df):
-    """Transform efficiency gain data frames output by nestcheck into the format
-    shown in the dynamic nested sampling paper (Higson et al. 2017).
+    """Transform efficiency gain data frames output by nestcheck into the
+    format shown in the dynamic nested sampling paper (Higson et al. 2017).
 
     Parameters
     ----------
@@ -414,8 +414,8 @@ def rmse_and_unc(values_array, true_values):
 
 
 def array_ratio_std(values_n, sigmas_n, values_d, sigmas_d):
-    """Gives error on the ratio of 2 floats or 2 1dimensional arrays given their
-    values and errors assuming the errors are uncorrelated.
+    """Gives error on the ratio of 2 floats or 2 1dimensional arrays given
+    their values and errors assuming the errors are uncorrelated.
     This assumes covariance = 0. _n and _d denote the numerator and
     denominator.
     """
