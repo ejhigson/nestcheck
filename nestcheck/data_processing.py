@@ -1,35 +1,43 @@
 #!/usr/bin/env python
-"""
-Functions for processing output files produced by nested sampling software.
-Currently compatable with ``MultiNest`` and ``PolyChord`` output.
+r"""Module containing functions for loading and processing output files
+produced by nested sampling software.
 
-Nestcheck's diagnostics require infomation about the steps at which points were
-sampled in order to split nested sampling runs into their constituent threads
-(single live point runs). See "Sampling Errors In Nested Sampling Parameter
-Estimation" (Higson et al. 2018) for more details. *Producing these requires*
-``MultiNest`` *>= v3.11 and* ``PolyChord`` *>= v1.13.*
+Background: threads
+-------------------
 
+``nestcheck``'s error estimates and diagnostics rely on the decomposition
+of a nested sampling run into multiple runs, each with a single live point.
+We refer to these constituent single live point runs as *threads*.
+See "Sampling Errors In Nested Sampling Parameter Estimation" (Higson et
+al. 2018) for a detailed discussion, including an algorithm for dividing
+nested sampling runs into their constituent threads.
 
-**nestested sampling run format**
+Nested sampling run format
+--------------------------
 
-nestcheck stored nested sampling runs in a standard format as python
-dictionaries. For a run with nsamp samples, the keys are:
+``nestcheck`` stores nested sampling runs in a standard format as python
+dictionaries. For a run with :math:`n_\mathrm{samp}` samples, the keys are:
 
     logl: 1d numpy array
-        Log-likelihood values (floats) for each sample.
-        Shape is (nsamp,).
+        Loglikelihood values (floats) for each sample.
+        Shape is (:math:`n_\mathrm{samp}`,).
     thread_labels: 1d numpy array
-        Int representing which thread each point belongs to.
-        For some thread label k, the thread's start (birth) log-likelihood
-        and end log-likelihood are given by thread_min_max[k, :].
-        Shape is (nsamp,).
+        Integer label for each point representing which thread each point
+        belongs to.
+        Shape is (:math:`n_\mathrm{samp}`,).
+        For some thread label k, the thread's start (birth)
+        log-likelihood and end log-likelihood are given by
+        thread_min_max[k, :].
     thread_min_max: 2d numpy array
-        Shape is (# threads, 2).
-        Each row k contains min logl (birth contour) and max logl for
-        thread with thread label i.
+        Shape is (:math:`n_\mathrm{threads}`, 2).
+        Each row with index k contains the logl from within which the first
+        point in the thread with label k was sampled (the "birth contour") and
+        the logl of the final point in the thread.
+        The birth contour is -inf if the thread began by sampling from the
+        whole prior.
     theta: 2d numpy array
         Parameter values for samples - each row represents a sample.
-        Shape is (nsamp, d) where d is number of dimensions.
+        Shape is (:math:`n_\mathrm{samp}`, d) where d is number of dimensions.
     nlive_array: 1d numpy array
         Number of live points present between the previous point and
         this point.
@@ -37,6 +45,48 @@ dictionaries. For a run with nsamp samples, the keys are:
         Dict containing extra information about the run.
 
 Samples are arranged in ascending order of logl.
+
+Processing nested sampling software output
+------------------------------------------
+
+To process output files for a nested sampling run into the format described
+above, the following information is required:
+
+* Samples' loglikelihood values;
+* Samples' parameter values;
+* Information allowing decomposition into threads and identifying each thread's
+  birth contour (starting logl).
+
+The first two items are self-explanatory, but the latter is more challenging
+as it can take different formats and may not be provided by all nested sampling
+software packages.
+
+Sufficient information for thread decomposition and calculating the number of
+live points (including for dynamic nested sampling) is provided by a list of
+the loglikelihoods from within which each point was sampled (the points'
+birth contours). This is output by ``PolyChord`` >= v1.13 and ``MultiNest``
+>= v3.11, and is used in the output processing for these packages via the
+``get_birth_inds`` and ``threads_given_birth_contours`` functions.
+Also sufficient is a list of the indexes of the point which was removed
+at the step when each point was sampled ("birth indexes"), as this can be mapped
+to the birth contours and vice versa.
+
+``process_dynesty_run`` does not require the ``get_birth_inds`` and
+``threads_given_birth_contours`` functions as ``dynesty`` results objects
+already include thread labels via their ``samples_id`` property. If the
+``dynesty`` run is dynamic, the ``batch_bounds`` property is need to determine
+the threads' starting birth contours.
+
+Adding a new processing function for another nested sampling package
+--------------------------------------------------------------------
+
+You can add new functions to process output from other nested sampling
+software, provided the output files include the required information for
+decomposition into threads. Depending on how this information is provided you
+may be able to adapt ``process_polychord_run`` or ``process_dynesty_run``.
+If thread decomposition information if provided in a different format, you
+will have to write your own helper functions to process the output into the
+``nestcheck`` dictionary format described above.
 """
 
 import os
@@ -53,7 +103,7 @@ def batch_process_data(file_roots, **kwargs):
     """Process output from many nested sampling runs in parallel with optional
     error handling and caching.
 
-    The result can be cached usin the 'save_name', 'save' and 'load' kwargs (by
+    The result can be cached using the 'save_name', 'save' and 'load' kwargs (by
     default this is not done). See save_load_result docstring for more details.
 
     Remaining kwargs passed to parallel_utils.parallel_apply (see its
@@ -231,7 +281,7 @@ def process_multinest_run(file_root, base_dir, **kwargs):
     dead = np.loadtxt(os.path.join(base_dir, file_root) + '-dead-birth.txt')
     live = np.loadtxt(os.path.join(base_dir, file_root)
                       + '-phys_live-birth.txt')
-    # Remove unnessesary final columns
+    # Remove unnecessary final columns
     dead = dead[:, :-2]
     live = live[:, :-1]
     assert dead[:, -2].max() < live[:, -2].min(), (
@@ -253,7 +303,13 @@ def process_dynesty_run(results):
 
     Note that the nestcheck point weights and evidence will not be exactly
     the same as the dynesty ones as nestcheck calculates logX volumes more
-    precicely (using the trapizium rule).
+    precisely (using the trapezium rule).
+
+    This function does not require the get_birth_inds and
+    threads_given_birth_contours functions as dynesty results objects
+    already include thread labels via their samples_id property. If the
+    dynesty run is dynamic, the batch_bounds property is need to determine
+    the threads' starting birth contours.
 
     Parameters
     ----------
