@@ -16,8 +16,7 @@ import nestcheck.pandas_functions as pf
 @nestcheck.io_utils.save_load_result
 def run_list_error_values(run_list, estimator_list, estimator_names,
                           n_simulate=100, **kwargs):
-    """
-    Gets a data frame with calculation values and error diagnostics for each
+    """Gets a data frame with calculation values and error diagnostics for each
     run in the input run list.
 
     NB when parallelised the results will not be produced in order (so results
@@ -122,8 +121,7 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
 
 @nestcheck.io_utils.save_load_result
 def estimator_values_df(run_list, estimator_list, **kwargs):
-    """
-    Get a dataframe of estimator values.
+    """Get a dataframe of estimator values.
 
     NB when parallelised the results will not be produced in order (so results
     from some run number will not nessesarily correspond to that number run in
@@ -172,8 +170,7 @@ def estimator_values_df(run_list, estimator_list, **kwargs):
 
 
 def error_values_summary(error_values, **summary_df_kwargs):
-    """
-    Get summary statistics about calculation errors, including estimated
+    """Get summary statistics about calculation errors, including estimated
     implementation errors.
 
     Parameters
@@ -233,10 +230,9 @@ def error_values_summary(error_values, **summary_df_kwargs):
 
 def run_list_error_summary(run_list, estimator_list, estimator_names,
                            n_simulate, **kwargs):
-    """
-    Wrapper which runs run_list_error_values then applies error_values summary
-    to the resulting dataframe. See the docstrings for those two funcions for
-    more details and for descriptions of parameters and output.
+    """Wrapper which runs run_list_error_values then applies error_values
+    summary to the resulting dataframe. See the docstrings for those two
+    funcions for more details and for descriptions of parameters and output.
     """
     true_values = kwargs.pop('true_values', None)
     include_true_values = kwargs.pop('include_true_values', False)
@@ -250,8 +246,7 @@ def run_list_error_summary(run_list, estimator_list, estimator_names,
 
 def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
                  **kwargs):
-    """
-    Computes a data frame of bootstrap resampled values.
+    """Computes a data frame of bootstrap resampled values.
 
     Parameters
     ----------
@@ -294,8 +289,8 @@ def bs_values_df(run_list, estimator_list, estimator_names, n_simulate,
 
 
 def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
-    """
-    Calculates estimator values for the constituent threads of the input runs.
+    """Calculates estimator values for the constituent threads of the input
+    runs.
 
     Parameters
     ----------
@@ -337,8 +332,7 @@ def thread_values_df(run_list, estimator_list, estimator_names, **kwargs):
 
 
 def pairwise_dists_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
-    """
-    Computes pairwise statistical distance measures.
+    """Computes pairwise statistical distance measures.
 
     parameters
     ----------
@@ -346,6 +340,10 @@ def pairwise_dists_on_cols(df_in, earth_mover_dist=True, energy_dist=True):
         Columns represent estimators and rows represent runs.
         Each data frane element is an array of values which are used as samples
         in the distance measures.
+    earth_mover_dist: bool, optional
+        Passed to error_analysis.pairwise_distances.
+    energy_dist: bool, optional
+        Passed to error_analysis.pairwise_distances.
 
     returns
     -------

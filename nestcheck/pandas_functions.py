@@ -10,8 +10,7 @@ import pandas as pd
 
 
 def summary_df_from_array(results_array, names, axis=0, **kwargs):
-    """
-    Make a panda data frame of the mean and std devs of an array of results,
+    """Make a panda data frame of the mean and std devs of an array of results,
     including the uncertainties on the values.
 
     This function converts the array to a DataFrame and calls summary_df on it.
@@ -38,8 +37,7 @@ def summary_df_from_array(results_array, names, axis=0, **kwargs):
 
 
 def summary_df_from_list(results_list, names, **kwargs):
-    """
-    Make a panda data frame of the mean and std devs of each element of a list
+    """Make a panda data frame of the mean and std devs of each element of a list
     of 1d arrays, including the uncertainties on the values.
 
     This just converts the array to a DataFrame and calls summary_df on it.
@@ -66,8 +64,7 @@ def summary_df_from_list(results_list, names, **kwargs):
 
 
 def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
-    """
-    Apply summary_df to a multiindex while preserving some levels.
+    """Apply summary_df to a multiindex while preserving some levels.
 
     Parameters
     ----------
@@ -124,8 +121,7 @@ def summary_df_from_multi(multi_in, inds_to_keep=None, **kwargs):
 
 
 def summary_df(df_in, **kwargs):
-    """
-    Make a panda data frame of the mean and std devs of an array of results,
+    """Make a panda data frame of the mean and std devs of an array of results,
     including the uncertainties on the values.
 
     This is similar to pandas.DataFrame.describe but also includes estimates of
@@ -207,8 +203,7 @@ def summary_df(df_in, **kwargs):
 
 
 def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
-    """
-    Calculated data frame showing
+    """Calculated data frame showing
 
     efficiency gain ~ [(st dev standard) / (st dev new method)] ** 2
 
@@ -308,8 +303,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
 
 
 def paper_format_efficiency_gain_df(eff_gain_df):
-    """
-    Transform efficiency gain data frames output by nestcheck into the format
+    """Transform efficiency gain data frames output by nestcheck into the format
     shown in the dynamic nested sampling paper (Higson et al. 2017).
 
     Parameters
@@ -384,8 +378,7 @@ def get_eff_gain(base_std, base_std_unc, meth_std, meth_std_unc, adjust=1):
 
 
 def rmse_and_unc(values_array, true_values):
-    """
-    Calculate the root meet squared error and its numerical uncertainty.
+    """Calculate the root meet squared error and its numerical uncertainty.
 
     With a reasonably large number of values in values_list the uncertainty
     on sq_errors should be approximately normal (from the central limit
@@ -421,8 +414,7 @@ def rmse_and_unc(values_array, true_values):
 
 
 def array_ratio_std(values_n, sigmas_n, values_d, sigmas_d):
-    """
-    Gives error on the ratio of 2 floats or 2 1dimensional arrays given their
+    """Gives error on the ratio of 2 floats or 2 1dimensional arrays given their
     values and errors assuming the errors are uncorrelated.
     This assumes covariance = 0. _n and _d denote the numerator and
     denominator.

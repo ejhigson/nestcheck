@@ -19,8 +19,7 @@ import nestcheck.ns_run_utils
 
 
 def plot_run_nlive(method_names, run_dict, **kwargs):
-    """
-    Plot the allocations of live points as a function of logX for the input
+    """Plot the allocations of live points as a function of logX for the input
     sets of nested sampling runs of the type used in the dynamic nested
     sampling paper (Higson et al. 2017).
     Plots also include analytically calculated distributions of relative
@@ -156,8 +155,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
 
 
 def kde_plot_df(df, xlims=None, **kwargs):
-    """
-    Plots kde estimates of distributions of samples in each cell of the input
+    """Plots kde estimates of distributions of samples in each cell of the input
     pandas DataFrame.
 
     There is one subplot for each dataframe column, and on each subplot there
@@ -235,8 +233,7 @@ def kde_plot_df(df, xlims=None, **kwargs):
 
 
 def bs_param_dists(run_list, **kwargs):
-    """
-    Creates posterior distributions and their bootstrap error functions for
+    """Creates posterior distributions and their bootstrap error functions for
     input runs and estimators.
 
     For a more detailed description and some example use cases, see "Diagnostic
@@ -350,8 +347,7 @@ def bs_param_dists(run_list, **kwargs):
 
 
 def param_logx_diagram(run_list, **kwargs):
-    """
-    Creates diagrams of a nested sampling run's evolution as it iterates
+    """Creates diagrams of a nested sampling run's evolution as it iterates
     towards higher likelihoods, expressed as a function of log X, where X(L) is
     the fraction of the prior volume with likelihood greater than some value L.
 
@@ -580,10 +576,9 @@ def param_logx_diagram(run_list, **kwargs):
 
 
 def plot_bs_dists(run, fthetas, axes, **kwargs):
-    """
-    Helper function for plotting uncertainties on posterior distributions using
-    bootstrap resamples and the fgivenx module. Used by bs_param_dists and
-    param_logx_diagram.
+    """Helper function for plotting uncertainties on posterior distributions
+    using bootstrap resamples and the fgivenx module. Used by bs_param_dists
+    and param_logx_diagram.
 
     Parameters
     ----------
@@ -708,8 +703,8 @@ def alternate_helper(x, alt_samps, func=None):
 
 
 def weighted_1d_gaussian_kde(x, samples, weights):
-    """
-    Gaussian kde with weighted samples (1d only). Uses Scott bandwidth factor.
+    """Gaussian kde with weighted samples (1d only). Uses Scott bandwidth
+    factor.
 
     When all the sample weights are equal, this is equivalent to
 
@@ -767,8 +762,7 @@ def weighted_1d_gaussian_kde(x, samples, weights):
 
 
 def rel_posterior_mass(logx, logl):
-    """
-    Calculate the relative posterior mass for some array of logx values
+    """Calculate the relative posterior mass for some array of logx values
     given the likelihood, prior and number of dimensions.
     The posterior mass at each logX value is proportional to L(X)X, where L(X)
     is the likelihood.
@@ -794,8 +788,7 @@ def rel_posterior_mass(logx, logl):
 
 
 def average_by_key(dict_in, key):
-    """
-    Helper function for plot_run_nlive.
+    """Helper function for plot_run_nlive.
 
     Try returning the average of dict_in[key] and, if this does not work or if
     key is None, return average of whole dict.

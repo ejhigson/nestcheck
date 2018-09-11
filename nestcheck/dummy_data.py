@@ -9,8 +9,7 @@ import nestcheck.write_polychord_output
 
 
 def get_dummy_thread(nsamples, **kwargs):
-    """
-    Generate dummy data for a single nested sampling thread.
+    """Generate dummy data for a single nested sampling thread.
 
     Log-likelihood values of points are generated from a uniform distribution
     in (0, 1), sorted, scaled by logl_range and shifted by logl_start (if it is
@@ -49,8 +48,7 @@ def get_dummy_thread(nsamples, **kwargs):
 
 
 def get_dummy_run(nthread, nsamples, **kwargs):
-    """
-    Generate dummy data for a nested sampling run.
+    """Generate dummy data for a nested sampling run.
 
     Log-likelihood values of points are generated from a uniform distribution
     in (0, 1), sorted, scaled by logl_range and shifted by logl_start (if it is
@@ -99,8 +97,7 @@ def get_dummy_run(nthread, nsamples, **kwargs):
 
 
 def get_dummy_dynamic_run(nsamples, **kwargs):
-    """
-    Generate dummy data for a dynamic nested sampling run.
+    """Generate dummy data for a dynamic nested sampling run.
 
     Loglikelihood values of points are generated from a uniform distribution
     in (0, 1), sorted, scaled by logl_range and shifted by logl_start (if it is

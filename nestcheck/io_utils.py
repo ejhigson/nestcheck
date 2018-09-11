@@ -12,9 +12,7 @@ import warnings
 
 
 def timing_decorator(func):
-    """
-    Prints the time func takes to execute.
-    """
+    """Prints the time func takes to execute."""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         """
@@ -39,9 +37,7 @@ def timing_decorator(func):
 
 
 def save_load_result(func):
-    """
-    Saves and/or loads func output (must be picklable).
-    """
+    """Saves and/or loads func output (must be picklable)."""
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         """
@@ -103,8 +99,7 @@ def save_load_result(func):
 
 @timing_decorator
 def pickle_save(data, name, **kwargs):
-    """
-    Saves object with pickle.
+    """Saves object with pickle.
 
     Parameters
     ----------
@@ -149,8 +144,7 @@ def pickle_save(data, name, **kwargs):
 
 @timing_decorator
 def pickle_load(name, extension='.pkl'):
-    """
-    Load data with pickle.
+    """Load data with pickle.
 
     Parameters
     ----------

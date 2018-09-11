@@ -10,8 +10,7 @@ import tqdm
 
 
 def parallel_map(func, *arg_iterable, **kwargs):
-    """
-    Apply function to iterable with parallel map, and hence returns
+    """Apply function to iterable with parallel map, and hence returns
     results in order. functools.partial is used to freeze func_pre_args and
     func_kwargs, meaning that the iterable argument must be the last positional
     argument.
@@ -69,15 +68,14 @@ def parallel_map(func, *arg_iterable, **kwargs):
 
 
 def parallel_apply(func, arg_iterable, **kwargs):
-    """
-    Apply function to iterable with parallelisation and a tqdm progress bar.
+    """Apply function to iterable with parallelisation and a tqdm progress bar.
 
     Roughly equivalent to
 
     >>> [func(*func_pre_args, x, *func_args, **func_kwargs) for x in
          arg_iterable]
 
-    but will *not* return results in input order.
+    but will **not** necessarily return results in input order.
 
     Parameters
     ----------
@@ -145,9 +143,8 @@ def parallel_apply(func, arg_iterable, **kwargs):
 
 
 def select_tqdm():
-    """
-    If running in a jupyter notebook, then returns tqdm_notebook. Otherwise
-    returns a regular tqdm progress bar.
+    """If running in a jupyter notebook, then returns tqdm_notebook.
+    Otherwise returns a regular tqdm progress bar.
 
     Returns
     -------
