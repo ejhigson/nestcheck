@@ -620,9 +620,6 @@ def threads_given_birth_contours(birth_inds):
         state = np.random.get_state()  # Save random state before seeding
         np.random.seed(0)  # make thread decomposition is reproducible
         for ind in inds:
-            print(ind)
-            print(thread_labels[:ind])
-            print(thread_labels[ind + 1:])
             # Get the set of threads with members both before and after ind to
             # ensure we don't change nlive_array by extending a thread
             labels_to_choose = np.intersect1d(  # N.B. this removes nans too

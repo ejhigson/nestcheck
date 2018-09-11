@@ -38,7 +38,7 @@ def count_samples(ns_run, **kwargs):
     Parameters
     ----------
     ns_run: dict
-        Nested sampling run dict (see the ``data_processing`` module
+        Nested sampling run dict (see the data_processing module
         docstring for more details).
 
     Returns

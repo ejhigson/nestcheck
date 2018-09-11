@@ -80,7 +80,6 @@ class TestDataProcessing(unittest.TestCase):
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             inds = nestcheck.data_processing.get_birth_inds(birth_logl, logl)
-            print(inds)
             self.assertEqual(len(war), 1)
         numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 0, 1, 3]))
 
@@ -88,9 +87,13 @@ class TestDataProcessing(unittest.TestCase):
         """Check mapping from birth inds to threads."""
         birth_inds = np.array([-1, -1, 1, 2, 3, 7]).astype(int)
         # Check random assignment of leftover points to threads
-        numpy.testing.assert_array_equal(
-            nestcheck.data_processing.threads_given_birth_contours(birth_inds),
-            np.array([0, 1, 1, 1, 1, 0]).astype(int))
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
+            numpy.testing.assert_array_equal(
+                nestcheck.data_processing.threads_given_birth_contours(
+                    birth_inds),
+                np.array([0, 1, 1, 1, 1, 0]).astype(int))
+            self.assertEqual(len(war), 1)
 
 
     def test_check_ns_run_logls(self):
