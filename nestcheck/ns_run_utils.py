@@ -293,7 +293,7 @@ def get_logw(ns_run, simulate=False):
 
     Uses the trapezium rule such that the weight of point i is
 
-    .. math:: w_i = , mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
+    .. math:: w_i = \mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
 
     Parameters
     ----------
@@ -398,9 +398,9 @@ def get_logx(nlive, simulate=False):
 
 
 def log_subtract(loga, logb):
-    r"""Numerically stable way to calculate :math:`\log (a-b)`, given
-    :math:`\log (a)`, :math:`\log (a)` and that :math:`a > b`, while avoiding
-    overflow errors.
+    r"""Numerically stable method for avoiding overflow errors when calculating
+    :math:`\log (a-b)`, given :math:`\log (a)`, :math:`\log (a)` and that
+    :math:`a > b`.
 
     See https://hips.seas.harvard.edu/blog/2013/01/09/computing-log-sum-exp/
     for more details.

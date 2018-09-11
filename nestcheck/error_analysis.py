@@ -141,9 +141,10 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
         Determine if distribution of bootstrap values should be flipped about
         its mean to better represent our probability distribution on the true
         value - see "Bayesian astrostatistics: a backward look to the future"
-        (Loredo, 2012) Figure 2 for an explanation.
-        If true, the samples {X} are mapped to (2 mu - {X}), where mu is X's
-        mean. This leaves the mean and standard deviation unchanged.
+        (Loredo, 2012 Figure 2) for an explanation.
+        If true, the samples :math:`X` are mapped to :math:`2 \mu - X`, where
+        :math:`\mu` is the mean sample value.
+        This leaves the mean and standard deviation unchanged.
     random_seeds: list, optional
         list of random_seed arguments for bootstrap_resample_run.
         Defaults to range(n_simulate) in order to give reproducible results.

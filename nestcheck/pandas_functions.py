@@ -203,9 +203,13 @@ def summary_df(df_in, **kwargs):
 
 
 def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
-    """Calculated data frame showing
+    r"""Calculated data frame showing
 
-    efficiency gain ~ [(st dev standard) / (st dev new method)] ** 2
+    .. math::
+
+        \mathrm{efficiency\,gain}
+        =
+        \frac{\mathrm{Var[base\,method]}}{\mathrm{Var[new\,method]}}
 
     See the dynamic nested sampling paper (Higson et al. 2018) for more
     details.
