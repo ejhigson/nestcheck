@@ -1,5 +1,5 @@
 ---
-title: 'nestcheck: error analysis, diagnostic tests and plots for nested sampling calculations'
+title: '``nestcheck``: error analysis, diagnostic tests and plots for nested sampling calculations'
 tags:
   - Python
   - nested sampling
