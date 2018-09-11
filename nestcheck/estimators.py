@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 """
 Functions for estimating quantities from nested sampling runs.
-Each estimator function should have arguments
+Each estimator function should have arguments:
 
 .. code-block:: python
 
     def estimator_func(self, ns_run, logw=None, simulate=False):
         ...
 
-The `logw` argument allows the log weights for the points in the run to be
+Any additional arguments required for the function should be keyword
+arguments.
+
+The ``logw`` argument allows the log weights for the points in the run to be
 provided - this is useful if many estimators are being calculated from
 the same run as it allows `logw` to only be calculated once. If it is not
 specified, `logw` is calculated from the run when required.
@@ -81,9 +84,21 @@ def get_latex_name(func_in, **kwargs):
 # ----------
 
 def count_samples(ns_run, **kwargs):
-    """Number of samples in run. Unlike most estimators this does not require
-    log weights, but for convenience will not throw an error if they are
-    specified."""
+    """Number of samples in run.
+
+    Unlike most estimators this does not require log weights, but for
+    convenience will not throw an error if they are specified.
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the ``data_processing`` module
+        docstring for more details).
+
+    Returns
+    -------
+    int
+    """
     kwargs.pop('logw', None)
     kwargs.pop('simulate', None)
     if kwargs:
@@ -92,14 +107,46 @@ def count_samples(ns_run, **kwargs):
 
 
 def logz(ns_run, logw=None, simulate=False):
-    """Natural log of Bayesian evidence."""
+    """Natural log of Bayesian evidence :math:`\log \mathcal{Z}`.
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the data_processing module
+        docstring for more details).
+    logw: None or 1d numpy array, optional
+        Log weights of samples.
+    simulate: bool, optional
+        Passed to ns_run_utils.get_logw if logw needs to be
+        calculated.
+
+    Returns
+    -------
+    float
+    """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     return scipy.special.logsumexp(logw)
 
 
 def evidence(ns_run, logw=None, simulate=False):
-    """Bayesian evidence."""
+    """Bayesian evidence :math:`\log \mathcal{Z}`.
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the data_processing module
+        docstring for more details).
+    logw: None or 1d numpy array, optional
+        Log weights of samples.
+    simulate: bool, optional
+        Passed to ns_run_utils.get_logw if logw needs to be
+        calculated.
+
+    Returns
+    -------
+    float
+    """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     return np.exp(scipy.special.logsumexp(logw))
@@ -107,12 +154,30 @@ def evidence(ns_run, logw=None, simulate=False):
 
 def param_mean(ns_run, logw=None, simulate=False, param_ind=0,
                handle_indexerror=False):
-    """
-    Mean of a single parameter (single component of theta).
+    """Mean of a single parameter (single component of theta).
 
-    handle_indexerror means the function returns nan rather than raising an
-    IndexError if param_ind >= ndim. This is useful when applying the same
-    list of estimators to data sets of different dimensions.
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the data_processing module
+        docstring for more details).
+    logw: None or 1d numpy array, optional
+        Log weights of samples.
+    simulate: bool, optional
+        Passed to ns_run_utils.get_logw if logw needs to be
+        calculated.
+    param_ind: int, optional
+        Index of parameter for which the mean should be calculated. This
+        corresponds to the column of ns_run['theta'] which contains the
+        parameter.
+    handle_indexerror: bool, optional
+        Make the function function return nan rather than raising an
+        IndexError if param_ind >= ndim. This is useful when applying
+        the same list of estimators to data sets of different dimensions.
+
+    Returns
+    -------
+    float
     """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
@@ -129,9 +194,31 @@ def param_mean(ns_run, logw=None, simulate=False, param_ind=0,
 
 def param_cred(ns_run, logw=None, simulate=False, probability=0.5,
                param_ind=0):
-    """
-    One-tailed credible interval on the value of a single parameter (component
-    of theta).
+    """One-tailed credible interval on the value of a single parameter
+    (component of theta).
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the data_processing module
+        docstring for more details).
+    logw: None or 1d numpy array, optional
+        Log weights of samples.
+    simulate: bool, optional
+        Passed to ns_run_utils.get_logw if logw needs to be
+        calculated.
+    probability: float, optional
+        Quantile to estimate - must be in open interval (0, 1).
+        For example, use 0.5 for the median and 0.84 for the upper
+        84% quantile. Passed to weighted_quantile.
+    param_ind: int, optional
+        Index of parameter for which the credible interval should be
+        calculated. This corresponds to the column of ns_run['theta']
+        which contains the parameter.
+
+    Returns
+    -------
+    float
     """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
@@ -141,9 +228,27 @@ def param_cred(ns_run, logw=None, simulate=False, probability=0.5,
 
 
 def param_squared_mean(ns_run, logw=None, simulate=False, param_ind=0):
-    """
-    Mean of the square of single parameter (second moment of its posterior
-    distribution).
+    """Mean of the square of single parameter (second moment of its
+    posterior distribution).
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the data_processing module
+        docstring for more details).
+    logw: None or 1d numpy array, optional
+        Log weights of samples.
+    simulate: bool, optional
+        Passed to ns_run_utils.get_logw if logw needs to be
+        calculated.
+    param_ind: int, optional
+        Index of parameter for which the second moment should be
+        calculated. This corresponds to the column of ns_run['theta']
+        which contains the parameter.
+
+    Returns
+    -------
+    float
     """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
@@ -153,7 +258,23 @@ def param_squared_mean(ns_run, logw=None, simulate=False, param_ind=0):
 
 
 def r_mean(ns_run, logw=None, simulate=False):
-    """Mean of the radial coordinate (magnitude of theta vector)."""
+    """Mean of the radial coordinate (magnitude of theta vector).
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the data_processing module
+        docstring for more details).
+    logw: None or 1d numpy array, optional
+        Log weights of samples.
+    simulate: bool, optional
+        Passed to ns_run_utils.get_logw if logw needs to be
+        calculated.
+
+    Returns
+    -------
+    float
+    """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())
@@ -163,7 +284,27 @@ def r_mean(ns_run, logw=None, simulate=False):
 
 def r_cred(ns_run, logw=None, simulate=False, probability=0.5):
     """One-tailed credible interval on the value of the radial coordinate
-    (magnitude of theta vector)."""
+    (magnitude of theta vector).
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dict (see the data_processing module
+        docstring for more details).
+    logw: None or 1d numpy array, optional
+        Log weights of samples.
+    simulate: bool, optional
+        Passed to ns_run_utils.get_logw if logw needs to be
+        calculated.
+    probability: float, optional
+        Quantile to estimate - must be in open interval (0, 1).
+        For example, use 0.5 for the median and 0.84 for the upper
+        84% quantile. Passed to weighted_quantile.
+
+    Returns
+    -------
+    float
+    """
     if logw is None:
         logw = nestcheck.ns_run_utils.get_logw(ns_run, simulate=simulate)
     w_relative = np.exp(logw - logw.max())  # protect against overflow
@@ -184,6 +325,8 @@ def weighted_quantile(probability, values, weights):
     ----------
     probability: float
         Quantile to estimate - must be in open interval (0, 1).
+        For example, use 0.5 for the median and 0.84 for the upper
+        84% quantile.
     values: 1d numpy array
         Sample values.
     weights: 1d numpy array
