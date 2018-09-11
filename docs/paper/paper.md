@@ -11,7 +11,7 @@ authors:
     orcid: 0000-0001-8383-4614
     affiliation: "1, 2"
 affiliations:
- - name: Astrophysics Group, Cavendish Laboratory, J.J.Thomson Avenue, Cambridge, CB3 0HE, UK
+ - name: Cavendish Astrophysics Group, Cavendish Laboratory, J.J.Thomson Avenue, Cambridge, CB3 0HE, UK
    index: 1
  - name: Kavli Institute for Cosmology, Madingley Road, Cambridge, CB3 0HA, UK
    index : 2
