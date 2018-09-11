@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
 Functions for processing output files produced by nested sampling software.
-Currently compatable with MultiNest and PolyChord output.
+Currently compatable with ``MultiNest`` and ``PolyChord`` output.
 
 Nestcheck's diagnostics require infomation about the steps at which points were
 sampled in order to split nested sampling runs into their constituent threads
 (single live point runs). See "Sampling Errors In Nested Sampling Parameter
-Estimation" (Higson et al. 2017) for more details. *Producing these requires
-MultiNest >= v3.11 and PolyChord >= v1.13.*
+Estimation" (Higson et al. 2018) for more details. *Producing these requires
+``MultiNest`` >= v3.11 and ``PolyChord`` >= v1.13.*
 
 
 **nestested sampling run format**
@@ -50,8 +50,7 @@ import nestcheck.parallel_utils
 
 @nestcheck.io_utils.save_load_result
 def batch_process_data(file_roots, **kwargs):
-    """
-    Process output from many nested sampling runs in parallel with optional
+    """Process output from many nested sampling runs in parallel with optional
     error handling and caching.
 
     The result can be cached usin the 'save_name', 'save' and 'load' kwargs (by
@@ -120,8 +119,7 @@ def batch_process_data(file_roots, **kwargs):
 
 def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
                          **func_kwargs):
-    """
-    Wrapper which applies process_func and handles some common errors so one
+    """Wrapper which applies process_func and handles some common errors so one
     bad run does not spoil the whole batch.
 
     Useful errors to handle include:
@@ -161,8 +159,7 @@ def process_error_helper(root, base_dir, process_func, errors_to_handle=(),
 
 def process_polychord_run(file_root, base_dir, process_stats_file=True,
                           **kwargs):
-    """
-    Loads data from a PolyChord run into the nestcheck dictionary format for
+    """Loads data from a PolyChord run into the nestcheck dictionary format for
     analysis.
 
     N.B. producing required output file containing information about the
@@ -206,8 +203,7 @@ def process_polychord_run(file_root, base_dir, process_stats_file=True,
 
 
 def process_multinest_run(file_root, base_dir, **kwargs):
-    """
-    Loads data from a MultiNest run into the nestcheck dictionary format for
+    """Loads data from a MultiNest run into the nestcheck dictionary format for
     analysis.
 
     N.B. producing required output file containing information about the
@@ -252,9 +248,8 @@ def process_multinest_run(file_root, base_dir, **kwargs):
 
 
 def process_dynesty_run(results):
-    """
-    Transforms results from a dynesty run into the nestcheck dictionary format
-    for analysis. This function has been tested with dynesty v9.2.0.
+    """Transforms results from a dynesty run into the nestcheck dictionary
+    format for analysis. This function has been tested with dynesty v9.2.0.
 
     Note that the nestcheck point weights and evidence will not be exactly
     the same as the dynesty ones as nestcheck calculates logX volumes more
@@ -305,8 +300,7 @@ def process_dynesty_run(results):
 
 
 def process_polychord_stats(file_root, base_dir):
-    """
-    Reads a PolyChord <root>.stats output file and returns the information
+    """Reads a PolyChord <root>.stats output file and returns the information
     contained in a dictionary.
 
     Parameters
@@ -364,8 +358,7 @@ def process_polychord_stats(file_root, base_dir):
 
 
 def process_samples_array(samples, **kwargs):
-    """
-    Convert an array of nested sampling dead and live points of the type
+    """Convert an array of nested sampling dead and live points of the type
     produced by PolyChord and MultiNest into a nestcheck nested sampling run
     dictionary.
 
@@ -427,9 +420,8 @@ def process_samples_array(samples, **kwargs):
 
 
 def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
-    """
-    Maps the iso-likelihood contours on which points were born to the index of
-    the dead point on this contour.
+    """Maps the iso-likelihood contours on which points were born to the
+    index of the dead point on this contour.
 
     MultiNest and PolyChord use different values to identify the inital live
     points which were sampled from the whole prior (PolyChord uses -1e+30
@@ -545,7 +537,8 @@ def sample_less_than_condition(choices_in, condition):
     condition that each element of the output is greater than the corresponding
     element of the condition array.
 
-    condition should be in ascending order."""
+    condition should be in ascending order.
+    """
     output = np.zeros(min(condition.shape[0], choices_in.shape[0]))
     choices = copy.deepcopy(choices_in)
     for i, _ in enumerate(output):
@@ -559,9 +552,8 @@ def sample_less_than_condition(choices_in, condition):
 
 
 def threads_given_birth_contours(birth_inds):
-    """
-    Divides a nested sampling run into threads, using info on the contours at
-    which points were sampled. See "Sampling errors in nested sampling
+    """Divides a nested sampling run into threads, using info on the contours
+    at which points were sampled. See "Sampling errors in nested sampling
     parameter estimation" (Higson et al. 2017) for more information.
 
     Parameters
@@ -651,9 +643,8 @@ def threads_given_birth_contours(birth_inds):
 
 
 def check_ns_run(run, dup_assert=False, dup_warn=False):
-    """
-    Checks a nestcheck format nested sampling run dictionary has the expected
-    properties (see the module docstring for more details).
+    """Checks a nestcheck format nested sampling run dictionary has the
+    expected properties (see the module docstring for more details).
 
     Parameters
     ----------
@@ -677,8 +668,7 @@ def check_ns_run(run, dup_assert=False, dup_warn=False):
 
 
 def check_ns_run_members(run):
-    """
-    Check nested sampling run member keys and values.
+    """Check nested sampling run member keys and values.
 
     Parameters
     ----------
@@ -718,8 +708,7 @@ def check_ns_run_members(run):
 
 
 def check_ns_run_logls(run, dup_assert=False, dup_warn=False):
-    """
-    Check run logls are unique and in the correct order.
+    """Check run logls are unique and in the correct order.
 
     Parameters
     ----------
@@ -755,8 +744,7 @@ def check_ns_run_logls(run, dup_assert=False, dup_warn=False):
 
 
 def check_ns_run_threads(run):
-    """
-    Check thread labels and thread_min_max have expected properties.
+    """Check thread labels and thread_min_max have expected properties.
 
     Parameters
     ----------

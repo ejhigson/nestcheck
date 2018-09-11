@@ -4,7 +4,7 @@ Functions for performing basic operations on nested sampling runs; such as
 working out point weights and splitting and combining runs.
 
 Nested sampling runs are stored in a standard format as python dictionaries
-(see data_processing module docstring for more details).
+(see the ``data_processing`` module docstring for more details).
 """
 import copy
 import warnings
@@ -14,9 +14,8 @@ import nestcheck.data_processing as dp
 
 
 def run_estimators(ns_run, estimator_list, simulate=False):
-    """
-    Calculates values of list of quantities (such as the Bayesian evidence or
-    mean of parameters) for a single nested sampling run.
+    """Calculates values of list of quantities (such as the Bayesian evidence
+    or mean of parameters) for a single nested sampling run.
 
     Parameters
     ----------
@@ -42,9 +41,8 @@ def run_estimators(ns_run, estimator_list, simulate=False):
 
 
 def array_given_run(ns_run):
-    """
-    Converts information on samples in a nested sampling run dictionary into a
-    numpy array representation. This allows fast addition of more samples and
+    """Converts information on samples in a nested sampling run dictionary into
+    a numpy array representation. This allows fast addition of more samples and
     recalculation of nlive.
 
     Parameters
@@ -290,13 +288,12 @@ def combine_threads(threads, assert_birth_point=False):
 
 
 def get_logw(ns_run, simulate=False):
-    """
-    Calculates the log posterior weights of the samples (using logarithms to
-    avoid overflow errors with very large or small values).
+    r"""Calculates the log posterior weights of the samples (using logarithms
+    to avoid overflow errors with very large or small values).
 
     Uses the trapezium rule such that the weight of point i is
 
-    .. math:: w_i = \\mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
+    .. math:: w_i = \mathcal{L}_i (X_{i-1} - X_{i+1}) / 2
 
     Parameters
     ----------
@@ -339,9 +336,8 @@ def get_logw(ns_run, simulate=False):
 
 
 def get_w_rel(ns_run, simulate=False):
-    """
-    Get the relative posterior weights of the samples, normalised so the
-    maximum sample weight is 1. This is calculated from get_logw with
+    """Get the relative posterior weights of the samples, normalised so
+    the maximum sample weight is 1. This is calculated from get_logw with
     protection against numerical overflows.
 
     Parameters
@@ -362,9 +358,8 @@ def get_w_rel(ns_run, simulate=False):
 
 
 def get_logx(nlive, simulate=False):
-    """
-    Returns a logx vector showing the expected or simulated logx positions of
-    points.
+    r"""Returns a logx vector showing the expected or simulated logx positions
+    of points.
 
     The shrinkage factor between two points
 
@@ -375,7 +370,7 @@ def get_logx(nlive, simulate=False):
 
     We are interested in
 
-    .. math:: \\log(t_i) = \\log X_{i-1} - \\logX_{i}
+    .. math:: \log(t_i) = \log X_{i-1} - \logX_{i}
 
     which has expected value :math:`-1/n_i`.
 
@@ -403,9 +398,8 @@ def get_logx(nlive, simulate=False):
 
 
 def log_subtract(loga, logb):
-    """
-    Numerically stable way to calculate log(a-b) given loga and logb (where
-    loga > logb) while avoiding overflow errors.
+    """Numerically stable way to calculate log(a-b) given loga and logb
+    (where loga > logb) while avoiding overflow errors.
     See https://hips.seas.harvard.edu/blog/2013/01/09/computing-log-sum-exp/
     for more details.
 

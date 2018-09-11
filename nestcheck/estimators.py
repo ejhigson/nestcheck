@@ -30,7 +30,7 @@ import nestcheck.ns_run_utils
 # ----------
 
 def count_samples(ns_run, **kwargs):
-    """Number of samples in run.
+    r"""Number of samples in run.
 
     Unlike most estimators this does not require log weights, but for
     convenience will not throw an error if they are specified.
@@ -53,7 +53,7 @@ def count_samples(ns_run, **kwargs):
 
 
 def logz(ns_run, logw=None, simulate=False):
-    """Natural log of Bayesian evidence :math:`\log \mathcal{Z}`.
+    r"""Natural log of Bayesian evidence :math:`\log \mathcal{Z}`.
 
     Parameters
     ----------
@@ -76,7 +76,7 @@ def logz(ns_run, logw=None, simulate=False):
 
 
 def evidence(ns_run, logw=None, simulate=False):
-    """Bayesian evidence :math:`\log \mathcal{Z}`.
+    r"""Bayesian evidence :math:`\log \mathcal{Z}`.
 
     Parameters
     ----------

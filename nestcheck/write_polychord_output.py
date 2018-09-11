@@ -14,8 +14,7 @@ import nestcheck.ns_run_utils
 
 
 def write_run_output(run, **kwargs):
-    """
-    Writes PolyChord output files corresponding to the input nested sampling
+    """Writes PolyChord output files corresponding to the input nested sampling
     run. The file root is
 
     root = os.path.join(run['output']['base_dir'], run['output']['file_root'])
@@ -114,8 +113,7 @@ def write_run_output(run, **kwargs):
 
 
 def run_dead_birth_array(run, **kwargs):
-    """
-    Converts input run into an array of the format of a PolyChord
+    """Converts input run into an array of the format of a PolyChord
     <root>_dead-birth.txt file. Note that this in fact includes live points
     remaining at termination as well as dead points.
 
@@ -154,8 +152,7 @@ def run_dead_birth_array(run, **kwargs):
 
 
 def write_stats_file(run_output_dict):
-    """
-    Writes a dummy PolyChord format .stats file for tests functions for
+    """Writes a dummy PolyChord format .stats file for tests functions for
     processing stats files. This is written to:
 
     base_dir/file_root.stats

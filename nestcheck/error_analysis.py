@@ -16,8 +16,7 @@ import nestcheck.ns_run_utils
 
 def bootstrap_resample_run(ns_run, threads=None, ninit_sep=False,
                            random_seed=False):
-    """
-    Bootstrap resamples threads of nested sampling run, returning a new
+    """Bootstrap resamples threads of nested sampling run, returning a new
     (resampled) nested sampling run.
 
     Get the individual threads for a nested sampling run.
@@ -116,8 +115,7 @@ def run_std_bootstrap(ns_run, estimator_list, **kwargs):
 
 
 def run_bootstrap_values(ns_run, estimator_list, **kwargs):
-    """
-    Uses bootstrap resampling to calculate an estimate of the
+    """Uses bootstrap resampling to calculate an estimate of the
     standard deviation of the distribution of sampling errors (the
     uncertainty on the calculation) for a single nested sampling run.
 
@@ -180,8 +178,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
 
 
 def run_ci_bootstrap(ns_run, estimator_list, **kwargs):
-    """
-    Uses bootstrap resampling to calculate credible intervals on the
+    """Uses bootstrap resampling to calculate credible intervals on the
     distribution of sampling errors (the uncertainty on the calculation)
     for a single nested sampling run.
 
@@ -224,8 +221,7 @@ def run_ci_bootstrap(ns_run, estimator_list, **kwargs):
 
 
 def run_std_simulate(ns_run, estimator_list, n_simulate=None):
-    """
-    Uses the 'simulated weights' method to calculate an estimate of the
+    """Uses the 'simulated weights' method to calculate an estimate of the
     standard deviation of the distribution of sampling errors (the
     uncertainty on the calculation) for a single nested sampling run.
 
@@ -359,8 +355,7 @@ def run_thread_values(run, estimator_list):
 
 
 def pairwise_distances(dist_list, earth_mover_dist=True, energy_dist=True):
-    """
-    Applies statistical_distances to each unique pair of distribution
+    """Applies statistical_distances to each unique pair of distribution
     samples in dist_list.
 
     Parameters
