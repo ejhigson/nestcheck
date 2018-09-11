@@ -3,12 +3,18 @@
 Functions for estimating quantities from nested sampling runs.
 Each estimator function should have arguments
 
+.. code-block:: python
+
     def estimator_func(self, ns_run, logw=None, simulate=False):
         ...
 
-This allows logw to be provided if many estimators are being calculated from
-the same run so logw is only calculated once. Otherwise logw is calculated from
-the run if required.
+The `logw` argument allows the log weights for the points in the run to be
+provided - this is useful if many estimators are being calculated from
+the same run as it allows `logw` to only be calculated once. If it is not
+specified, `logw` is calculated from the run when required.
+
+The simulate argument is passed to `ns_run_utils.get_logw`, and is only used
+if the function needs to calculate `logw`.
 """
 
 import functools
@@ -74,8 +80,14 @@ def get_latex_name(func_in, **kwargs):
 # Estimators
 # ----------
 
-def count_samples(ns_run, logw=None, simulate=False):
-    """Number of samples in run."""
+def count_samples(ns_run, **kwargs):
+    """Number of samples in run. Unlike most estimators this does not require
+    log weights, but for convenience will not throw an error if they are
+    specified."""
+    kwargs.pop('logw', None)
+    kwargs.pop('simulate', None)
+    if kwargs:
+        raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     return ns_run['logl'].shape[0]
 
 
