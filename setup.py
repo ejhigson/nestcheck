@@ -8,16 +8,29 @@ import os
 import setuptools
 
 
+def get_package_dir():
+    """Get the file path for nestcheck's directory."""
+    return os.path.abspath(os.path.dirname(__file__))
+
+
 def get_long_description():
     """Get PyPI long description from the .rst file."""
-    here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, '.pypi_long_desc.rst')) as readme_file:
+    pkg_dir = get_package_dir()
+    with open(os.path.join(pkg_dir, '.pypi_long_desc.rst')) as readme_file:
         long_description = readme_file.read()
     return long_description
 
 
+def get_version():
+    """Get single-source __version__."""
+    pkg_dir = get_package_dir()
+    with open(os.path.join(pkg_dir, 'nestcheck/_version.py')) as ver_file:
+        string = ver_file.read()
+    return string.strip().replace('__version__ = ', '').replace('\'', '')
+
+
 setuptools.setup(name='nestcheck',
-                 version='0.1.7',
+                 version=get_version(),
                  description=('Error analysis, diagnostic tests and plots for '
                               'nested sampling calculations.'),
                  long_description=get_long_description(),
