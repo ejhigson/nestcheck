@@ -89,7 +89,7 @@ def run_std_bootstrap(ns_run, estimator_list, **kwargs):
 
     For more details about bootstrap resampling for estimating sampling
     errors see 'Sampling errors in nested sampling parameter estimation'
-    (Higson et al. 2017).
+    (Higson et al. 2018).
 
     Parameters
     ----------
@@ -123,7 +123,7 @@ def run_bootstrap_values(ns_run, estimator_list, **kwargs):
 
     For more details about bootstrap resampling for estimating sampling
     errors see 'Sampling errors in nested sampling parameter estimation'
-    (Higson et al. 2017).
+    (Higson et al. 2018).
 
     Parameters
     ----------
@@ -187,7 +187,7 @@ def run_ci_bootstrap(ns_run, estimator_list, **kwargs):
 
     For more details about bootstrap resampling for estimating sampling
     errors see 'Sampling errors in nested sampling parameter estimation'
-    (Higson et al. 2017).
+    (Higson et al. 2018).
 
     Parameters
     ----------
@@ -234,7 +234,7 @@ def run_std_simulate(ns_run, estimator_list, n_simulate=None):
 
     For more details about the simulated weights method for estimating sampling
     errors see 'Sampling errors in nested sampling parameter estimation'
-    (Higson et al. 2017).
+    (Higson et al. 2018).
 
     Parameters
     ----------
@@ -268,14 +268,44 @@ def run_std_simulate(ns_run, estimator_list, n_simulate=None):
 
 
 def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
-    """
-    Estimates implementation errors from the standard deviations of results
-    and of bootstrap values. See "Diagnostic tests for nested sampling
-    calculations" (Higson et al. 2018) for more details.
+    """Estimates varaition of results due to implementation-specific effects.
+    See "Diagnostic tests for nested sampling calculations" (Higson et al. 2018)
+    for more details.
 
-    Simulate errors dirstributions using the fact that (from central limit
-    theorem) our uncertainties on vals_std and bs_std are (approximately)
-    normally distributed.
+    Uncertainties on the output are calculated numerically using the fact that
+    (from central limit theorem) our uncertainties on vals_std and bs_std are
+    (approximately) normally distributed. This is needed as results from
+    standard error propagation techniques are not valid when the uncertainties
+    are not small compared to the result.
+
+    Parameters
+    ----------
+    vals_std: numpy array
+        Standard deviations of results from repeated calculations.
+    vals_std_u: numpy array
+        math:`1\sigma` uncertainties on vals_std_u.
+    bs_std: numpy array
+        Bootstrap error estimates. Each element should correspond to the same
+        element in vals_std.
+    bs_std_u: numpy array
+        math:`1\sigma` uncertainties on vals_std_u.
+    nsim: int, optional
+        Number of simulations to use to numerically calculate the uncertainties
+        on the estimated implementation-specific effects.
+    random_seed: int or None, optional
+        Numpy random seed. Use to get reproducible uncertainties on the output.
+
+    Returns
+    -------
+    imp_std: numpy array
+        Estimated standard deviation of results due to implementation-specific
+        effects.
+    imp_std_u: numpy array
+        math:`1\sigma` uncertainties on imp_std.
+    imp_frac: numpy array
+        imp_std as a fraction of vals_std.
+    imp_frac_u:
+        math:`1\sigma` uncertainties on imp_frac.
     """
     nsim = kwargs.pop('nsim', 1000000)
     random_seed = kwargs.pop('random_seed', 0)
@@ -306,18 +336,48 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
 
 
 def run_thread_values(run, estimator_list):
-    """Helper function for parallelising thread_values_df."""
+    """Helper function for parallelising thread_values_df.
+
+    Parameters
+    ----------
+    ns_run: dict
+        Nested sampling run dictionary.
+    estimator_list: list of functions
+
+    Returns
+    -------
+    vals_array: numpy array
+        Array of estimator values for each thread.
+        Has shape (len(estimator_list), len(theads)).
+    """
     threads = nestcheck.ns_run_utils.get_run_threads(run)
     vals_list = [nestcheck.ns_run_utils.run_estimators(th, estimator_list)
                  for th in threads]
     vals_array = np.stack(vals_list, axis=1)
+    assert vals_array.shape == (len(estimator_list), len(threads))
     return vals_array
 
 
 def pairwise_distances(dist_list, earth_mover_dist=True, energy_dist=True):
     """
-    Applies statistical_distances to each unique pair of distributions in
-    dist_list.
+    Applies statistical_distances to each unique pair of distribution
+    samples in dist_list.
+
+    Parameters
+    ----------
+    dist_list: list of 1d arrays
+    earth_mover_dist: bool, optional
+        Passed to statistical_distances.
+    energy_dist: bool, optional
+        Passed to statistical_distances.
+
+    Returns
+    -------
+    ser: pandas Series object
+        Values are statistical distances. Index levels are:
+        calculation type: name of statistical distance.
+        run: tuple containing the index in dist_list of the pair of samples
+        arrays from which the statistical distance was computed.
     """
     out = []
     index = []
@@ -340,8 +400,21 @@ def pairwise_distances(dist_list, earth_mover_dist=True, energy_dist=True):
 
 def statistical_distances(samples1, samples2, earth_mover_dist=True,
                           energy_dist=True):
-    """
-    Gets 4 measures of the statistical distance between samples.
+    """Compute measures of the statistical distance between samples.
+
+    Parameters
+    ----------
+    samples1: 1d array
+    samples2: 1d array
+    earth_mover_dist: bool, optional
+        Whether or not to compute the Earth mover's distance between the
+        samples.
+    energy_dist: bool, optional
+        Whether or not to compute the energy distance between the samples.
+
+    Returns
+    -------
+    1d array
     """
     out = []
     temp = scipy.stats.ks_2samp(samples1, samples2)
