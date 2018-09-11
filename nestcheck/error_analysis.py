@@ -268,15 +268,15 @@ def run_std_simulate(ns_run, estimator_list, n_simulate=None):
 
 
 def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
-    """Estimates varaition of results due to implementation-specific effects.
-    See "Diagnostic tests for nested sampling calculations" (Higson et al. 2018)
-    for more details.
+    r"""Estimates varaition of results due to implementation-specific
+    effects. See "Diagnostic tests for nested sampling calculations"
+    (Higson et al. 2018) for more details.
 
-    Uncertainties on the output are calculated numerically using the fact that
-    (from central limit theorem) our uncertainties on vals_std and bs_std are
-    (approximately) normally distributed. This is needed as results from
-    standard error propagation techniques are not valid when the uncertainties
-    are not small compared to the result.
+    Uncertainties on the output are calculated numerically using the fact
+    that (from central limit theorem) our uncertainties on vals_std and
+    bs_std are (approximately) normally distributed. This is needed as
+    results from standard error propagation techniques are not valid when
+    the uncertainties are not small compared to the result.
 
     Parameters
     ----------
