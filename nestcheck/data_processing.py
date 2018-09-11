@@ -66,13 +66,13 @@ live points (including for dynamic nested sampling) is provided by a list of
 the loglikelihoods from within which each point was sampled (the points'
 birth contours). This is output by ``PolyChord`` >= v1.13 and ``MultiNest``
 >= v3.11, and is used in the output processing for these packages via the
-``get_birth_inds`` and ``threads_given_birth_contours`` functions.
+``birth_inds_given_contours`` and ``threads_given_birth_inds`` functions.
 Also sufficient is a list of the indexes of the point which was removed
 at the step when each point was sampled ("birth indexes"), as this can be mapped
 to the birth contours and vice versa.
 
-``process_dynesty_run`` does not require the ``get_birth_inds`` and
-``threads_given_birth_contours`` functions as ``dynesty`` results objects
+``process_dynesty_run`` does not require the ``birth_inds_given_contours`` and
+``threads_given_birth_inds`` functions as ``dynesty`` results objects
 already include thread labels via their ``samples_id`` property. If the
 ``dynesty`` run is dynamic, the ``batch_bounds`` property is need to determine
 the threads' starting birth contours.
@@ -305,8 +305,8 @@ def process_dynesty_run(results):
     the same as the dynesty ones as nestcheck calculates logX volumes more
     precisely (using the trapezium rule).
 
-    This function does not require the get_birth_inds and
-    threads_given_birth_contours functions as dynesty results objects
+    This function does not require the birth_inds_given_contours and
+    threads_given_birth_inds functions as dynesty results objects
     already include thread labels via their samples_id property. If the
     dynesty run is dynamic, the batch_bounds property is need to determine
     the threads' starting birth contours.
@@ -425,7 +425,7 @@ def process_samples_array(samples, **kwargs):
         Has #parameters + 2 columns:
         param_1, param_2, ... , logl, birth_logl
     kwargs: dict, optional
-        Options passed to get_birth_inds
+        Options passed to birth_inds_given_contours
 
     Returns
     -------
@@ -441,8 +441,8 @@ def process_samples_array(samples, **kwargs):
     birth_contours = samples[:, -1]
     # birth_contours, ns_run['theta'] = check_logls_unique(
     #     samples[:, -2], samples[:, -1], samples[:, :-2])
-    birth_inds = get_birth_inds(birth_contours, ns_run['logl'], **kwargs)
-    ns_run['thread_labels'] = threads_given_birth_contours(birth_inds)
+    birth_inds = birth_inds_given_contours(birth_contours, ns_run['logl'], **kwargs)
+    ns_run['thread_labels'] = threads_given_birth_inds(birth_inds)
     unique_threads = np.unique(ns_run['thread_labels'])
     assert np.array_equal(unique_threads,
                           np.asarray(range(unique_threads.shape[0])))
@@ -475,7 +475,7 @@ def process_samples_array(samples, **kwargs):
     return ns_run
 
 
-def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
+def birth_inds_given_contours(birth_logl_arr, logl_arr, **kwargs):
     """Maps the iso-likelihood contours on which points were born to the
     index of the dead point on this contour.
 
@@ -496,8 +496,8 @@ def get_birth_inds(birth_logl_arr, logl_arr, **kwargs):
     logl_arr: 1d numpy array
         logl values of each point.
     birth_logl_arr: 1d numpy array
-        logl values of the iso-likelihood contour from within each point was
-        sampled (on which it was born).
+        Birth contours - i.e. logl values of the iso-likelihood contour from
+        within each point was sampled (on which it was born).
     dup_assert: bool, optional
         See check_ns_run_logls docstring.
     dup_warn: bool, optional
@@ -607,8 +607,8 @@ def sample_less_than_condition(choices_in, condition):
     return output
 
 
-def threads_given_birth_contours(birth_inds):
-    """Divides a nested sampling run into threads, using info on the contours
+def threads_given_birth_inds(birth_inds):
+    """Divides a nested sampling run into threads, using info on the indexes
     at which points were sampled. See "Sampling errors in nested sampling
     parameter estimation" (Higson et al. 2018) for more information.
 

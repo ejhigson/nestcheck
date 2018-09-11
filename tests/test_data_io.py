@@ -60,18 +60,18 @@ class TestDataProcessing(unittest.TestCase):
             TypeError, nestcheck.data_processing.batch_process_data,
             ['path'], base_dir=TEST_CACHE_DIR, unexpected=1)
 
-    def test_get_birth_inds_unexpected_kwarg(self):
+    def test_birth_inds_given_contours_unexpected_kwarg(self):
         """Test unexpected kwargs checks."""
         self.assertRaises(
-            TypeError, nestcheck.data_processing.get_birth_inds,
+            TypeError, nestcheck.data_processing.birth_inds_given_contours,
             'birth_logl', 'logl', unexpected=1)
 
-    def test_get_birth_inds(self):
+    def test_birth_inds_given_contours(self):
         """Check birth inds allocation function."""
-        # Check get_birth_inds works when points born and dying on same contour
+        # Check birth_inds_given_contours works when points born and dying on same contour
         logl = np.asarray([1, 1, 3, 5])
         birth_logl = np.asarray([-1, 1, 1, 3])
-        inds = nestcheck.data_processing.get_birth_inds(birth_logl, logl)
+        inds = nestcheck.data_processing.birth_inds_given_contours(birth_logl, logl)
         numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 1, 2]))
         # Check error handeling of PolyChord v1.13 bug with more births than
         # deaths on a contour
@@ -79,7 +79,7 @@ class TestDataProcessing(unittest.TestCase):
         birth_logl = np.asarray([-1, 1, 1, 1, 3])
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
-            inds = nestcheck.data_processing.get_birth_inds(birth_logl, logl)
+            inds = nestcheck.data_processing.birth_inds_given_contours(birth_logl, logl)
             self.assertEqual(len(war), 1)
         numpy.testing.assert_array_equal(inds, np.asarray([-1, 0, 0, 1, 3]))
 
@@ -90,7 +90,7 @@ class TestDataProcessing(unittest.TestCase):
         with warnings.catch_warnings(record=True) as war:
             warnings.simplefilter("always")
             numpy.testing.assert_array_equal(
-                nestcheck.data_processing.threads_given_birth_contours(
+                nestcheck.data_processing.threads_given_birth_inds(
                     birth_inds),
                 np.array([0, 1, 1, 1, 1, 0]).astype(int))
             self.assertEqual(len(war), 1)
