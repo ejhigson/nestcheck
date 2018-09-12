@@ -10,7 +10,6 @@ import copy
 import warnings
 import numpy as np
 import scipy.special
-import nestcheck.data_processing as dp
 
 
 def run_estimators(ns_run, estimator_list, simulate=False):
@@ -195,7 +194,7 @@ def combine_ns_runs(run_list_in, **kwargs):
     else:
         nthread_tot = 0
         for i, _ in enumerate(run_list):
-            dp.check_ns_run(run_list[i], **kwargs)
+            check_ns_run(run_list[i], **kwargs)
             run_list[i]['thread_labels'] += nthread_tot
             nthread_tot += run_list[i]['thread_min_max'].shape[0]
         thread_min_max = np.vstack([run['thread_min_max'] for run in run_list])
@@ -212,7 +211,7 @@ def combine_ns_runs(run_list_in, **kwargs):
                                           run_list_in])
             except KeyError:
                 pass
-    dp.check_ns_run(run, **kwargs)
+    check_ns_run(run, **kwargs)
     return run
 
 
@@ -278,7 +277,7 @@ def combine_threads(threads, assert_birth_point=False):
     # make run
     ns_run = dict_given_run_array(samples_temp, thread_min_max)
     try:
-        dp.check_ns_run_threads(ns_run)
+        check_ns_run_threads(ns_run)
     except AssertionError:
         # If the threads are not valid (e.g. for bootstrap resamples) then
         # set them to None so they can't be accidentally used
@@ -416,3 +415,143 @@ def log_subtract(loga, logb):
     log(a - b): float
     """
     return loga + np.log(1 - np.exp(logb - loga))
+
+
+# Functions for checking nestcheck format nested sampling run dictionaries to
+# ensure they have the expected properties.
+
+
+def check_ns_run(run, dup_assert=False, dup_warn=False):
+    """Checks a nestcheck format nested sampling run dictionary has the
+    expected properties (see the data_processing module docstring for more
+    details).
+
+    Parameters
+    ----------
+    run: dict
+        nested sampling run to check.
+    dup_assert: bool, optional
+        See check_ns_run_logls docstring.
+    dup_warn: bool, optional
+        See check_ns_run_logls docstring.
+
+
+    Raises
+    ------
+    AssertionError
+        if run does not have expected properties.
+    """
+    assert isinstance(run, dict)
+    check_ns_run_members(run)
+    check_ns_run_logls(run, dup_assert=dup_assert, dup_warn=dup_warn)
+    check_ns_run_threads(run)
+
+
+def check_ns_run_members(run):
+    """Check nested sampling run member keys and values.
+
+    Parameters
+    ----------
+    run: dict
+        nested sampling run to check.
+
+    Raises
+    ------
+    AssertionError
+        if run does not have expected properties.
+    """
+    run_keys = list(run.keys())
+    # Mandatory keys
+    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
+                'thread_min_max']:
+        assert key in run_keys
+        run_keys.remove(key)
+    # Optional keys
+    for key in ['output']:
+        try:
+            run_keys.remove(key)
+        except ValueError:
+            pass
+    # Check for unexpected keys
+    assert not run_keys, 'Unexpected keys in ns_run: ' + str(run_keys)
+    # Check type of mandatory members
+    for key in ['logl', 'nlive_array', 'theta', 'thread_labels',
+                'thread_min_max']:
+        assert isinstance(run[key], np.ndarray), (
+            key + ' is type ' + type(run[key]).__name__)
+    # check shapes of keys
+    assert run['logl'].ndim == 1
+    assert run['logl'].shape == run['nlive_array'].shape
+    assert run['logl'].shape == run['thread_labels'].shape
+    assert run['theta'].ndim == 2
+    assert run['logl'].shape[0] == run['theta'].shape[0]
+
+
+def check_ns_run_logls(run, dup_assert=False, dup_warn=False):
+    """Check run logls are unique and in the correct order.
+
+    Parameters
+    ----------
+    run: dict
+        nested sampling run to check.
+    dup_assert: bool, optional
+        Whether to raise and AssertionError if there are duplicate logl values.
+    dup_warn: bool, optional
+        Whether to give a UserWarning if there are duplicate logl values (only
+        used if dup_assert is False).
+
+    Raises
+    ------
+    AssertionError
+        if run does not have expected properties.
+    """
+    assert np.array_equal(run['logl'], run['logl'][np.argsort(run['logl'])])
+    if dup_assert or dup_warn:
+        unique_logls, counts = np.unique(run['logl'], return_counts=True)
+        repeat_logls = run['logl'].shape[0] - unique_logls.shape[0]
+        msg = ('{} duplicate logl values (out of a total of {}). This may be '
+               'caused by limited numerical precision in the output files.'
+               '\nrepeated logls = {}\ncounts = {}\npositions in list of {}'
+               ' unique logls = {}').format(
+                   repeat_logls, run['logl'].shape[0],
+                   unique_logls[counts != 1], counts[counts != 1],
+                   unique_logls.shape[0], np.where(counts != 1)[0])
+        if dup_assert:
+            assert repeat_logls == 0, msg
+        elif dup_warn:
+            if repeat_logls != 0:
+                warnings.warn(msg, UserWarning)
+
+
+def check_ns_run_threads(run):
+    """Check thread labels and thread_min_max have expected properties.
+
+    Parameters
+    ----------
+    run: dict
+        Nested sampling run to check.
+
+    Raises
+    ------
+    AssertionError
+        If run does not have expected properties.
+    """
+    assert run['thread_labels'].dtype == int
+    uniq_th = np.unique(run['thread_labels'])
+    assert np.array_equal(
+        np.asarray(range(run['thread_min_max'].shape[0])), uniq_th), \
+        str(uniq_th)
+    # Check thread_min_max
+    assert np.any(run['thread_min_max'][:, 0] == -np.inf), (
+        'Run should have at least one thread which starts by sampling the ' +
+        'whole prior')
+    for th_lab in uniq_th:
+        inds = np.where(run['thread_labels'] == th_lab)[0]
+        th_info = 'thread label={}, first_logl={}, thread_min_max={}'.format(
+            th_lab, run['logl'][inds[0]], run['thread_min_max'][th_lab, :])
+        assert run['thread_min_max'][th_lab, 0] <= run['logl'][inds[0]], (
+            'First point in thread has logl less than thread min logl! ' +
+            th_info + ', difference={}'.format(
+                run['logl'][inds[0]] - run['thread_min_max'][th_lab, 0]))
+        assert run['thread_min_max'][th_lab, 1] == run['logl'][inds[-1]], (
+            'Last point in thread logl != thread end logl! ' + th_info)

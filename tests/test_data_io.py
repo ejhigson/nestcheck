@@ -95,20 +95,6 @@ class TestDataProcessing(unittest.TestCase):
                 np.array([0, 1, 1, 1, 1, 0]).astype(int))
             self.assertEqual(len(war), 1)
 
-
-    def test_check_ns_run_logls(self):
-        """Ensure check_ns_run_logls raises error if and only if
-        warn_only=False"""
-        repeat_logl_run = {'logl': np.asarray([0, 0, 1])}
-        self.assertRaises(
-            AssertionError, nestcheck.data_processing.check_ns_run_logls,
-            repeat_logl_run, dup_assert=True)
-        with warnings.catch_warnings(record=True) as war:
-            warnings.simplefilter("always")
-            nestcheck.data_processing.check_ns_run_logls(
-                repeat_logl_run, dup_warn=True)
-            self.assertEqual(len(war), 1)
-
     def test_process_polychord_data(self):
         """Check processing some dummy PolyChord data."""
         file_root = 'dummy_run'
@@ -122,7 +108,7 @@ class TestDataProcessing(unittest.TestCase):
             processed_run = nestcheck.data_processing.process_polychord_run(
                 file_root, TEST_CACHE_DIR)
             self.assertEqual(len(war), 1)
-        nestcheck.data_processing.check_ns_run(processed_run)
+        nestcheck.ns_run_utils.check_ns_run(processed_run)
         for key, value in processed_run.items():
             if key not in ['output']:
                 numpy.testing.assert_array_equal(
@@ -157,7 +143,7 @@ class TestDataProcessing(unittest.TestCase):
             TEST_CACHE_DIR, file_root + '-phys_live-birth.txt'), live)
         processed_run = nestcheck.data_processing.process_multinest_run(
             file_root, TEST_CACHE_DIR)
-        nestcheck.data_processing.check_ns_run(processed_run)
+        nestcheck.ns_run_utils.check_ns_run(processed_run)
         for key, value in processed_run.items():
             if key not in ['output']:
                 numpy.testing.assert_array_equal(

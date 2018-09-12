@@ -266,6 +266,19 @@ class TestNSRunUtils(unittest.TestCase):
         numpy.testing.assert_array_equal(
             run_in['nlive_array'], run_out['nlive_array'])
 
+    def test_check_ns_run_logls(self):
+        """Ensure check_ns_run_logls raises error if and only if
+        warn_only=False"""
+        repeat_logl_run = {'logl': np.asarray([0, 0, 1])}
+        self.assertRaises(
+            AssertionError, nestcheck.ns_run_utils.check_ns_run_logls,
+            repeat_logl_run, dup_assert=True)
+        with warnings.catch_warnings(record=True) as war:
+            warnings.simplefilter("always")
+            nestcheck.ns_run_utils.check_ns_run_logls(
+                repeat_logl_run, dup_warn=True)
+            self.assertEqual(len(war), 1)
+
 
 class TestErrorAnalysis(unittest.TestCase):
 

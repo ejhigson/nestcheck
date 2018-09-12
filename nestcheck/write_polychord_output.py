@@ -135,7 +135,7 @@ def run_dead_birth_array(run, **kwargs):
         Has #parameters + 2 columns:
         param_1, param_2, ... , logl, birth_logl
     """
-    nestcheck.data_processing.check_ns_run(run, **kwargs)
+    nestcheck.ns_run_utils.check_ns_run(run, **kwargs)
     threads = nestcheck.ns_run_utils.get_run_threads(run)
     samp_arrays = []
     ndim = run['theta'].shape[1]

@@ -8,7 +8,6 @@ import numpy as np
 import numpy.testing
 import pandas as pd
 import scipy.special
-import nestcheck.data_processing
 import nestcheck.diagnostics_tables
 import nestcheck.dummy_data
 import nestcheck.error_analysis
@@ -26,7 +25,7 @@ class TestPlots(unittest.TestCase):
     def setUp(self):
         """Get some dummy data to plot."""
         self.ns_run = nestcheck.dummy_data.get_dummy_run(3, 10)
-        nestcheck.data_processing.check_ns_run(self.ns_run)
+        nestcheck.ns_run_utils.check_ns_run(self.ns_run)
 
     def test_alternate_helper(self):
         """Check alternate_helper."""
