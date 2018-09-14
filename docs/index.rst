@@ -18,7 +18,7 @@ nestcheck
 - "Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al., 2018a <https://doi.org/10.1214/17-BA1075>`_).
 - "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al., 2018b <https://arxiv.org/abs/1804.06406>`_);
 
-To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. More examples, including the code used to make the results and plots in `Higson et al. (2018b) <https://arxiv.org/abs/1804.06406>`_, can be found in the `examples folder <https://github.com/ejhigson/nestcheck/tree/master/examples>`_.
+To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. For more examples of ``nestcheck``'s use can be found in the code used to make the results and plots in `Higson et al. (2018b) <https://arxiv.org/abs/1804.06406>`_ at https://github.com/ejhigson/diagnostic.
 
 Compatible nested sampling software
 -----------------------------------
