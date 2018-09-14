@@ -7,6 +7,8 @@ nestcheck
 	:target: https://coveralls.io/github/ejhigson/nestcheck?branch=master
 .. image:: https://readthedocs.org/projects/nestcheck/badge/?version=latest
 	:target: http://nestcheck.readthedocs.io/en/latest/?badge=latest
+.. image:: http://joss.theoj.org/papers/10.21105/joss.00916/status.svg
+   :target: https://doi.org/10.21105/joss.00916
 .. image:: https://api.codeclimate.com/v1/badges/7fdfe74eb8256020c780/maintainability
     :target: https://codeclimate.com/github/ejhigson/nestcheck/maintainability
     :alt: Maintainability
@@ -15,8 +17,8 @@ nestcheck
 
 ``nestcheck`` provides python utilities for analysing nested sampling runs and estimating numerical uncertainties. This includes implementations of the diagnostic tests and plots described in:
 
-- "Sampling Errors in Nested Sampling Parameter Estimation" (`Higson et al., 2018a <https://doi.org/10.1214/17-BA1075>`_).
-- "Diagnostic Tests for Nested Sampling Calculations" (`Higson et al., 2018b <https://arxiv.org/abs/1804.06406>`_);
+- "nestcheck: diagnostic tests for nested sampling calculations" (`Higson et al., 2018b <https://arxiv.org/abs/1804.06406>`_);
+- "Sampling errors in nested sampling parameter estimation" (`Higson et al., 2018a <https://doi.org/10.1214/17-BA1075>`_).
 
 To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. For more examples of ``nestcheck``'s use can be found in the code used to make the results and plots in `Higson et al. (2018b) <https://arxiv.org/abs/1804.06406>`_ at https://github.com/ejhigson/diagnostic.
 
@@ -49,27 +51,38 @@ Documentation contents
 Attribution
 -----------
 
-If ``nestcheck`` is useful for your academic research, please cite the two papers on which it is based. The BibTeX is:
+If ``nestcheck`` is useful for your academic research, please cite the three papers introducing the software and the methods it implements. The BibTeX is:
 
 .. code-block:: tex
 
-    @article{higson2018diagnostic,
-    title={Diagnostic Tests for Nested Sampling Calculations},
+    @article{higson2018a,
+    title={nestcheck: diagnostic tests for nested sampling calculations},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
+    year={2018},
     journal={arXiv preprint arXiv:1804.06406},
-    url={1804.06406},
-    year={2018}}
+    url={https://arxiv.org/abs/1804.06406}}
 
-    @article{higson2018sampling,
+    @article{higson2018b,
     title={Sampling Errors in Nested Sampling Parameter Estimation},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
-    doi={doi:10.1214/17-BA1075},
+    year={2018}
     journal={Bayesian Analysis},
     number={3},
     volume={13},
-    pages = {873--896},
-    url={https://doi.org/10.1214/17-BA1075},
-    year={2018}}
+    pages={873--896},
+    doi={doi:10.1214/17-BA1075},
+    url={https://doi.org/10.1214/17-BA1075}}
+
+	@article{higson2018c,
+	title={nestcheck: error analysis, diagnostic tests and plots for nested sampling calculations},
+	author={Higson, Edward},
+	year={2018},
+	journal={Journal of Open Source Software},
+	number={29},
+	pages={916},
+	volume={3},
+	doi={10.21105/joss.00916},
+    url={http://joss.theoj.org/papers/10.21105/joss.00916}}
 
 
 Changelog
