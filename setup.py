@@ -41,7 +41,7 @@ setuptools.setup(name='nestcheck',
                  license='MIT',
                  keywords='nested-sampling sampling error-analysis',
                  classifiers=[  # Optional
-                     'Development Status :: 4 - Beta',
+                     'Development Status :: 5 - Production/Stable',
                      'Intended Audience :: Science/Research',
                      'License :: OSI Approved :: MIT License',
                      'Programming Language :: Python :: 2',
