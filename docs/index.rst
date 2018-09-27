@@ -15,7 +15,8 @@ nestcheck
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://github.com/ejhigson/nestcheck/blob/master/LICENSE
 
-``nestcheck`` provides python utilities for analysing nested sampling runs and estimating numerical uncertainties. This includes implementations of the diagnostic tests and plots described in:
+Nested sampling is a popular numerical method for Bayesian computation, which simultaneously generates samples from the posterior distribution and an estimate of the Bayesian evidence for a given likelihood and prior.
+``nestcheck`` provides python utilities for analysing samples produced by nested sampling, and estimating numerical uncertainties on calculations using them. This includes implementations of the diagnostic tests and plots described in:
 
 - "Sampling errors in nested sampling parameter estimation" (`Higson et al., 2018a <https://doi.org/10.1214/17-BA1075>`_);
 - "nestcheck: diagnostic tests for nested sampling calculations" (`Higson et al., 2018b <https://arxiv.org/abs/1804.06406>`_).
