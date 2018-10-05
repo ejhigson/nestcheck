@@ -16,12 +16,12 @@ nestcheck
     :target: https://github.com/ejhigson/nestcheck/blob/master/LICENSE
 
 Nested sampling is a popular numerical method for Bayesian computation, which simultaneously generates samples from the posterior distribution and an estimate of the Bayesian evidence for a given likelihood and prior.
-``nestcheck`` provides python utilities for analysing samples produced by nested sampling, and estimating numerical uncertainties on calculations using them. This includes implementations of the diagnostic tests and plots described in:
+``nestcheck`` provides Python utilities for analysing samples produced by nested sampling, and estimating uncertainties on nested sampling calculations (which have different statistical properties to calculations using other numerical methods). This includes implementations of the diagnostic tests and plots described in:
 
 - "Sampling errors in nested sampling parameter estimation" (`Higson et al., 2018a <https://doi.org/10.1214/17-BA1075>`_);
 - "nestcheck: diagnostic tests for nested sampling calculations" (`Higson et al., 2018b <https://arxiv.org/abs/1804.06406>`_).
 
-To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. For more examples of ``nestcheck``'s use can be found in the code used to make the results and plots in `Higson et al. (2018b) <https://arxiv.org/abs/1804.06406>`_ at https://github.com/ejhigson/diagnostic.
+To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. More examples of ``nestcheck``'s use can be found in the code used to make the results and plots in `Higson et al. (2018b) <https://arxiv.org/abs/1804.06406>`_ at https://github.com/ejhigson/diagnostic.
 
 Compatible nested sampling software
 -----------------------------------
@@ -71,7 +71,7 @@ If ``nestcheck`` is useful for your academic research, please cite the three pap
     number={3},
     volume={13},
     pages={873--896},
-    doi={doi:10.1214/17-BA1075},
+    doi={10.1214/17-BA1075},
     url={https://doi.org/10.1214/17-BA1075}}
 
     @article{higson2018nestcheck,
