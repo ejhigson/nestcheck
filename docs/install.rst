@@ -3,7 +3,7 @@
 Installation
 ============
 
-``nestcheck`` is compatible with python 2.7 and >=3.4, and can be installed with `pip <http://www.pip-installer.org/>`_:
+``nestcheck`` is compatible with Python 2.7 and >=3.4, and can be installed with `pip <http://www.pip-installer.org/>`_:
 
 .. code-block:: bash
 
