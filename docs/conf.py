@@ -20,7 +20,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'nestcheck'
-copyright = '2018, Edward Higson'
+copyright = '2018-Present Edward Higson and contributors (MIT license).'
 author = 'Edward Higson'
 
 # The short X.Y version
@@ -161,7 +161,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'nestcheck', 'nestcheck Documentation',
-     author, 'nestcheck', 'One line description of project.',
+     author, 'nestcheck', 'Error analysis, diagnostic tests and plots for nested sampling.',
      'Miscellaneous'),
 ]
 
