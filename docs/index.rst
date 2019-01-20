@@ -18,10 +18,10 @@ nestcheck
 Nested sampling is a popular numerical method for Bayesian computation, which simultaneously generates samples from the posterior distribution and an estimate of the Bayesian evidence for a given likelihood and prior.
 ``nestcheck`` provides Python utilities for analysing samples produced by nested sampling, and estimating uncertainties on nested sampling calculations (which have different statistical properties to calculations using other numerical methods). This includes implementations of the diagnostic tests and plots described in:
 
-- "Sampling errors in nested sampling parameter estimation" (`Higson et al., 2018a <https://doi.org/10.1214/17-BA1075>`_);
-- "nestcheck: diagnostic tests for nested sampling calculations" (`Higson et al., 2018b <https://arxiv.org/abs/1804.06406>`_).
+- "Sampling errors in nested sampling parameter estimation" (`Higson et al., 2018 <https://doi.org/10.1214/17-BA1075>`_);
+- "nestcheck: diagnostic tests for nested sampling calculations" (`Higson et al., 2019 <https://doi.org/10.1093/mnras/sty3090>`_).
 
-To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. More examples of ``nestcheck``'s use can be found in the code used to make the results and plots in `Higson et al. (2018b) <https://arxiv.org/abs/1804.06406>`_ at https://github.com/ejhigson/diagnostic.
+To get started, see the `installation instructions <http://nestcheck.readthedocs.io/en/latest/install.html>`_ and the `quickstart demo <http://nestcheck.readthedocs.io/en/latest/demos/quickstart_demo.html>`_. More examples of ``nestcheck``'s use can be found in the code used to make the results and plots in `Higson et al. (2019) <https://doi.org/10.1093/mnras/sty3090>`_ at https://github.com/ejhigson/diagnostic.
 
 Compatible nested sampling software
 -----------------------------------
@@ -34,8 +34,8 @@ Currently ``nestcheck.data_processing`` has functions to load results from:
 - `dynesty <https://github.com/joshspeagle/dynesty>`_;
 - `perfectns <https://github.com/ejhigson/perfectns>`_.
 
-You can easily add input functions for other nested sampling software packages. Note that ``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. (2018a) <https://doi.org/10.1214/17-BA1075>`_ for more details.
-``nestcheck`` is fully compatible with `dynamic nested sampling <https://arxiv.org/abs/1704.03459>`_, in which the number of live points is varied to increase calculation accuracy.
+You can easily add input functions for other nested sampling software packages. Note that ``nestcheck`` requires information about the iso-likelihood contours within which dead points were sampled ("born"), which is needed to split nested sampling runs into their constituent single live point runs ("threads"); see `Higson et al. (2018) <https://doi.org/10.1214/17-BA1075>`_ for more details.
+``nestcheck`` is fully compatible with `dynamic nested sampling <https://doi.org/10.1007/s11222-018-9844-0>`_, in which the number of live points is varied to increase calculation accuracy.
 
 
 Documentation contents
@@ -56,12 +56,18 @@ If ``nestcheck`` is useful for your academic research, please cite the three pap
 
 .. code-block:: tex
 
-    @article{higson2018diagnostic,
+    @article{higson2019diagnostic,
     title={nestcheck: diagnostic tests for nested sampling calculations},
     author={Higson, Edward and Handley, Will and Hobson, Mike and Lasenby, Anthony},
-    year={2018},
-    journal={arXiv preprint arXiv:1804.06406},
-    url={https://arxiv.org/abs/1804.06406}}
+    journal={Monthly Notices of the Royal Astronomical Society},
+    year={2019}
+    volume={483},
+    number={2},
+    pages={2044--2056},
+    doi={10.1093/mnras/sty3090},
+    url={http://doi.org/10.1093/mnras/sty3090},
+    archivePrefix={arXiv},
+    arxivId={1804.06406}}
 
     @article{higson2018sampling,
     title={Sampling Errors in Nested Sampling Parameter Estimation},
