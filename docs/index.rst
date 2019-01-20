@@ -112,4 +112,4 @@ If you have any questions or suggestions please get in touch (e.higson@mrao.cam.
 Authors & License
 -----------------
 
-Copyright 2018 Edward Higson and contributors (MIT License).
+Copyright 2018-Present Edward Higson and contributors (MIT license).
