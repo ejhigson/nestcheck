@@ -2,8 +2,8 @@
 """
 Functions for diagnostic plots of nested sampling runs.
 
-Includes functions for plots described "Diagnostic tests for nested sampling
-calculations" (Higson et al. 2018).
+Includes functions for plots described 'nestcheck: diagnostic tests for nested
+sampling calculations' (Higson et al. 2019).
 """
 
 import functools
@@ -21,7 +21,7 @@ import nestcheck.ns_run_utils
 def plot_run_nlive(method_names, run_dict, **kwargs):
     """Plot the allocations of live points as a function of logX for the input
     sets of nested sampling runs of the type used in the dynamic nested
-    sampling paper (Higson et al. 2018).
+    sampling paper (Higson et al. 2019).
     Plots also include analytically calculated distributions of relative
     posterior mass and relative posterior mass remaining.
 
@@ -236,8 +236,8 @@ def bs_param_dists(run_list, **kwargs):
     """Creates posterior distributions and their bootstrap error functions for
     input runs and estimators.
 
-    For a more detailed description and some example use cases, see "Diagnostic
-    tests for nested sampling calculations" (Higson et al. 2018).
+    For a more detailed description and some example use cases, see 'nestcheck:
+    diagnostic tests for nested sampling calculations' (Higson et al. 2019).
 
     Parameters
     ----------
@@ -351,8 +351,8 @@ def param_logx_diagram(run_list, **kwargs):
     towards higher likelihoods, expressed as a function of log X, where X(L) is
     the fraction of the prior volume with likelihood greater than some value L.
 
-    For a more detailed description and some example use cases, see "Diagnostic
-    tests for nested sampling calculations" (Higson et al. 2018).
+    For a more detailed description and some example use cases, see 'nestcheck:
+    diagnostic tests for nested sampling calculations" (Higson et al. 2019).
 
     Parameters
     ----------

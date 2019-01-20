@@ -211,7 +211,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
         =
         \frac{\mathrm{Var[base\,method]}}{\mathrm{Var[new\,method]}}
 
-    See the dynamic nested sampling paper (Higson et al. 2018) for more
+    See the dynamic nested sampling paper (Higson et al. 2019) for more
     details.
 
     The standard method on which to base the gain is assumed to be the first
@@ -308,7 +308,7 @@ def efficiency_gain_df(method_names, method_values, est_names, **kwargs):
 
 def paper_format_efficiency_gain_df(eff_gain_df):
     """Transform efficiency gain data frames output by nestcheck into the
-    format shown in the dynamic nested sampling paper (Higson et al. 2018).
+    format shown in the dynamic nested sampling paper (Higson et al. 2019).
 
     Parameters
     ----------
@@ -362,7 +362,7 @@ def get_eff_gain(base_std, base_std_unc, meth_std, meth_std_unc, adjust=1):
 
     The uncertainty on the efficiency gain is also calculated.
 
-    See the dynamic nested sampling paper (Higson et al. 2018) for more
+    See the dynamic nested sampling paper (Higson et al. 2019) for more
     details.
 
     Parameters

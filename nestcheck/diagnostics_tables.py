@@ -106,8 +106,8 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     if bs_stat_dist:
         b_d_df = pairwise_dists_on_cols(bs_vals_df)
         # Select only statistical distances - not KS pvalue as this is not
-        # useful for the bootstrap resample distributions (see Higson 2018 for
-        # more details).
+        # useful for the bootstrap resample distributions (see Higson et al.
+        # 2019 for more details).
         dists = ['ks distance', 'earth mover distance', 'energy distance']
         b_d_df = b_d_df.loc[pd.IndexSlice[dists, :], :]
         # Append 'bootstrap ' to caclulcation type

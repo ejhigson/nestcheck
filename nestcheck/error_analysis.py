@@ -266,8 +266,8 @@ def run_std_simulate(ns_run, estimator_list, n_simulate=None):
 
 def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
     r"""Estimates varaition of results due to implementation-specific
-    effects. See "Diagnostic tests for nested sampling calculations"
-    (Higson et al. 2018) for more details.
+    effects. See 'nestcheck: diagnostic tests for nested sampling calculations'
+    (Higson et al. 2019) for more details.
 
     Uncertainties on the output are calculated numerically using the fact
     that (from central limit theorem) our uncertainties on vals_std and
