@@ -403,8 +403,16 @@ def process_polychord_stats(file_root, base_dir):
         # if nlike has too many digits, PolyChord just writes ***** to .stats
         # file. This causes a ValueError
         output['nlike'] = np.nan
-    output['avnlike'] = float(lines[25 + nclust].split()[1])
-    output['avnlikeslice'] = float(lines[25 + nclust].split()[3])
+    line = lines[25 + nclust].split()
+    i = line.index('(')
+    output['avnlike'] = [float(x) for x in line[1:i]]
+
+    try:
+        output['avnlikeslice'] = [float(x) for x in line[i+1:-3]]
+    except NameError:
+        output['avnlikeslice'] = None
+    # output['avnlike'] = float(lines[25 + nclust].split()[1])
+    # output['avnlikeslice'] = float(lines[25 + nclust].split()[3])
     # Means and stds of dimensions (not produced by PolyChord<=1.13)
     if len(lines) > 29 + nclust:
         output['param_means'] = []
