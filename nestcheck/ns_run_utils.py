@@ -8,6 +8,7 @@ Nested sampling runs are stored in a standard format as python dictionaries
 """
 import copy
 import warnings
+from collections.abc import Iterable
 import numpy as np
 import scipy.special
 
@@ -205,12 +206,19 @@ def combine_ns_runs(run_list_in, **kwargs):
         run = dict_given_run_array(samples_temp, thread_min_max)
         # Combine only the additive properties stored in run['output']
         run['output'] = {}
-        for key in ['nlike', 'ndead']:
-            try:
-                run['output'][key] = sum([temp['output'][key] for temp in
-                                          run_list_in])
-            except KeyError:
-                pass
+        for run_in in run_list_in:
+            if 'output' not in run_in:
+                continue
+            for key in ['nlike', 'ndead']:
+                if key in run_in['output']:
+                    if key not in run['output']:
+                        run['output'][key] = 0
+                    if isinstance(run_in['output'][key], Iterable):
+                        # Add up multiple values (e.g., from multiple grade_dim)
+                        run['output'][key] += sum(run_in['output'][key])
+                    else:
+                        run['output'][key] += run_in['output'][key]
+            
     check_ns_run(run, **kwargs)
     return run
 
