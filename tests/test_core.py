@@ -601,7 +601,6 @@ class TestDiagnosticsTables(unittest.TestCase):
         # numbers in python3
         print(np.column_stack(
             [df.values, expected_vals, df.values - expected_vals]))
-        assert False
         if tuple(sys.version_info) >= (3, 0):
             numpy.testing.assert_allclose(df.values, expected_vals,
                                           rtol=1e-6, atol=1e-6)
