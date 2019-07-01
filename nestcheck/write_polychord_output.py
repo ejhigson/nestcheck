@@ -248,6 +248,7 @@ def write_stats_file(run_output_dict):
                                             output['param_mean_errs'])):
         file_lines.append('{0}  {1} +/-   {2}'.format(
             str(i + 1).ljust(3), mean, meanerr))
+    file_lines.append('-------------------------------')
     file_path = os.path.join(output['base_dir'],
                              output['file_root'] + '.stats')
     with open(file_path, 'w') as stats_file:

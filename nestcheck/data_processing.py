@@ -245,10 +245,11 @@ def process_polychord_run(file_root, base_dir, process_stats_file=True,
     if process_stats_file:
         try:
             ns_run['output'] = process_polychord_stats(file_root, base_dir)
-        except (OSError, IOError, ValueError) as err:
+        except (OSError, IOError, ValueError, IndexError, NameError,
+                TypeError) as err:
             warnings.warn(
                 ('process_polychord_stats raised {} processing {}.stats file. '
-                 ' Proceeding without stats.').format(
+                 ' I am proceeding without the .stats file.').format(
                      type(err).__name__, os.path.join(base_dir, file_root)),
                 UserWarning)
     return ns_run
@@ -422,6 +423,11 @@ def process_polychord_stats(file_root, base_dir):
         output['param_means'] = []
         output['param_mean_errs'] = []
         for line in lines[29 + nclust:]:
+            if '------------------' in line:
+                # A line of dashes is used to show the start of the derived
+                # parameters in the .stats file for later versions of
+                # PolyChord
+                continue
             output['param_means'].append(float(line.split()[1]))
             output['param_mean_errs'].append(float(line.split()[3]))
     return output
