@@ -396,7 +396,6 @@ def process_polychord_stats(file_root, base_dir):
     output['nposterior'] = int(lines[20 + nclust].split()[1])
     output['nequals'] = int(lines[21 + nclust].split()[1])
     output['ndead'] = int(lines[22 + nclust].split()[1])
-    
     output['nlive'] = int(lines[23 + nclust].split()[1])
     try:
         output['nlike'] = [int(x) for x in lines[24 + nclust].split()[1:]]
@@ -406,14 +405,18 @@ def process_polychord_stats(file_root, base_dir):
         # if nlike has too many digits, PolyChord just writes ***** to .stats
         # file. This causes a ValueError
         output['nlike'] = np.nan
-    
     line = lines[25 + nclust].split()
     i = line.index('(')
+    # If there are multiple parameter speeds then multiple values are written
+    # for avnlike and avnlikeslice
     output['avnlike'] = [float(x) for x in line[1:i]]
-    try:
-        output['avnlikeslice'] = [float(x) for x in line[i+1:-3]]
-    except NameError:
-        output['avnlikeslice'] = None
+    # If only one value, keep as float
+    if len(output['avnlike']) == 1:
+        output['avnlike'] = output['avnlike'][0]
+    output['avnlikeslice'] = [float(x) for x in line[i+1:-3]]
+    # If only one value, keep as float
+    if len(output['avnlikeslice']) == 1:
+        output['avnlikeslice'] = output['avnlikeslice'][0]
     # Means and stds of dimensions (not produced by PolyChord<=1.13)
     if len(lines) > 29 + nclust:
         output['param_means'] = []

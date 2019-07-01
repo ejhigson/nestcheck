@@ -8,7 +8,6 @@ Nested sampling runs are stored in a standard format as python dictionaries
 """
 import copy
 import warnings
-from collections.abc import Iterable
 import numpy as np
 import scipy.special
 
@@ -206,19 +205,21 @@ def combine_ns_runs(run_list_in, **kwargs):
         run = dict_given_run_array(samples_temp, thread_min_max)
         # Combine only the additive properties stored in run['output']
         run['output'] = {}
-        for run_in in run_list_in:
-            if 'output' not in run_in:
-                continue
-            for key in ['nlike', 'ndead']:
-                if key in run_in['output']:
-                    if key not in run['output']:
-                        run['output'][key] = 0
-                    if isinstance(run_in['output'][key], Iterable):
-                        # Add up multiple values (e.g., from multiple grade_dim)
-                        run['output'][key] += sum(run_in['output'][key])
-                    else:
-                        run['output'][key] += run_in['output'][key]
-            
+        for key in ['nlike', 'ndead']:
+            try:
+                to_sum = [run_temp['output'][key] for run_temp in run_list_in]
+                # Check if any runs have iterable (rather than float/int)
+                # values for nlike or ndead and sum to floats/ints when needed.
+                # Iterable values for nlike are produced for nlike when using
+                # PolyChord with fast/slow parameters.
+                for i, value in enumerate(to_sum):
+                    try:
+                        to_sum[i] = sum(value)
+                    except TypeError:
+                        pass
+                run['output'][key] = sum(to_sum)
+            except KeyError:
+                pass
     check_ns_run(run, **kwargs)
     return run
 
