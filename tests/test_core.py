@@ -208,6 +208,9 @@ class TestNSRunUtils(unittest.TestCase):
         """Check combining runs is consistent with combining threads."""
         runs = [nestcheck.dummy_data.get_dummy_run(2, 10),
                 nestcheck.dummy_data.get_dummy_run(2, 10)]
+        # Add ndead key to output to check combining them
+        for i, _ in enumerate(runs):
+            runs[i]['output'] = {'ndead': runs[i]['logl'].shape[0]}
         comb = nestcheck.ns_run_utils.combine_ns_runs(runs)
         # Check vs threads
         all_threads = []
