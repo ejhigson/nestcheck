@@ -15,8 +15,8 @@ import nestcheck.ns_run_utils
 
 
 def write_run_output(run, **kwargs):
-    """Writes PolyChord output files corresponding to the input nested sampling
-    run. The file root is
+    r"""Writes PolyChord output files corresponding to the input nested
+    sampling run. The file root is
 
     .. code-block:: python
 
@@ -233,12 +233,13 @@ def write_stats_file(run_output_dict):
         ' ndead:          {0}'.format(output['ndead']),
         ' nlive:             {0}'.format(output['nlive']),
         ' nlike:         {0}'.format(
-            output['nlike'] if not isinstance(output['nlike'], Iterable) 
+            output['nlike'] if not isinstance(output['nlike'], Iterable)
             else " ".join([str(x) for x in output['nlike']])),
         ' <nlike>:       {0}   (    {1} per slice )'.format(
-            output['avnlike'] if not isinstance(output['avnlike'], Iterable) 
-            else " ".join([str(x) for x in output['avnlike']]), 
-            output['avnlikeslice'] if not isinstance(output['avnlikeslice'], Iterable) 
+            output['avnlike'] if not isinstance(output['avnlike'], Iterable)
+            else " ".join([str(x) for x in output['avnlike']]),
+            output['avnlikeslice'] if not isinstance(
+                output['avnlikeslice'], Iterable)
             else " ".join([str(x) for x in output['avnlikeslice']])),
         '',
         '',
