@@ -7,7 +7,6 @@ dictionary stored in the nestcheck format.
 import copy
 import functools
 import os
-from collections.abc import Iterable
 import numpy as np
 import nestcheck.estimators as e
 import nestcheck.error_analysis
@@ -233,13 +232,13 @@ def write_stats_file(run_output_dict):
         ' ndead:          {0}'.format(output['ndead']),
         ' nlive:             {0}'.format(output['nlive']),
         ' nlike:         {0}'.format(
-            output['nlike'] if not isinstance(output['nlike'], Iterable)
+            output['nlike'] if not isinstance(output['nlike'], (list, tuple))
             else " ".join([str(x) for x in output['nlike']])),
         ' <nlike>:       {0}   (    {1} per slice )'.format(
-            output['avnlike'] if not isinstance(output['avnlike'], Iterable)
+            output['avnlike'] if not isinstance(output['avnlike'], (list, tuple))
             else " ".join([str(x) for x in output['avnlike']]),
             output['avnlikeslice'] if not isinstance(
-                output['avnlikeslice'], Iterable)
+                output['avnlikeslice'], (list, tuple))
             else " ".join([str(x) for x in output['avnlikeslice']])),
         '',
         '',

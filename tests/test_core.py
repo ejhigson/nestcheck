@@ -599,7 +599,9 @@ class TestDiagnosticsTables(unittest.TestCase):
                                     [2.81601546e-02]])
         # Tricky getting seeding consistent in python2 so only test exact
         # numbers in python3
-        print(df.values, expected_vals)
+        print(np.column_stack(
+            [df.values, expected_vals, df.values - expected_vals]))
+        assert False
         if tuple(sys.version_info) >= (3, 0):
             numpy.testing.assert_allclose(df.values, expected_vals,
                                           rtol=1e-6, atol=1e-6)
