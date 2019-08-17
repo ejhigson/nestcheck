@@ -6,7 +6,6 @@ python:
  - '3.6'
  - '3.7'
 install:
-# pip install git+https://github.com/williamjameshandley/fgivenx
  - pip install .
  - pip install coveralls
 services:
