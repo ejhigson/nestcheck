@@ -18,6 +18,8 @@ nestcheck
 [![DOI](http://joss.theoj.org/papers/10.21105/joss.00916/status.svg)](https://doi.org/10.21105/joss.00916)
 [![Maintainability](https://api.codeclimate.com/v1/badges/7fdfe74eb8256020c780/maintainability)](https://codeclimate.com/github/ejhigson/nestcheck/maintainability)
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ejhigson/nestcheck/blob/master/LICENSE)
+[![Downloads](https://pepy.tech/badge/nestcheck)](https://pepy.tech/project/nestcheck)
+[![Downloads](https://pepy.tech/badge/nestcheck/week)](https://pepy.tech/project/nestcheck/week)
 
 ## Read the documentation at [http://nestcheck.readthedocs.io](http://nestcheck.readthedocs.io).
 <!-- ASCII art bird adapted from http://www.oocities.org/spunk1111/birds.htm#parrot --!>
