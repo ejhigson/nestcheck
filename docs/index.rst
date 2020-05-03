@@ -2,18 +2,22 @@ nestcheck
 =========
 
 .. image:: https://travis-ci.org/ejhigson/nestcheck.svg?branch=master
-    :target: https://travis-ci.org/ejhigson/nestcheck
+   :target: https://travis-ci.org/ejhigson/nestcheck
 .. image:: https://coveralls.io/repos/github/ejhigson/nestcheck/badge.svg?branch=master
-	:target: https://coveralls.io/github/ejhigson/nestcheck?branch=master
+   :target: https://coveralls.io/github/ejhigson/nestcheck?branch=master
 .. image:: https://readthedocs.org/projects/nestcheck/badge/?version=latest
-	:target: http://nestcheck.readthedocs.io/en/latest/?badge=latest
+   :target: http://nestcheck.readthedocs.io/en/latest/?badge=latest
 .. image:: http://joss.theoj.org/papers/10.21105/joss.00916/status.svg
    :target: https://doi.org/10.21105/joss.00916
 .. image:: https://api.codeclimate.com/v1/badges/7fdfe74eb8256020c780/maintainability
-    :target: https://codeclimate.com/github/ejhigson/nestcheck/maintainability
-    :alt: Maintainability
+   :target: https://codeclimate.com/github/ejhigson/nestcheck/maintainability
+   :alt: Maintainability
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
-    :target: https://github.com/ejhigson/nestcheck/blob/master/LICENSE
+   :target: https://github.com/ejhigson/nestcheck/blob/master/LICENSE
+.. image:: https://pepy.tech/badge/nestcheck
+   :target: https://pepy.tech/project/nestcheck
+.. image:: https://pepy.tech/badge/nestcheck/week
+   :target: https://pepy.tech/project/nestcheck/week
 
 Nested sampling is a popular numerical method for Bayesian computation, which simultaneously generates samples from the posterior distribution and an estimate of the Bayesian evidence for a given likelihood and prior.
 ``nestcheck`` provides Python utilities for analysing samples produced by nested sampling, and estimating uncertainties on nested sampling calculations (which have different statistical properties to calculations using other numerical methods). This includes implementations of the diagnostic tests and plots described in:
