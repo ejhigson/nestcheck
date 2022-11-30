@@ -281,9 +281,9 @@ def process_multinest_run(file_root, base_dir, **kwargs):
         Nested sampling run dict (see the module docstring for more details).
     """
     # Load dead and live points
-    dead = np.loadtxt(os.path.join(base_dir, file_root) + '-dead-birth.txt')
+    dead = np.loadtxt(os.path.join(base_dir, file_root) + 'dead-birth.txt')
     live = np.loadtxt(os.path.join(base_dir, file_root)
-                      + '-phys_live-birth.txt')
+                      + 'phys_live-birth.txt')
     # Remove unnecessary final columns
     dead = dead[:, :-2]
     live = live[:, :-1]
