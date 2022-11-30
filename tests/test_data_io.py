@@ -138,9 +138,9 @@ class TestDataProcessing(unittest.TestCase):
         dead = np.hstack((dead, np.zeros((dead.shape[0], 2))))
         live = np.hstack((live, np.zeros((live.shape[0], 1))))
         np.savetxt(os.path.join(
-            TEST_CACHE_DIR, file_root + '-dead-birth.txt'), dead)
+            TEST_CACHE_DIR, file_root + 'dead-birth.txt'), dead)
         np.savetxt(os.path.join(
-            TEST_CACHE_DIR, file_root + '-phys_live-birth.txt'), live)
+            TEST_CACHE_DIR, file_root + 'phys_live-birth.txt'), live)
         processed_run = nestcheck.data_processing.process_multinest_run(
             file_root, TEST_CACHE_DIR)
         nestcheck.ns_run_utils.check_ns_run(processed_run)
