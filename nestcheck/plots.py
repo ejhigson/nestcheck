@@ -436,7 +436,7 @@ def param_logx_diagram(run_list, **kwargs):
     if not plot_means:
         mean_colors = [None] * len(colors)
     else:
-        mean_colors = ['dark' + col for col in colors]
+        mean_colors = ["black"] + [col for col in colors]
     nlogx = npoints
     ny_posterior = npoints
     assert len(fthetas) == len(labels)
