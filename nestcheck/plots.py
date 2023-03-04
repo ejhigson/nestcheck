@@ -336,7 +336,7 @@ def bs_param_dists(run_list, **kwargs):
     for nax, ax in enumerate(axes[:len(fthetas)]):
         ax.set_yticks([])
         ax.set_xlabel(labels[nax])
-        if ax.is_first_col():
+        if ax.get_subplotspec().colspan.start == 0:
             ax.set_ylabel('probability')
         # Prune final xtick label so it doesn't overlap with next plot
         prune = 'upper' if nax != len(fthetas) - 1 else None
@@ -436,7 +436,7 @@ def param_logx_diagram(run_list, **kwargs):
     if not plot_means:
         mean_colors = [None] * len(colors)
     else:
-        mean_colors = ['dark' + col for col in colors]
+        mean_colors = ["black"] + [col for col in colors]
     nlogx = npoints
     ny_posterior = npoints
     assert len(fthetas) == len(labels)
@@ -563,9 +563,12 @@ def param_logx_diagram(run_list, **kwargs):
         axes[i + 1, 0].yaxis.set_major_locator(
             matplotlib.ticker.MaxNLocator(nbins=3, prune=prune))
     for _, ax in np.ndenumerate(axes):
-        if not ax.is_first_col():
+        if not ax.get_subplotspec().colspan.start == 0:
             ax.set_yticklabels([])
-        if not (ax.is_last_row() and ax.is_last_col()):
+        if not (
+            ax.get_subplotspec().rowspan.stop == ax.get_gridspec().nrows \
+            and ax.get_subplotspec().colspan.stop == ax.get_gridspec().ncols
+        ):
             ax.set_xticks([])
     np.random.set_state(state)  # return to original random state
     return fig
