@@ -334,6 +334,7 @@ def process_dynesty_run(results):
     unique_th, first_inds = np.unique(results.samples_id, return_index=True)
     assert np.array_equal(unique_th, np.asarray(range(unique_th.shape[0])))
     thread_min_max = np.full((unique_th.shape[0], 2), np.nan)
+    is_dynamic_ns = False
     try:
         # Try processing standard nested sampling results
         assert unique_th.shape[0] == results.nlive
