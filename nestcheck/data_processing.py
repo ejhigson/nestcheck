@@ -334,7 +334,7 @@ def process_dynesty_run(results):
     unique_th, first_inds = np.unique(results.samples_id, return_index=True)
     assert np.array_equal(unique_th, np.asarray(range(unique_th.shape[0])))
     thread_min_max = np.full((unique_th.shape[0], 2), np.nan)
-    is_dynamic_ns = False
+    is_dynamic_dynesty = False
     try:
         # Try processing standard nested sampling results
         assert unique_th.shape[0] == results.nlive
@@ -346,21 +346,23 @@ def process_dynesty_run(results):
     except AttributeError:
         # If results has no nlive attribute, it must be dynamic nested sampling
         assert unique_th.shape[0] == sum(results.batch_nlive)
-        is_dynamic_ns = True
-        #numpy diff goes out[i] = samples[i+1] - samples[i], so it records the 
-        #samples added/removed at samples[i]
-        diff_nlive = np.diff(results.samples_n)
-        #results.samples_n tells us how many live samples there are at a given iteration,
-        #so use the diff of this to assign the samples[change_in_nlive_at_sample (col 2)]
-        #value. We know we want the last n_live to end with 1      
-        samples[:-1,2] = diff_nlive
+        # if the object has a samples_n attribute, it is from dynesty
+        if hasattr(results, 'samples_n'):
+            is_dynamic_dynesty = True
+            #numpy diff goes out[i] = samples[i+1] - samples[i], so it records the 
+            #samples added/removed at samples[i]
+            diff_nlive = np.diff(results.samples_n)
+            #results.samples_n tells us how many live samples there are at a given iteration,
+            #so use the diff of this to assign the samples[change_in_nlive_at_sample (col 2)]
+            #value. We know we want the last n_live to end with 1      
+            samples[:-1,2] = diff_nlive
         for th_lab, ind in zip(unique_th, first_inds):
             thread_min_max[th_lab, 0] = (
                 results.batch_bounds[results.samples_batch[ind], 0])
     for th_lab in unique_th:
         final_ind = np.where(results.samples_id == th_lab)[0][-1]
         thread_min_max[th_lab, 1] = results.logl[final_ind]
-        if not is_dynamic_ns:
+        if not is_dynamic_dynesty:
             samples[final_ind, 2] = -1
     assert np.all(~np.isnan(thread_min_max))
     run = nestcheck.ns_run_utils.dict_given_run_array(samples, thread_min_max)
