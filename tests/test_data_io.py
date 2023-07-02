@@ -190,6 +190,7 @@ class TestDataProcessing(unittest.TestCase):
                     self.batch_nlive = np.full(
                         run['thread_min_max'].shape[0], 1)
                     self.samples_batch = run['thread_labels']
+                    self.samples_n = np.ones(shape=(1,self.samples.shape[0]))
 
         run = nestcheck.dummy_data.get_dummy_run(1, 10)
         for dynamic in [True, False]:
