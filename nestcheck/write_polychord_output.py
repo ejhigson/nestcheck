@@ -62,6 +62,9 @@ def write_run_output(run, **kwargs):
     n_simulate: int, optional
         Number of bootstrap replications to use when estimating uncertainty on
         evidence and parameter means.
+    logl_init: float, optional
+        Value used to identify the inital live points which were sampled from
+        the whole prior. Default value is set to -1e30 as in PolyChord.
     """
     write_dead = kwargs.pop('write_dead', True)
     write_stats = kwargs.pop('write_stats', True)
@@ -70,6 +73,7 @@ def write_run_output(run, **kwargs):
     stats_means_errs = kwargs.pop('stats_means_errs', True)
     fmt = kwargs.pop('fmt', '% .14E')
     n_simulate = kwargs.pop('n_simulate', 100)
+    logl_init = kwargs.pop('logl_init', -1e30)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
     mandatory_keys = ['file_root', 'base_dir']
@@ -77,7 +81,7 @@ def write_run_output(run, **kwargs):
         assert key in run['output'], key + ' not in run["output"]'
     root = os.path.join(run['output']['base_dir'], run['output']['file_root'])
     if write_dead:
-        samples = run_dead_birth_array(run)
+        samples = run_dead_birth_array(run, logl_init=logl_init)
         np.savetxt(root + '_dead-birth.txt', samples, fmt=fmt)
         np.savetxt(root + '_dead.txt', samples[:, :-1], fmt=fmt)
     if equals or posteriors:
@@ -115,7 +119,7 @@ def write_run_output(run, **kwargs):
         write_stats_file(run['output'])
 
 
-def run_dead_birth_array(run, **kwargs):
+def run_dead_birth_array(run, logl_init=-1e30, **kwargs):
     """Converts input run into an array of the format of a PolyChord
     <root>_dead-birth.txt file. Note that this in fact includes live points
     remaining at termination as well as dead points.
@@ -125,6 +129,9 @@ def run_dead_birth_array(run, **kwargs):
     ns_run: dict
         Nested sampling run dict (see data_processing module docstring for more
         details).
+    logl_init: float, optional
+        Value used to identify the inital live points which were sampled from
+        the whole prior. Default value is set to -1e30 as in PolyChord.
     kwargs: dict, optional
         Options for check_ns_run.
 
@@ -145,7 +152,7 @@ def run_dead_birth_array(run, **kwargs):
         samp_arr[:, ndim] = th['logl']
         samp_arr[1:, ndim + 1] = th['logl'][:-1]
         if th['thread_min_max'][0, 0] == -np.inf:
-            samp_arr[0, ndim + 1] = -1e30
+            samp_arr[0, ndim + 1] = logl_init
         else:
             samp_arr[0, ndim + 1] = th['thread_min_max'][0, 0]
         samp_arrays.append(samp_arr)
