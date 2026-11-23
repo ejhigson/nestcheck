@@ -80,7 +80,8 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
     # recomputed if bs_stat_dist is True
     bs_vals_df = bs_values_df(run_list, estimator_list, estimator_names,
                               n_simulate, parallel=parallel)
-    bs_std_df = bs_vals_df.applymap(lambda x: np.std(x, ddof=1))
+    bs_std_df = bs_vals_df.apply(
+        lambda col: col.map(lambda x: np.std(x, ddof=1)))
     bs_std_df.index.name = 'run'
     bs_std_df['calculation type'] = 'bootstrap std'
     bs_std_df.set_index('calculation type', drop=True, append=True,
@@ -98,8 +99,8 @@ def run_list_error_values(run_list, estimator_list, estimator_names,
         t_d_df = t_d_df.xs('ks pvalue', level='calculation type',
                            drop_level=False)
         # Append 'thread ' to caclulcation type
-        t_d_df.index.set_levels(['thread ks pvalue'], level='calculation type',
-                                inplace=True)
+        t_d_df.index = t_d_df.index.set_levels(
+            ['thread ks pvalue'], level='calculation type')
         df = pd.concat([df, t_d_df])
     # Pairwise distances on BS distributions
     # --------------------------------------
