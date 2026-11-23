@@ -308,6 +308,9 @@ def implementation_std(vals_std, vals_std_u, bs_std, bs_std_u, **kwargs):
     random_seed = kwargs.pop('random_seed', 0)
     if kwargs:
         raise TypeError('Unexpected **kwargs: {0}'.format(kwargs))
+    # the inputs are indexed by position below, so drop any pandas index
+    vals_std, vals_std_u, bs_std, bs_std_u = (
+        np.asarray(x) for x in (vals_std, vals_std_u, bs_std, bs_std_u))
     # if the implementation errors are uncorrelated with the
     # sampling errrors: var results = var imp + var sampling
     # so std imp = sqrt(var results - var sampling)

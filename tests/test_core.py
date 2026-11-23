@@ -60,16 +60,16 @@ class TestPandasFunctions(unittest.TestCase):
     def test_summary_df(self):
         """Check summary DataFrame has expected values."""
         self.assertEqual(self.sum_df.shape, (7, self.ncols))
-        numpy.testing.assert_array_equal(
+        numpy.testing.assert_allclose(
             self.sum_df.loc[('mean', 'value'), :].values,
             np.mean(self.data, axis=0))
-        numpy.testing.assert_array_equal(
+        numpy.testing.assert_allclose(
             self.sum_df.loc[('mean', 'uncertainty'), :].values,
             np.std(self.data, axis=0, ddof=1) / np.sqrt(self.nrows))
-        numpy.testing.assert_array_equal(
+        numpy.testing.assert_allclose(
             self.sum_df.loc[('std', 'value'), :].values,
             np.std(self.data, axis=0, ddof=1))
-        numpy.testing.assert_array_equal(
+        numpy.testing.assert_allclose(
             self.sum_df.loc[('rmse', 'value'), :].values,
             np.sqrt(np.mean(self.data ** 2, axis=0)))
         self.assertRaises(

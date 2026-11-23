@@ -17,6 +17,11 @@ import fgivenx.plot
 import nestcheck.error_analysis
 import nestcheck.ns_run_utils
 
+try:
+    from numpy import trapezoid  # NumPy >= 2.0
+except ImportError:
+    from numpy import trapz as trapezoid
+
 
 def plot_run_nlive(method_names, run_dict, **kwargs):
     """Plot the allocations of live points as a function of logX for the input
@@ -109,7 +114,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                 ax.plot(logx, run['nlive_array'], linewidth=1,
                         color=line.get_color())
             # for normalising analytic weight lines
-            integrals[nr] = -np.trapz(run['nlive_array'], x=logx)
+            integrals[nr] = -trapezoid(run['nlive_array'], x=logx)
         integrals_dict[method_name] = integrals[np.isfinite(integrals)]
     # if not specified, set logx min to the lowest logx reached by a run
     if logx_min is None:
@@ -133,7 +138,7 @@ def plot_run_nlive(method_names, run_dict, **kwargs):
                 linestyle=':', color='k')
         # plot cumulative posterior mass
         w_an_c = np.cumsum(w_an)
-        w_an_c /= np.trapz(w_an_c, x=logx_plot)
+        w_an_c /= trapezoid(w_an_c, x=logx_plot)
         # Try normalising the cumulative distribution of posterior mass to have
         # the same area under the curve as the runs with dynamic_goal=0 (the
         # ones which we want to compare to it). If they are not available just
@@ -210,7 +215,7 @@ def kde_plot_df(df, xlims=None, **kwargs):
                               supmax + 0.1 * (supmax - supmin), 200)
         handles = []
         labels = []
-        for name, samps in df[col].iteritems():
+        for name, samps in df[col].items():
             pdf = scipy.stats.gaussian_kde(samps)(support)
             if not normalize:
                 pdf /= pdf.max()
@@ -470,7 +475,7 @@ def param_logx_diagram(run_list, **kwargs):
                 run['nlive_array'], simulate=True)[::-1]
             logw_rel = logx_temp + run['logl'][::-1]
             w_rel = np.exp(logw_rel - logw_rel.max())
-            w_rel /= np.trapz(w_rel, x=logx_temp)
+            w_rel /= trapezoid(w_rel, x=logx_temp)
             samples[i, ::2] = logx_temp
             samples[i, 1::2] = w_rel
         if logx_min is None:
@@ -786,7 +791,7 @@ def rel_posterior_mass(logx, logl):
     """
     logw = logx + logl
     w_rel = np.exp(logw - logw.max())
-    w_rel /= np.abs(np.trapz(w_rel, x=logx))
+    w_rel /= np.abs(trapezoid(w_rel, x=logx))
     return w_rel
 
 
